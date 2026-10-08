@@ -53,11 +53,16 @@ def _pp_fremde_praesentationen():
 
 
 def _pp_beenden():
-    subprocess.run(["osascript", "-e", 'tell application "Microsoft PowerPoint" to quit'], capture_output=True, timeout=60)
-    for _ in range(20):
-        if not _pp_laeuft():
-            return
-        time.sleep(0.5)
+    """quit kann direkt nach close verloren gehen – bis zu 3 Versuche, je bis 10 s warten."""
+    for _ in range(3):
+        time.sleep(1)
+        subprocess.run(["osascript", "-e", 'tell application "Microsoft PowerPoint" to quit'], capture_output=True, timeout=60)
+        for _ in range(20):
+            if not _pp_laeuft():
+                return True
+            time.sleep(0.5)
+    print("Hinweis: PowerPoint ließ sich nicht beenden – vor dem nächsten Render von Hand schließen.")
+    return False
 
 
 def _mac_powerpoint(pptx, pdf, render_dir, neustart=True):
