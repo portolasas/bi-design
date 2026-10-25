@@ -1,6 +1,6 @@
 ---
 name: bi-designer
-description: BI-Designer - Boehringer Ingelheim corporate design for any visual output, with or without a PPP project, in VS Code (Copilot) and Claude Code - colors (hex tokens, semantic roles, computed contrast rules), typography (Boehringer Forward, Segoe UI fallback), logo/symbol variants, the 895-icon set, and recipes for Power Apps canvas, Power BI, PowerPoint/Word/Excel (python-pptx, python-docx, openpyxl), charts and diagrams (matplotlib, Plotly, Vega-Lite/Deneb, Mermaid, SVG), web/HTML/CSS, HTML mail, Teams cards and model-driven apps. Load whenever something visual is designed, built or reviewed - a slide deck, report, document, spreadsheet, chart, diagram, app screen, web page, mail, card or icon - also when the user only says "im BI-Design", "Corporate Design" or "Boehringer-Farben".
+description: BI-Designer - Boehringer Ingelheim corporate design for any visual output, in or outside a ppp project, in VS Code (Copilot) and Claude Code - colors (hex tokens, semantic roles, computed contrast rules), typography (Boehringer Forward, Segoe UI fallback), logo/symbol variants, the 895-icon set, and recipes for Power Apps canvas, Power BI, PowerPoint/Word/Excel (python-pptx, python-docx, openpyxl), charts and diagrams (matplotlib, Plotly, Vega-Lite/Deneb, Mermaid, SVG), web/HTML/CSS, HTML mail, Teams cards and model-driven apps. Load whenever something visual is designed, built or reviewed - a slide deck, report, document, spreadsheet, chart, diagram, app screen, web page, mail, card or icon - also when the user only says "im BI-Design", "Corporate Design" or "Boehringer-Farben".
 ---
 
 # BI-Designer
@@ -22,9 +22,10 @@ Brand profile: **boehringer-ingelheim** – [MARKE.md](marken/boehringer-ingelhe
 
 ## 2. Assets (logos, icons, fonts)
 Assets are **not** part of this skill (size, licence). Asset root in this order:
-1. the project's setting (PPP: `.ppp/PROJEKT.md` row „Branddesign“),
+1. `asset_root` in `~/.bi-design/config.json` (per computer; `bippt konfig --setze asset_root=<folder>` with the tool
+   of the skill bi-ppt in this plugin, or edit the JSON),
 2. macOS default `~/Library/Mobile Documents/com~apple~CloudDocs/Arbeit/BrandDesign`,
-3. otherwise ask once and remember the path in the project.
+3. otherwise ask once and save the path as `asset_root` there.
 Relative paths inside the root: `assets` in tokens.json. Copy only used files into the deliverable or
 project (`design/assets/`), never whole icon sets; font files never into shared/public places or repos.
 
@@ -64,6 +65,9 @@ project (`design/assets/`), never whole icon sets; font files never into shared/
 - [ ] Official template used where it exists
 
 ## 6. Use in other tools
-- **PPP projects:** `ppp-branddesign` adds the project parts (DESIGN.md, Stellschrauben, builder DESIGN).
-- **Copilot without PPP:** agent `bi-designer` in the agent picker.
-- **Claude Code:** this skill is installed under `~/.claude/skills/bi-designer` by `ppp-update`.
+- **ppp projects:** the ppp skills take brand values from here – Power Apps theme (`BIRole`, `BIColor`, `BIFont`,
+  `BISize`), click prototypes, Power BI theme. Project decisions on design go into the project (theme section of
+  `components/power-apps/README.md`).
+- **PowerPoint:** skill and agent `bi-ppt` of this plugin build decks with the generator bippt from a spec.
+- **Installation:** plugin bi-design from the private marketplace `portolasas/bi-design`, in VS Code and Claude Code.
+  Copies in `~/.copilot` or `~/.claude` from earlier installations hide it (`bippt aufraeumen`).

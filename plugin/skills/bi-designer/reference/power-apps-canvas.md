@@ -6,8 +6,8 @@ Legend: [B] confirmed · [O] open (verify in the tenant) · [V] version-dependen
 Paste once into `App.Formulas`; afterwards every control references tokens, never raw hex values.
 Values below are for Boehringer Ingelheim (from `marken/boehringer-ingelheim/tokens.json`).
 **Notation:** the block below is en-US. The formula bar needs the user's Studio notation – de-DE:
-`,` → `;` inside records/arguments and `;` → `;;` after each formula (skill ppp-power-apps §2).
-Deliver the variant from `.ppp/PROJEKT.md`; YAML screens stay en-US.
+`,` → `;` inside records/arguments and `;` → `;;` after each formula (skill ppp-power-apps). In ppp projects keep
+the en-US block in `components/power-apps/theme/` and create the de-DE variant with `ppp formulas`; YAML screens stay en-US.
 
 ```
 BIColor = {
@@ -70,7 +70,7 @@ the technical value.
 | Status chip | label with `Fill`/`Color` from BIStatus, `Size = BISize.Small`, padding 4/8 |
 
 Classic dropdown, combo box, date picker and check box bring their own blue tones: set all their
-color properties to roles (list in ppp-power-apps `reference/verhalten.md`).
+color properties to roles (list in ppp-power-apps `references/layout.md`).
 
 Modern controls (Fluent based) take theme colors differently (e.g. `BasePaletteColor`, app theme) [O][V]:
 set `BasePaletteColor = BIColor.DarkGreen` where available and verify contrast; do not mix classic and

@@ -1,26 +1,22 @@
-"""Markenprofil laden – Quelle ist der PPP-Skill bi-designer (marken/<profil>/tokens.json, icons.txt).
+"""Markenprofil laden – Quelle ist der Skill bi-designer im selben Plugin (marken/<profil>/tokens.json, icons.txt).
 
-Suchreihenfolge: $BIPPT_MARKE_DIR, ~/.copilot/skills/bi-designer/marken, ~/.claude/skills/bi-designer/marken.
-Fehlt bi-designer, greift ein eingebauter Notstand mit den Kernfarben (Warnung). Neue Marken = neuer Ordner
-in bi-designer, hier ist nichts zu ändern.
+Suchreihenfolge: $BIPPT_MARKE_DIR, <plugin>/skills/bi-designer/marken. Fehlt das Profil, greift ein eingebauter
+Notstand mit den Kernfarben (Warnung). Neue Marken = neuer Ordner in bi-designer, hier ist nichts zu ändern.
 """
 import json
 import os
 import sys
 from pathlib import Path
 
-from . import konfig
+from . import PLUGIN, konfig
 
 
 def _suchpfade():
     env = os.environ.get("BIPPT_MARKE_DIR")
-    pfade = [Path(env)] if env else []
-    for basis in (Path.home() / ".copilot", Path.home() / ".claude"):
-        pfade.append(basis / "skills" / "bi-designer" / "marken")
-    return pfade
+    return ([Path(env)] if env else []) + [PLUGIN / "skills" / "bi-designer" / "marken"]
 
 
-# Notstand, nur wenn bi-designer fehlt (Werte = tokens.json 2026-10)
+# Notstand, nur wenn das Profil fehlt (Werte = tokens.json 2026-10)
 _NOTSTAND = {
     "darkGreen": "08312A", "accentGreen": "00E47C", "white": "FFFFFF", "lightGray": "F6F5F3", "warmGray": "E5E3DE",
     "yellow": "FFE667", "mediumYellow": "FFD03D", "darkYellow": "E18600", "lightBlue": "D2F2F7", "blue": "A3E5EE",
@@ -54,7 +50,7 @@ class Marke:
             self.icons = [z.strip() for z in ic.read_text(encoding="utf-8").splitlines() if z.strip()] if ic.is_file() else []
         else:
             print(f"WARNUNG: bi-designer-Profil '{self.profil}' nicht gefunden – Notstand-Farben. "
-                  "PPP/bi-designer installieren.", file=sys.stderr)
+                  "Profil in skills/bi-designer/marken/ anlegen.", file=sys.stderr)
             self.farben = dict(_NOTSTAND)
             self.rollen = {"chartSequence": ["darkGreen", "accentGreen", "darkBlue", "mediumBlue", "darkYellow",
                                              "mediumRed", "darkViolet", "mediumViolet", "darkRed", "mediumYellow"]}

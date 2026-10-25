@@ -3,7 +3,7 @@
 Spezifikation (Auszug, vollständig in reference/folientypen.md):
 {
   "ausgabe": "Projekt_Update_07.10.2026.pptx",   relativ zur Spec
-  "vorlage": "…/BI_Vorlage_16x9.pptx",            optional; Standard aus ~/.bi-ppt/config.json
+  "vorlage": "…/BI_Vorlage_16x9.pptx",            optional; Standard aus ~/.bi-design/config.json
   "basis":   "Altes_Deck.pptx",                   optional; dann ist das alte Deck Vorlage UND Folienquelle
   "fusszeile": "Projekt | Anlass | 07.10.2026",
   "heute": "2026-10-07",

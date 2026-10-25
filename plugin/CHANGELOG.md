@@ -1,5 +1,18 @@
 # Changelog
 
+## 2.0.0 – 2026-10-25
+Aus dem Repo BI-PPT wird das Plugin **bi-design** im privaten Marktplatz `portolasas/bi-design` (Entscheidung des Nutzers).
+- Ein Plugin für VS Code und Claude Code (Aufbau A wie ppp: `plugin.json` für VS Code, `.claude-plugin/plugin.json` für
+  Claude Code): Agent `bi-ppt`, Skills `bi-ppt` und `bi-designer`, Generator `bippt`, Vorlage BI-Master v2.1.
+- Skill **bi-designer** aus PPP 0.17 übernommen (Stand 08.10.); Verweise auf PPP 0.17 durch ppp und `~/.bi-design/config.json`
+  ersetzt. Er ist Skill, kein eigener Agent mehr; ppp und bi-ppt nutzen ihn.
+- Installer, `/bi-ppt-update`, Starter `~/.bi-ppt/bippt` und venv entfallen. bippt läuft aus der Kopie des Plugins mit dem
+  System-Python; `bippt umgebung` nennt den Aufruf, `bippt einrichten` installiert die Pakete mit `pip --user`.
+- `bippt aufraeumen [--ja]` zeigt bzw. löscht alte Kopien von BI-PPT 1.x und PPP 0.17 in `~/.copilot`, `~/.claude` und
+  `~/.bi-ppt` (nur mit Merkmal von BI-PPT oder BI-Designer) und übernimmt `~/.bi-ppt/config.json`; `bippt umgebung` meldet sie.
+- Einstellungen in `~/.bi-design/config.json`; Marke aus dem Skill im Plugin; Vorlage aus dem Plugin, eigene über `konfig`.
+- Tests: `tests/test_plugin.py` (Aufbau, Version, Aufräumen) neben `tests/test_bippt.py`.
+
 ## 1.0.1 – 2026-10-08
 - Rendern (Mac): PowerPoint wird nach dem Export zuverlässig beendet (quit direkt nach close ging verloren;
   jetzt bis zu 3 Versuche). Sonst lief der nächste Export in derselben Sitzung (verstümmelte Titel-Schrift).

@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
-"""bippt – Werkzeug des Agenten BI-PPT. Aufruf über den Starter:
-  macOS:   ~/.bi-ppt/bippt <befehl> …
-  Windows: & "$HOME\\.bi-ppt\\bippt.cmd" <befehl> …
+"""bippt – Werkzeug des Agenten BI-PPT im Plugin bi-design. Aufruf mit dem Python, das die Pakete hat:
+  macOS:   python3 "<plugin>/tools/bippt.py" <befehl> …
+  Windows: python "<plugin>\\tools\\bippt.py" <befehl> …
+`bippt umgebung` nennt den Aufruf mit vollem Pfad.
 
 Befehle
-  umgebung                     Python, Pakete, Vorlage, Marke, Icons, Renderweg prüfen
+  umgebung                     Python, Pakete, Vorlage, Marke, Icons, Renderweg, alte Kopien prüfen
+  einrichten                   Python-Pakete installieren (pip --user, kein venv)
+  aufraeumen [--ja]            alte Kopien von BI-PPT 1.x und PPP 0.17 im Benutzerordner zeigen bzw. löschen
   konfig [--setze k=v …]       Einstellungen zeigen/setzen (~/.bi-ppt/config.json)
   lesen <datei…> [-o md]       Quellen als Text (vtt, docx, pptx, pdf, xlsx, md)
   analyse <pptx> [--json]      Bestehendes Deck knapp beschreiben
@@ -19,6 +22,10 @@ Befehle
 """
 import argparse
 import json
+import os
+import shutil
+import stat
+import subprocess
 import sys
 from pathlib import Path
 
@@ -30,11 +37,45 @@ except AttributeError:
     pass
 
 
+TOOL = Path(__file__).resolve()
+ALTE_KOPIEN = [  # (Pfad im Benutzerordner, Datei darin, Merkmal im Inhalt): Installer von BI-PPT 1.x, PPP 0.17
+    (".copilot/agents/bi-ppt.agent.md", "", "BI-PPT"),
+    (".copilot/agents/bi-designer.agent.md", "", "BI-Designer"),
+    (".copilot/skills/bi-ppt", "SKILL.md", "BI-PPT"),
+    (".copilot/skills/bi-ppt-update", "SKILL.md", "BI-PPT"),
+    (".copilot/skills/bi-designer", "SKILL.md", "BI-Designer"),
+    (".claude/skills/bi-ppt", "SKILL.md", "BI-PPT"),
+    (".claude/skills/bi-ppt-update", "SKILL.md", "BI-PPT"),
+    (".claude/skills/bi-designer", "SKILL.md", "BI-Designer"),
+    (".claude/agents/bi-ppt.md", "", "BI-PPT"),
+    (".bi-ppt", "tools/bippt.py", "bippt"),
+]
+
+
+def _aufruf():
+    return f'"{sys.executable}" "{TOOL}"'
+
+
+def _alte_kopien():
+    """Kopien im Benutzerordner, die Agent und Skills des Plugins verdecken."""
+    heim = Path(os.environ.get("BIPPT_BENUTZER") or Path.home())
+    treffer = []
+    for rel, datei, merkmal in ALTE_KOPIEN:
+        ziel = heim / rel
+        probe = ziel / datei if datei else ziel
+        try:
+            if probe.is_file() and merkmal in probe.read_text(encoding="utf-8", errors="replace"):
+                treffer.append(ziel)
+        except OSError:
+            pass
+    return treffer
+
+
 def _umgebung(_):
     import importlib
-    import platform
     from bippt import __version__, konfig
-    print(f"BI-PPT {__version__} · {konfig.rechner()}")
+    print(f"bi-design {__version__} · {konfig.rechner()}")
+    print(f"  Aufruf  {_aufruf()}")
     ok = True
     for mod, pflicht in (("pptx", True), ("lxml", True), ("docx", False), ("pymupdf", False), ("PIL", False), ("openpyxl", False)):
         try:
@@ -43,9 +84,11 @@ def _umgebung(_):
         except ImportError:
             print(f"  {'FEHLT' if pflicht else 'optional'}  Paket {mod}")
             ok = ok and not pflicht
+    if not ok:
+        print("          Pakete installieren (nach Zustimmung des Nutzers): bippt einrichten")
     cfg = konfig.laden()
     vl = konfig.vorlage_pfad(cfg)
-    print(f"  {'ok' if vl else 'FEHLT':7} Vorlage {vl or '(bippt vorlage <BI-Deck> oder Installer erneut)'}")
+    print(f"  {'ok' if vl else 'FEHLT':7} Vorlage {vl or '(Plugin neu installieren oder bippt vorlage <BI-Deck>)'}")
     ok = ok and bool(vl)
     from bippt.marke import Marke
     m = Marke()
@@ -58,8 +101,55 @@ def _umgebung(_):
     print(f"  {'ok' if w else 'WARN':7} Rendern über {', '.join(w) or 'nichts (PowerPoint/LibreOffice fehlt) – nur pruefen möglich'}")
     if "powerpoint" in w and konfig.IST_MAC:
         print(f"          render_dir {cfg['render_dir']} (einmalig in PowerPoint freigeben)")
+    for p in _alte_kopien():
+        print(f"  ALT     {p} (alte Kopie: bippt aufraeumen)")
+        ok = False
     print("ERGEBNIS: " + ("OK" if ok else "UNVOLLSTÄNDIG"))
     return 0 if ok else 1
+
+
+def _einrichten(_):
+    befehl = [sys.executable, "-m", "pip", "install", "--disable-pip-version-check", "-q", "-U",
+              "-r", str(TOOL.parent / "requirements.txt")]
+    if sys.prefix == getattr(sys, "base_prefix", sys.prefix):
+        befehl.insert(4, "--user")  # kein venv: Gruppenrichtlinien sperren es oft
+    print("Ausführen: " + " ".join(f'"{x}"' if " " in x else x for x in befehl), flush=True)
+    if subprocess.run(befehl).returncode:
+        print("FEHLER: pip gescheitert. Hinter einem Proxy: pip config set global.proxy http://<proxy>:<port>, "
+              "dann erneut.")
+        return 1
+    return _umgebung(None)
+
+
+def _weg(p):
+    def schreibbar(fn, pfad, _):
+        os.chmod(pfad, stat.S_IWRITE)
+        fn(pfad)
+    if p.is_dir() and not p.is_symlink():
+        shutil.rmtree(p, onerror=schreibbar)
+    else:
+        p.unlink()
+
+
+def _aufraeumen(a):
+    from bippt import konfig
+    treffer = _alte_kopien()
+    if not treffer:
+        print("Keine alten Kopien gefunden.")
+        return 0
+    if not a.ja:
+        for p in treffer:
+            print(f"  gefunden  {p}")
+        print("Diese Kopien verdecken Agent und Skills des Plugins. Löschen mit: bippt aufraeumen --ja")
+        return 1
+    if konfig.ALT and konfig.ALT.is_file() and not konfig.DATEI.is_file():
+        konfig.speichern(konfig.laden())
+        print(f"  übernommen  {konfig.ALT} → {konfig.DATEI}")
+    for p in treffer:
+        _weg(p)
+        print(f"  gelöscht  {p}")
+    print("Fertig. VS Code: Developer: Reload Window; Claude Code: neue Sitzung.")
+    return 0
 
 
 def _konfig(a):
@@ -147,9 +237,7 @@ def _vorlage(a):
 def _neu(a):
     ziel = Path(a.ordner)
     ziel.mkdir(parents=True, exist_ok=True)
-    beispiel = Path(__file__).resolve().parent.parent / "skills" / "bi-ppt" / "beispiele" / "beispiel.spec.json"
-    if not beispiel.is_file():
-        beispiel = Path.home() / ".bi-ppt" / "beispiele" / "beispiel.spec.json"
+    beispiel = TOOL.parent.parent / "skills" / "bi-ppt" / "beispiele" / "beispiel.spec.json"
     spec = json.loads(beispiel.read_text(encoding="utf-8"))
     spec["ausgabe"] = f"{a.name}.pptx"
     p = ziel / f"{a.name}.spec.json"
@@ -164,6 +252,8 @@ def main(argv=None):
     ap = argparse.ArgumentParser(prog="bippt", description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest="cmd", required=True)
     sub.add_parser("umgebung").set_defaults(fn=_umgebung)
+    sub.add_parser("einrichten").set_defaults(fn=_einrichten)
+    p = sub.add_parser("aufraeumen"); p.add_argument("--ja", action="store_true"); p.set_defaults(fn=_aufraeumen)
     p = sub.add_parser("konfig"); p.add_argument("--setze", nargs="*"); p.set_defaults(fn=_konfig)
     p = sub.add_parser("lesen"); p.add_argument("dateien", nargs="+"); p.add_argument("-o"); p.set_defaults(fn=_lesen)
     p = sub.add_parser("analyse"); p.add_argument("pptx"); p.add_argument("--json", action="store_true")

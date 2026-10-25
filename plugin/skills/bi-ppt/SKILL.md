@@ -5,17 +5,25 @@ description: BI-PPT – erstellt PowerPoint-Präsentationen im Boehringer-Ingelh
 
 # BI-PPT – Präsentationen im BI-Design
 
-Werkzeug: `bippt` (Python, python-pptx), installiert unter `~/.bi-ppt`.
-- macOS: `~/.bi-ppt/bippt <befehl>` · Windows (PowerShell): `& "$HOME\.bi-ppt\bippt.cmd" <befehl>`
-- Marke (Farben, Icons): Skill **bi-designer** aus PPP (`marken/<profil>/tokens.json`, `icons.txt`); Custom Colors des
-  BI-Masters (Gray 1–8, Signal Red/Yellow/Green) liest bippt aus der Vorlage. Nie Farben frei erfinden.
-- Vorlage: `~/.bi-ppt/vorlagen/BI_Vorlage_16x9.pptx` (BI-Master v2.1, aus `How-to slides.pptx` des Repos).
+Werkzeug: `bippt` (Python ≥ 3.9 mit python-pptx) liegt im Plugin **bi-design** unter `<plugin>/tools/bippt.py`;
+`<plugin>` ist der Ordner zwei Ebenen über dieser SKILL.md (`<plugin>/skills/bi-ppt/SKILL.md`).
+- macOS: `python3 "<plugin>/tools/bippt.py" <befehl>` · Windows (PowerShell): `python "<plugin>\tools\bippt.py" <befehl>`
+- `bippt <befehl>` steht im Folgenden für diesen Aufruf; `bippt umgebung` nennt ihn mit vollem Pfad (Zeile `Aufruf`).
+  Den Pfad je Sitzung einmal ermitteln, nicht raten; er ändert sich mit jeder Plugin-Version.
+- Marke (Farben, Icons): Skill **bi-designer** im selben Plugin (`marken/<profil>/tokens.json`, `icons.txt`); Custom
+  Colors des BI-Masters (Gray 1–8, Signal Red/Yellow/Green) liest bippt aus der Vorlage. Nie Farben frei erfinden.
+- Vorlage: `<plugin>/vorlagen/BI_Vorlage_16x9.pptx` (BI-Master v2.1); eigene über `bippt konfig --setze vorlage=<pfad>`.
+- Einstellungen je Rechner: `~/.bi-design/config.json` (`bippt konfig`), u. a. `asset_root` (Logos, Icons).
 
 Antworte deutsch, sachlich, knapp. Grundsatz: **teuer denken, billig bauen** – Inhalt und Storyline gründlich,
 Umsetzung immer über Spezifikation + `bippt bauen` (nie Formen einzeln per Hand-Skript), Änderungen = Spec ändern.
 
 ## 0. Start (jede Sitzung, 1 Befehl)
-`bippt umgebung` → muss mit `ERGEBNIS: OK` enden. Sonst: [reference/installation.md](reference/installation.md).
+`bippt umgebung` → muss mit `ERGEBNIS: OK` enden. Sonst je Meldung:
+- `FEHLT Paket …`: auf einer Karte um Zustimmung bitten, dann `bippt einrichten` (pip `--user`, kein venv).
+- `ALT …`: alte Kopien von BI-PPT 1.x oder PPP 0.17 verdecken das Plugin. Karte, dann `bippt aufraeumen --ja`;
+  danach VS Code neu laden bzw. neue Claude-Code-Sitzung.
+- alles andere: [reference/installation.md](reference/installation.md).
 
 ## 1. Modus erkennen
 | Modus | Auslöser | Ablauf |
@@ -72,6 +80,7 @@ Kein Renderweg? Dann nur `pruefen` und das im Abschluss sagen.
 - Nicht im Paket definiert (Bildsprache, Freiraum) → „(offen, Brand Hub prüfen)“ statt raten.
 
 ## 7. Erweitern
-Neuer Folientyp: Funktion mit `@folientyp("name")` in `tools/bippt/folien.py` (Bausteine aus `bausteine.py`), Doku-Zeile in
-`reference/folientypen.md`, Beispiel in `beispiele/beispiel.spec.json`, Version + CHANGELOG im Repo BI-PPT, Commit direkt
-nach `main`, dann `/bi-ppt-update`. Neue Marke: Profil in bi-designer + eigene Vorlage (`bippt vorlage <deck> -o …`).
+Nur im Repo `portolasas/bi-design`, nie in der installierten Kopie. Neuer Folientyp: Funktion mit `@folientyp("name")` in
+`plugin/tools/bippt/folien.py` (Bausteine aus `bausteine.py`), Doku-Zeile in `reference/folientypen.md`, Beispiel in
+`beispiele/beispiel.spec.json`, Tests grün, Version in beiden Manifesten + CHANGELOG erhöhen, Commit direkt nach `main`.
+Neue Marke: Profil in bi-designer + eigene Vorlage (`bippt vorlage <deck> -o …`).

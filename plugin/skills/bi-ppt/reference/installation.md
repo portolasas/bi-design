@@ -1,20 +1,29 @@
 # Installation, Update, Fehlerbilder
 
-Quelle: Repo **BI-PPT** (`portolasas/BI-PPT`, lokal z. B. `…/Arbeit/BI-PPT`). Installiert wird nach
-`~/.bi-ppt` (Werkzeug, venv, Vorlage), `~/.copilot` (VS Code: Agent + Skills) und `~/.claude` (Claude Code: Skills + Agent).
+Quelle: Plugin **bi-design** aus dem privaten Marktplatz `portolasas/bi-design`. Es bringt Agent `bi-ppt`, die Skills
+`bi-ppt` und `bi-designer`, den Generator `bippt` und die Vorlage mit. Einstellungen je Rechner: `~/.bi-design/config.json`.
 
-## Installieren / aktualisieren
-- macOS: `python3 <repo>/install/install.py` (Update: `/bi-ppt-update` oder `python3 <repo>/install/install.py --update`)
-- Windows: `py <repo>\install\install.py` (oder `python …`). Ohne Python: siehe INSTALL.md im Repo (PowerShell-Block
-  installiert Agent und Skills; Generator braucht Python 3.9+ – `winget install -e --id Python.Python.3.12 --scope user`).
-Danach VS Code neu laden (Developer: Reload Window) bzw. neue Claude-Code-Sitzung.
+## Installieren
+- **VS Code:** in den Benutzereinstellungen (JSON) `"chat.plugins.enabled": true` und
+  `"chat.plugins.marketplaces": [..., "portolasas/bi-design"]`; in der Erweiterungen-Ansicht unter Agent Plugins
+  **bi-design** installieren; „Developer: Reload Window“; Agent **bi-ppt** im Agenten-Menü wählen.
+- **Claude Code:** `/plugin marketplace add portolasas/bi-design`, `/plugin install bi-design@bi-design`, neue Sitzung.
+  Skill `/bi-design:bi-ppt` im Hauptchat oder Subagent `bi-ppt` für abgegrenzte Bauaufträge.
+- Dann `bippt umgebung`; Pakete mit `bippt einrichten`, alte Kopien mit `bippt aufraeumen --ja`.
+
+## Aktualisieren
+VS Code holt neue Versionen selbst (bei `extensions.autoUpdate` etwa alle 24 Stunden), danach „Developer: Reload Window“.
+Claude Code: `/plugin marketplace update bi-design`, dann `/plugin uninstall bi-design@bi-design` und
+`/plugin install bi-design@bi-design`, neue Sitzung.
 
 ## `bippt umgebung` meldet …
 | Meldung | Abhilfe |
 |---|---|
-| Paket pptx FEHLT | Installer erneut (`--nur-venv`); Proxy: `pip` mit `--proxy` bzw. Firmen-Index |
-| Vorlage FEHLT | Installer erneut, oder `bippt vorlage <BI-Deck.pptx>` (jedes Deck im BI-Master taugt) |
-| Marke … Notstand | PPP installieren (`/ppp-update`) – bi-designer fehlt; Farben laufen trotzdem (eingebaut) |
+| Paket pptx/lxml FEHLT | `bippt einrichten` (nach Zustimmung). Proxy: `pip config set global.proxy http://<proxy>:<port>`. Kein venv anlegen: Gruppenrichtlinien sperren es oft |
+| Python fehlt oder < 3.9 | Windows ohne Adminrechte: `winget install -e --id Python.Python.3.12 --scope user`, neues Terminal |
+| ALT … | `bippt aufraeumen --ja` (übernimmt `~/.bi-ppt/config.json`), dann VS Code neu laden bzw. neue Sitzung |
+| Vorlage FEHLT | Plugin neu installieren, oder `bippt vorlage <BI-Deck.pptx>` (jedes Deck im BI-Master taugt) |
+| Marke … Notstand | Profil fehlt in `skills/bi-designer/marken/`; Farben laufen trotzdem (eingebaut) |
 | Icons 0 | `bippt konfig --setze asset_root=<BrandDesign-Ordner>` (Ordner mit Icons_darkgreen/ …) |
 | Rendern über nichts | PowerPoint fehlt → nur `pruefen`; optional LibreOffice |
 

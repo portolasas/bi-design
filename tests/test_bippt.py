@@ -1,4 +1,4 @@
-"""Selbsttest BI-PPT: python3 tests/test_bippt.py  (mit dem venv-Python: ~/.bi-ppt/venv/bin/python …)
+"""Selbsttest bippt: python3 tests/test_bippt.py  (Python mit den Paketen aus plugin/tools/requirements.txt)
 Baut das Beispiel, prüft Struktur und Brand-Regeln, testet Basis-Modus, Analyse, Umwandeln (entwurf/stil).
 Erwartet: ALLE FÄLLE BESTANDEN
 """
@@ -8,16 +8,17 @@ import sys
 import tempfile
 from pathlib import Path
 
-REPO = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(REPO / "tools"))
+PLUGIN = Path(__file__).resolve().parents[1] / "plugin"
+sys.path.insert(0, str(PLUGIN / "tools"))
 import os  # noqa: E402
 
 os.environ.setdefault("BIPPT_HOME", tempfile.mkdtemp())  # keine echte config verändern
 from pptx import Presentation  # noqa: E402
 
 from bippt import analyse, bauen, konfig, pruefen, umwandeln  # noqa: E402
+from bippt.marke import Marke  # noqa: E402
 
-konfig.speichern({**konfig.laden(), "vorlage": str(REPO / "vorlagen" / "BI_Vorlage_16x9.pptx")})
+konfig.speichern({**konfig.laden(), "vorlage": str(PLUGIN / "vorlagen" / "BI_Vorlage_16x9.pptx")})
 fehler = []
 
 
@@ -27,10 +28,14 @@ def fall(name, bedingung, info=""):
         fehler.append(name)
 
 
+print("Marke")
+fall("Marke aus bi-designer im Plugin", Marke().ordner == PLUGIN / "skills" / "bi-designer" / "marken" / "boehringer-ingelheim")
+fall("Standard-Vorlage aus dem Plugin", konfig.vorlage_pfad({"vorlage": ""}) == PLUGIN / "vorlagen" / "BI_Vorlage_16x9.pptx")
+
 with tempfile.TemporaryDirectory() as td:
     td = Path(td)
     spec = td / "beispiel.spec.json"
-    shutil.copy(REPO / "skills" / "bi-ppt" / "beispiele" / "beispiel.spec.json", spec)
+    shutil.copy(PLUGIN / "skills" / "bi-ppt" / "beispiele" / "beispiel.spec.json", spec)
     s = json.loads(spec.read_text(encoding="utf-8"))
     print("Beispiel bauen")
     ziel, warn = bauen.bauen(spec, still=True)

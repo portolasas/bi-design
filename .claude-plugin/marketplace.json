@@ -1,0 +1,14 @@
+{
+  "name": "bi-design",
+  "owner": {
+    "name": "Pascal Naumann"
+  },
+  "description": "Boehringer Ingelheim corporate design for VS Code (GitHub Copilot) and Claude Code: brand skill and PowerPoint agent.",
+  "plugins": [
+    {
+      "name": "bi-design",
+      "source": "./plugin",
+      "description": "bi-design: Boehringer Ingelheim corporate design for agents - skill bi-designer for any visual output (colours, fonts, logo, icons, recipes per medium) and agent bi-ppt, which builds, updates, checks and converts PowerPoint decks in the BI master v2.1 with the generator bippt."
+    }
+  ]
+}

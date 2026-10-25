@@ -21,7 +21,7 @@ LINES_ON_WHITE = ["08312A", "076D7E", "5D4495", "86251B", "EE6541", "E18600"]  #
 
 ## 2. PowerPoint (python-pptx) [D]
 Whole decks (new, new version of an existing deck, conversion into the BI design): agent/skill **bi-ppt**
-(repo BI-PPT – generator `bippt` on the BI master v2.1 with status, timeline, process … slide types). The rules
+(same plugin – generator `bippt` on the BI master v2.1 with status, timeline, process … slide types). The rules
 below are for single slides or other generators. Traffic lights = signal colors with a legend.
 - 16:9 (`prs.slide_width = Inches(13.333)`, `prs.slide_height = Inches(7.5)`); margins ≥ 0.5 in.
 - Title slide: full Dark Green area, title White, one Accent Green highlight (line or keyword) on the

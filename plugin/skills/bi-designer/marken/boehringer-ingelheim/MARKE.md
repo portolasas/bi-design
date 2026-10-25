@@ -1,7 +1,7 @@
 # Brand profile: Boehringer Ingelheim
 
 Source: corporate download package (Logo/Symbol user manual V1.0, Oct 2025; `Colors-DIGITAL-RGB.ase`) and the
-PowerPoint master v2.1 (How-to slides, Aug 2026: custom colors Gray 1–8 and signal colors; repo BI-PPT `vorlagen/`).
+PowerPoint master v2.1 (How-to slides, Aug 2026: custom colors Gray 1–8 and signal colors; repo bi-design `vorlagen/`).
 Authoritative guidelines: Brand Hub `brand.boehringer-ingelheim.com` (support: `/support`). Anything not
 covered here (clear space, minimum sizes, imagery) → check the Brand Hub, do not invent.
 Machine-readable values: [tokens.json](tokens.json). Icon names: [icons.txt](icons.txt).
@@ -60,7 +60,7 @@ gradients, no shadows beyond subtle elevation.
 - Where custom fonts are impossible (Power Apps canvas, Power BI service, Teams cards): **Segoe UI**
   (headings Semibold/Bold, body Regular).
 - Font files are licensed brand assets: use only inside company solutions, never commit them to public
-  repositories or pass them on; do not copy them into the PPP core.
+  repositories or pass them on; do not copy them into a plugin.
 - Scale (px): H1 28 · H2 22 · H3 18 · Body 14 · Small 12.
 
 ## Logo and symbol

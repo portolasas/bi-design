@@ -1,35 +1,80 @@
-# BI-PPT
+# bi-design
 
-Agent für **PowerPoint im Boehringer-Ingelheim-Design** – für VS Code (GitHub Copilot) und Claude Code, macOS und Windows.
+Plugin für **VS Code (GitHub Copilot)** und **Claude Code**, das Agenten das Corporate Design von Boehringer Ingelheim beibringt. Privat, weil es den BI-Master und Markenwerte enthält.
 
-- **Neu:** aus Informationen (Transkripte, Projektaufträge, Notizen, Excel) eine Präsentation im BI-Master v2.1 bauen,
-  mit gezielten Rückfragen.
-- **Neue Version:** eine bestehende Präsentation als Grundlage nehmen (z. B. Projektteam-Update → Steering-Update):
-  Folien behalten, ausblenden, Texte ersetzen, neue Folien ergänzen.
-- **Umwandeln:** Präsentationen in fremdem Design ins BI-Design bringen (neu bauen oder Stil angleichen).
-- **Prüfen:** Brand-Regeln (Farben, Schriften, Kontrast, Überlauf, Master) und Sichtprüfung per Render.
+- **Skill `bi-designer`** – Marke für alles Visuelle: Farben (Tokens, Rollen, erlaubte Kontrastpaare), Schriften, Logo- und Symbolvarianten, 895 Icons, Rezepte für Power Apps, Power BI, PowerPoint/Word/Excel, Diagramme, Web, HTML-Mail, Teams-Karten. ppp nutzt ihn für Power-Apps-Theme, Prototypen und Power-BI-Theme.
+- **Agent und Skill `bi-ppt`** – PowerPoint im BI-Master v2.1: aus Transkripten, Projektaufträgen, Notizen oder Excel ein neues Deck bauen, eine neue Version eines bestehenden Decks erzeugen (z. B. Projektteam-Update → Steering-Update), fremde Decks ins BI-Design umwandeln, Brand-Regeln prüfen und zur Sichtprüfung rendern.
+- **Generator `bippt`** (Python, python-pptx) – baut die Folien aus einer Spezifikation (JSON) mit Folientypen wie Status, Vergleich, Prozess, Timeline/Gantt, Maßnahmen, Kennzahlen, Diagramm, Tabelle. Änderungen später = Spec ändern und neu bauen.
 
-Arbeitsweise: Der Agent schreibt eine **Spezifikation (JSON)**, der Generator **bippt** baut daraus die Folien aus
-Bausteinen (Status, Vergleich, Prozess, Karten, Timeline/Gantt, Maßnahmen, Kennzahlen, Diagramm, Tabelle …).
-Änderungen später = Spec ändern + neu bauen. Marke kommt modular aus dem PPP-Skill **bi-designer**
-(`tokens.json`, Icons), die Folienvorlage aus dem offiziellen Master (`vorlagen/How-to slides.pptx`).
+## Voraussetzungen
+- VS Code mit GitHub Copilot und Agent Plugins, oder Claude Code; Zugriff auf dieses private Repo (Git-Anmeldung des Rechners).
+- Python 3.9 oder neuer. Die Pakete installiert `bippt einrichten` mit `pip --user`, ohne venv.
+- PowerPoint zum Rendern (Mac oder Windows); sonst nur Prüfen.
+- Für Logos und Icons der Ordner BrandDesign (nicht im Repo; Schriftdateien sind lizenziert).
 
-## Inhalt
-| Ordner | Zweck | Installiert nach |
-|---|---|---|
-| `agents/bi-ppt.agent.md` | Copilot-Agent (Agent-Picker in VS Code) | `~/.copilot/agents/` |
-| `skills/bi-ppt/` | Arbeitsweise, Rückfragen, Folientypen, Umwandeln, Beispiel-Spec | `~/.copilot/skills/`, `~/.claude/skills/` |
-| `skills/bi-ppt-update/` | Befehl `/bi-ppt-update` | wie oben |
-| `claude/agents/bi-ppt.md` | Claude-Code-Subagent | `~/.claude/agents/` |
-| `tools/` | Generator/CLI `bippt` (Python, python-pptx) | `~/.bi-ppt/tools/` |
-| `vorlagen/` | BI-Master v2.1 (Original) + bereinigte Arbeitsvorlage | `~/.bi-ppt/vorlagen/` |
-| `install/install.py` | Installer/Updater (Mac + Windows) | – |
-| `tests/` | Selbsttest (`python3 tests/test_bippt.py`) | – |
+## Kurzanleitung
 
-Installation: [INSTALL.md](INSTALL.md). Änderungen: [CHANGELOG.md](CHANGELOG.md).
+### 1. Installieren
+**VS Code.** In den Benutzereinstellungen (JSON) ergänzen:
+```json
+"chat.plugins.enabled": true,
+"chat.plugins.marketplaces": ["portolasas/ppp-plugin", "portolasas/bi-design"]
+```
+In der Erweiterungen-Ansicht unter Agent Plugins **bi-design** installieren, dann „Developer: Reload Window“.
 
-## Regeln für Änderungen am Repo
-- Immer direkt nach `main` committen und pushen; jede Änderung erhöht `VERSION` und bekommt einen CHANGELOG-Eintrag.
-- Neuer Folientyp: `tools/bippt/folien.py` (`@folientyp`), Doku in `skills/bi-ppt/reference/folientypen.md`,
-  Beispiel in `skills/bi-ppt/beispiele/beispiel.spec.json`, `tests/test_bippt.py` muss grün sein.
-- Keine Projekt- oder Personendaten, keine Schriftdateien der Marke ins Repo.
+**Claude Code.** Einmal je Rechner:
+```
+/plugin install bi-design --marketplace portolasas/bi-design
+```
+Ältere Versionen von Claude Code: `/plugin marketplace add portolasas/bi-design`, dann `/plugin install bi-design@bi-design`. Danach eine neue Sitzung.
+
+### 2. Einrichten (einmal je Rechner)
+Im Agenten-Menü **bi-ppt** wählen (Claude Code: Skill `/bi-design:bi-ppt`) und schreiben: „Prüfe die Umgebung.“ Der Agent ruft `bippt umgebung` auf und fragt per Karte, bevor er
+- fehlende Python-Pakete installiert (`bippt einrichten`),
+- alte Kopien von BI-PPT 1.x oder PPP 0.17 aus `~/.copilot`, `~/.claude` und `~/.bi-ppt` löscht (`bippt aufraeumen --ja`); sie verdecken Agent und Skills des Plugins,
+- den Ordner BrandDesign einträgt (`bippt konfig --setze asset_root=<Ordner>`).
+
+Erwartet: `ERGEBNIS: OK`. Auf dem Mac fragt PowerPoint beim ersten Rendern nach Dateizugriff: „Auswählen…“ › Ordner `Dokumente/BI-PPT-Render` › „Zugriff erteilen“.
+
+### 3. Eine Präsentation bauen
+Mit dem Agenten **bi-ppt**, zum Beispiel:
+- „Baue aus `Transkript.vtt` und `Projektauftrag.docx` ein Steering-Committee-Update für den 12.11.“
+- „Mach aus `Team-Update_KW44.pptx` die Fassung für das Steering Committee.“
+- „Bring `Lieferantenpraesentation.pptx` ins BI-Design.“
+- „Prüfe `Entwurf.pptx` gegen die Brand-Regeln.“
+
+Der Agent liest die Quellen, stellt eine gebündelte Rückfragerunde (Publikum, Datum, Ampeln, Widersprüche), schreibt `<Name>.spec.json` neben die Ausgabe, baut, prüft und rendert. Die Spec bleibt liegen; Änderungen später über sie.
+
+Für andere Medien (Word, Excel, Diagramme, Power BI, Web, Mail) genügt im normalen Chat „im BI-Design“; dann lädt der Agent den Skill `bi-designer`.
+
+### 4. Aktualisieren
+VS Code holt neue Versionen selbst (bei `extensions.autoUpdate` etwa alle 24 Stunden), danach „Developer: Reload Window“. Claude Code:
+```
+/plugin marketplace update bi-design
+/plugin uninstall bi-design@bi-design
+/plugin install bi-design@bi-design
+```
+Was sich geändert hat: [plugin/CHANGELOG.md](plugin/CHANGELOG.md).
+
+## Aufbau
+| Pfad | Inhalt |
+|---|---|
+| `.claude-plugin/marketplace.json` | Marktplatz `bi-design` mit dem Plugin aus `plugin/` |
+| `plugin/plugin.json`, `plugin/.claude-plugin/plugin.json` | Manifeste für VS Code bzw. Claude Code (Aufbau A wie ppp) |
+| `plugin/com.github.copilot/agents/bi-ppt.agent.md` | Agent für VS Code |
+| `plugin/agents/bi-ppt.md` | Subagent für Claude Code |
+| `plugin/skills/bi-designer/` | Markenregeln (`marken/<profil>/MARKE.md`, `tokens.json`, `icons.txt`), Rezepte je Medium |
+| `plugin/skills/bi-ppt/` | Arbeitsweise, Rückfragen, Folientypen, Umwandeln, Beispiel-Spec |
+| `plugin/tools/` | Generator `bippt` und `requirements.txt` |
+| `plugin/vorlagen/BI_Vorlage_16x9.pptx` | Arbeitsvorlage aus dem BI-Master v2.1 (ohne Folien, ohne doppelte Layouts) |
+| `vorlagen/How-to slides.pptx` | Original des BI-Masters, Quelle für `bippt vorlage`; wird nicht installiert |
+| `tests/` | `test_plugin.py` (Aufbau, Version, Aufräumen; nur Standardbibliothek), `test_bippt.py` (Generator) |
+
+Einstellungen je Rechner: `~/.bi-design/config.json` (`asset_root`, `vorlage`, `vertraulichkeit`, `marke`, `render_dir`).
+
+## Entwickeln
+- Tests: `python3 -I tests/test_plugin.py` und `python3 tests/test_bippt.py` (Python mit den Paketen aus `plugin/tools/requirements.txt`).
+- Jede Änderung, die nach `main` geht, erhöht die Version in beiden Manifesten und bekommt einen Eintrag in `plugin/CHANGELOG.md`; nur so holen VS Code und Claude Code die neue Fassung. `test_plugin.py` prüft den Gleichstand.
+- Neuer Folientyp: `plugin/tools/bippt/folien.py` (`@folientyp`), Doku in `plugin/skills/bi-ppt/reference/folientypen.md`, Beispiel in `plugin/skills/bi-ppt/beispiele/beispiel.spec.json`.
+- Neue Marke: Profil in `plugin/skills/bi-designer/marken/<profil>/` und eigene Vorlage (`bippt vorlage <deck> -o …`).
+- Keine Projekt- oder Personendaten und keine Schriftdateien ins Repo. Referenz-Präsentationen und Chats zum Anlernen liegen lokal außerhalb von Git.

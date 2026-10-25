@@ -1,5 +1,9 @@
-"""BI-PPT – PowerPoint im Boehringer-Ingelheim-Design erzeugen, prüfen, rendern und umwandeln."""
+"""bippt – PowerPoint im Boehringer-Ingelheim-Design erzeugen, prüfen, rendern und umwandeln (Plugin bi-design)."""
+import json
 from pathlib import Path
 
-_v = Path(__file__).resolve().parents[2] / "VERSION"
-__version__ = _v.read_text(encoding="utf-8").strip() if _v.is_file() else "0"
+PLUGIN = Path(__file__).resolve().parents[2]
+try:
+    __version__ = json.loads((PLUGIN / "plugin.json").read_text(encoding="utf-8"))["version"]
+except (OSError, ValueError, KeyError):
+    __version__ = "0"

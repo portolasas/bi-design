@@ -1,7 +1,7 @@
 # Design – <Lösung/Komponente>
 
 Marke: <Profil, z. B. boehringer-ingelheim> · Stand: <Datum> · Plattform: <Canvas App | Power BI | Code App | …>
-Asset-Quelle: <Asset-Root laut Projekt (PPP: .ppp/PROJEKT.md) bzw. Standardpfad>
+Asset-Quelle: <asset_root aus ~/.bi-design/config.json bzw. Standardpfad>
 
 ## Seiten/Ansichten
 | Ansicht | Zweck | Aufbau (oben → unten) | Hauptaktionen |
