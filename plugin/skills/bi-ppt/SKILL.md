@@ -7,9 +7,11 @@ description: BI-PPT – erstellt PowerPoint-Präsentationen im Boehringer-Ingelh
 
 Werkzeug: `bippt` (Python ≥ 3.9 mit python-pptx) liegt im Plugin **bi-design** unter `<plugin>/tools/bippt.py`;
 `<plugin>` ist der Ordner zwei Ebenen über dieser SKILL.md (`<plugin>/skills/bi-ppt/SKILL.md`).
-- macOS: `python3 "<plugin>/tools/bippt.py" <befehl>` · Windows (PowerShell): `python "<plugin>\tools\bippt.py" <befehl>`
-- `bippt <befehl>` steht im Folgenden für diesen Aufruf; `bippt umgebung` nennt ihn mit vollem Pfad (Zeile `Aufruf`).
-  Den Pfad je Sitzung einmal ermitteln, nicht raten; er ändert sich mit jeder Plugin-Version.
+- Erster Aufruf wie bei ppp: macOS `python3 "<plugin>/tools/bippt.py" umgebung` · Windows (PowerShell)
+  `python "<plugin>\tools\bippt.py" umgebung`; nicht `py`. Anders als ppp **ohne `-I`**: `-I` blendet die mit
+  `pip --user` installierten Pakete aus.
+- `bippt <befehl>` steht im Folgenden für den Aufruf, den `bippt umgebung` in der Zeile `Aufruf` nennt (absoluter Pfad
+  des Interpreters, der die Pakete hat). Je Sitzung einmal ermitteln, nicht raten; er ändert sich mit jeder Plugin-Version.
 - Marke (Farben, Icons): Skill **bi-designer** im selben Plugin (`marken/<profil>/tokens.json`, `icons.txt`); Custom
   Colors des BI-Masters (Gray 1–8, Signal Red/Yellow/Green) liest bippt aus der Vorlage. Nie Farben frei erfinden.
 - Vorlage: `<plugin>/vorlagen/BI_Vorlage_16x9.pptx` (BI-Master v2.1); eigene über `bippt konfig --setze vorlage=<pfad>`.
@@ -54,7 +56,7 @@ Umsetzung immer über Spezifikation + `bippt bauen` (nie Formen einzeln per Hand
 ## 4. Bauen – Prüfen – Sehen (max. 3 Runden)
 ```
 bippt bauen <Name>.spec.json          → ERGEBNIS: OK | Warnungen (Überlauf, Icons, Timeline-Beschriftung)
-bippt pruefen <Name>.pptx             → ERGEBNIS: OK (keine FEHLER)
+bippt pruefen <Name>.pptx --woerter N → ERGEBNIS: OK (keine FEHLER; N nach Publikum)
 bippt rendern <Name>.pptx [--alle]    → kontaktbogen.png ansehen, nur auffällige Folien einzeln (folie_NN.png)
 ```
 Sichtprüfung je Folie: nichts überlappt/abgeschnitten, Text lesbar (≥ 9 pt im Inhalt), Kernaussage stimmt,
@@ -72,8 +74,11 @@ Kein Renderweg? Dann nur `pruefen` und das im Abschluss sagen.
   Prüfergebnis (`pruefen`, Render ja/nein).
 
 ## 6. Regeln (BI-Master v2.1 + bi-designer)
-- Nur Layouts der Vorlage, nur Theme- und Custom Colors; Ampel = Signal Green/Yellow/Red; Akzentgrün nie als Text/
-  dünne Linie auf Hell (nur auf Dunkelgrün oder als Fläche hinter dunkelgrünem Text).
+- **Der Master ist verbindlich** (How-to slides, vor jedem Referenzdeck): nur Layouts der Vorlage, nur Theme- und Custom
+  Colors, **keine Abstufungen** (heller/dunkler x %) und keine Standardfarben; Ampel = Signal Green/Yellow/Red, Gelb–Rot
+  = `YR`; Akzentgrün nie als Text/dünne Linie/Rahmen auf Hell (nur auf Dunkelgrün oder als Fläche hinter dunkelgrünem Text).
+- Texte und Storyline nach [reference/arbeitsweise.md](reference/arbeitsweise.md) › Texte; `bippt pruefen --woerter` je
+  Publikum (Steering 120, Projektteam 200).
 - Schriften = Theme (Boehringer Forward Head/Text); Textebenen 1–4 16 pt, ab Ebene 5 12 pt im Fließtext-Layout.
 - Fußzeile: `<Präsentationstitel>     |     <Vertraulichkeit>` (Standard „ONLY FOR INTERNAL USE“); Titelfolie nur Vermerk.
 - Icons nur aus dem Brand-Set, Variante nach Hintergrund. Logo kommt aus dem Master – nie selbst einfügen.

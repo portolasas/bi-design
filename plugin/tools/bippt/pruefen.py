@@ -1,6 +1,8 @@
 """Brand-Prüfung einer PPTX (ohne PowerPoint): Farben, Schriften, Kontrast, Überlauf, Ränder, Textmenge, Vorlage.
 
 Stufen: FEHLER (muss weg) · WARNUNG (prüfen) · HINWEIS. Ausgabe endet mit „ERGEBNIS: OK“ oder „ERGEBNIS: n Fehler“.
+Farben nach dem BI-Master v2.1 (How-to slides, Folie 6): nur Theme Colors und Custom Colors, keine Abstufungen darunter
+(lumMod/lumOff/tint/shade) und keine Standardfarben. Formstile (p:style) zählen nicht, sie füllen nichts sichtbar.
 """
 import re
 
@@ -66,7 +68,24 @@ def _untergrund(formen, i):
     return None
 
 
-def pruefen(pfad, profil=None, theme_farben_erlauben=True):
+ABSTUFUNG = {A + t for t in ("lumMod", "lumOff", "tint", "shade")}
+GRAU_BASIS = {"bg1", "tx1", "lt1", "dk1"}  # Weiß/Schwarz abgestuft = Grau: nur Hinweis auf Gray 1–8
+
+
+def _abstufungen(el):
+    """(Designfarbe, grau?) je abgestufter Farbe außerhalb von Formstilen."""
+    out = []
+    for c in el.iter(A + "schemeClr", A + "srgbClr"):
+        if any(ch.tag in ABSTUFUNG for ch in c):
+            anc = c.getparent()
+            while anc is not None and anc.tag.split("}")[-1] != "style":
+                anc = anc.getparent()
+            if anc is None:
+                out.append((c.get("val", ""), c.get("val", "") in GRAU_BASIS))
+    return out
+
+
+def pruefen(pfad, profil=None, theme_farben_erlauben=True, woerter=170):
     prs = vorlage.oeffnen(pfad)
     m = Marke(profil)
     erlaubt = m.erlaubte_farben() | ({"000000", "FFFFFF"})
@@ -86,7 +105,7 @@ def pruefen(pfad, profil=None, theme_farben_erlauben=True):
             sichtbar = False
         else:
             sichtbar = True
-        fremd, schriften, worte = {}, set(), 0
+        fremd, schriften, worte, stufen = {}, set(), 0, {}
         hat_titel = sl.shapes.title is not None and sl.shapes.title.has_text_frame and sl.shapes.title.text_frame.text.strip()
         if not hat_titel and sl.slide_layout.name not in ("Title slide (bright)", "Title slide (dark)", "Empty"):
             b("HINWEIS", nr, "keine Titelzeile (Navigation/Barrierefreiheit)")
@@ -97,6 +116,8 @@ def pruefen(pfad, profil=None, theme_farben_erlauben=True):
                 v = el.get("val", "").upper()
                 if v not in erlaubt and not (theme_farben_erlauben and v in theme):
                     fremd[v] = fremd.get(v, 0) + 1
+            for val, grau in _abstufungen(x):
+                stufen[(val, grau)] = stufen.get((val, grau), 0) + 1
             for el in x.iter(A + "latin"):
                 tf = el.get("typeface", "")
                 if tf and not SCHRIFT_OK.match(tf):
@@ -140,15 +161,23 @@ def pruefen(pfad, profil=None, theme_farben_erlauben=True):
         if fremd:
             liste = ", ".join(f"#{k} ({v}×)" for k, v in sorted(fremd.items(), key=lambda kv: -kv[1])[:6])
             b("FEHLER", nr, f"Farben außerhalb der Marke: {liste}")
+        farbig = {v: n for (v, g), n in stufen.items() if not g}
+        if farbig:
+            b("FEHLER", nr, "Abstufungen von Designfarben (im Master nicht erlaubt, nur Theme/Custom Colors): "
+              + ", ".join(f"{v} ({n}×)" for v, n in sorted(farbig.items())))
+        grau = sum(n for (v, g), n in stufen.items() if g)
+        if grau:
+            b("HINWEIS", nr, f"{grau}× Weiß/Schwarz abgestuft – besser Gray 1–8 aus den Custom Colors")
         if schriften:
             b("FEHLER", nr, f"Fremde Schriften: {', '.join(sorted(schriften))}")
-        if sichtbar and worte > 170:
-            b("WARNUNG", nr, f"{worte} Wörter – überladen? (Richtwert ≤ 120, Details ins Backup)")
+        if sichtbar and worte > woerter:
+            b("WARNUNG", nr, f"{worte} Wörter – überladen? (Grenze {woerter}; Steering ≤ 120, Projektteam ≤ 200; "
+              "Details ins Backup)")
     return befunde
 
 
-def bericht(pfad, profil=None):
-    befunde = pruefen(pfad, profil)
+def bericht(pfad, profil=None, woerter=170):
+    befunde = pruefen(pfad, profil, woerter=woerter)
     fehler = sum(1 for s, _, _ in befunde if s == "FEHLER")
     print(f"PRÜFUNG {pfad}")
     for s, nr, t in sorted(befunde, key=lambda x: (x[1], x[0])):

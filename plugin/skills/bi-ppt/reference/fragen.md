@@ -13,7 +13,7 @@ nicht aus den Quellen folgt oder sich widerspricht. Was mit Standard entschieden
 | Termine, die sich verschieben | „Gilt 10/2026 noch oder 11/2026?“ | fragen |
 | Thema fehlt in neuer Quelle | „Strang C kommt im Monolog nicht vor – Stand übernehmen?“ | unverändert übernehmen (Empfehlung) |
 | Entscheidungsbedarf | „Soll es eine Box ‚Bitte an den SC‘ geben?“ | keine eigene Folie |
-| Versprecher/Namen | „Obion oder Körber beim Test?“ | fragen |
+| Versprecher/Namen | „Partner X oder Partner Y beim Test?“ | fragen |
 | Umfang | „ca. 8 Folien + Backup?“ | nach Publikumstabelle |
 | Vertraulichkeit | „ONLY FOR INTERNAL USE“ oder strenger? | ONLY FOR INTERNAL USE |
 

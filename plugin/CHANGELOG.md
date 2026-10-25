@@ -1,5 +1,28 @@
 # Changelog
 
+## 2.1.0 – 2026-10-25
+Nachbau-Abgleich mit dem CPV-Projektteam-Update (24.09.2026) und den How-to slides des BI-Masters v2.1. Der Master ist
+verbindlich (Nutzer): nur Theme- und Custom Colors, keine Abstufungen, keine Standardfarben.
+- Fehler: In der Prozesskette war der Titel eines erledigten Schritts unsichtbar (dunkle Schrift auf Dunkelgrün).
+- `prozess` mit Schrittkarten: Kopf in Statusfarbe mit Überzeile (`ueber`, z. B. Termin) und Titel, darunter `punkte`,
+  Pfeile zwischen den Köpfen; Kopfhöhe nach dem längsten Titel.
+- Bänder: `stil` dunkel/akzent/hell, Höhe nach Text (bis zwei Zeilen), Label fett, Text normal; Warnung ab drei Zeilen.
+- Karten: `hervor` (Kopfleiste Accent Green, dunkelgrüne Schrift), `hoehe` inhalt (Standard bei `karten`) oder voll.
+- Neuer Typ `fluss` (Datenfluss in Spalten mit Pfeilen, eine Box kann über alle Zeilen spannen).
+- Timeline: Quartalsskala (automatisch ab 18 Monaten), Beschriftungen nie über den Folienrand, Zeilen ab 0,32 in.
+- Ampel `YR` (Gelb–Rot) als halb gelber, halb roter Punkt; auch in Legende und Vergleich.
+- Agenda ohne Titel bekommt „Agenda“; `massnahmen` bis ca. 8 Zeilen.
+- Diagramme in der automatischen Farbfolge des Masters (Akzent 1–6).
+- `pruefen`: Abstufungen von Designfarben (lumMod/lumOff/tint/shade außerhalb von Formstilen) sind FEHLER, abgestuftes
+  Weiß/Schwarz ein Hinweis; `--woerter N` (Steering 120, Projektteam 200, Standard 170).
+- `farben_angleichen` gleicht auch Abstufungen in Basisfolien an die nächste Markenfarbe an.
+- `bippt umgebung` prüft Python ≥ 3.9; Skill, Agent und Installationshilfe nennen den Python-Aufruf wie ppp (Windows
+  `python`, Mac `python3`), aber ohne `-I`, weil `-I` die mit `pip --user` installierten Pakete ausblendet.
+- Arbeitsweise: Regeln des Masters, Dichte je Publikum, Storyline Projektteam-Update, Textregeln (Aktionstitel, ganze
+  Aussagen, Fakt – Konsequenz, Varianten gleich gliedern, feste Band-Labels, Termine). Neues anonymisiertes Muster
+  `beispiele/projektteam.spec.json`, zugleich Testfall.
+- bi-designer: Master-Regeln in MARKE.md, Office-Rezept und Regeln (keine Abstufungen, Diagrammfolge Akzent 1–6).
+
 ## 2.0.0 – 2026-10-25
 Aus dem Repo BI-PPT wird das Plugin **bi-design** im privaten Marktplatz `portolasas/bi-design` (Entscheidung des Nutzers).
 - Ein Plugin für VS Code und Claude Code (Aufbau A wie ppp: `plugin.json` für VS Code, `.claude-plugin/plugin.json` für

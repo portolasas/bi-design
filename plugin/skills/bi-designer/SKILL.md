@@ -40,7 +40,8 @@ project (`design/assets/`), never whole icon sets; font files never into shared/
 | Design sheet for a solution | [templates/design.md](templates/design.md) |
 
 ## 4. Non-negotiable rules
-- Colors only from tokens/roles; never approximate or invent brand colors.
+- Colors only from tokens/roles; never approximate or invent brand colors, and no tints/shades (lighter/darker x %) –
+  the PowerPoint master v2.1 calls them not CD-compliant.
 - Contrast: only the allowed pairs in MARKE.md. **Never Accent Green text, icons or thin lines on light
   backgrounds** (1.7:1) – Accent Green only on Dark Green or as a large fill behind Dark Green text.
 - Traffic lights (Ampel): Signal Green/Yellow/Red from the master, always with label or legend; signal colors

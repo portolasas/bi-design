@@ -254,40 +254,86 @@ def icon(k, name, x, y, d, variante=None):
     return k.folie.shapes.add_picture(str(p), E(x), E(y), E(d), E(d))
 
 
-# Ampel = Signalfarben des BI-Masters v2.1 (Custom Colors „Signal Green/Yellow/Red“)
+# Ampel = Signalfarben des BI-Masters v2.1 (Custom Colors „Signal Green/Yellow/Red“); YR = Gelb–Rot
+# (Verzug, Eskalation erwartet) als Punkt mit gelber linker und roter rechter Hälfte.
 AMPEL = {"G": "SGRN", "Y": "SYEL", "R": "SRED", "N": "WG", "grün": "SGRN", "gelb": "SYEL", "rot": "SRED", "grau": "WG"}
+AMPEL_HALB = {"YR": ("SYEL", "SRED"), "Y/R": ("SYEL", "SRED"), "GY": ("SGRN", "SYEL"), "G/Y": ("SGRN", "SYEL")}
+
+
+def _winkel(form, *werte):
+    """Winkel-Anpassungen einer Form direkt setzen (in 1/60000 Grad); python-pptx skaliert sie sonst falsch."""
+    av = form._element.spPr.find(qn("a:prstGeom")).find(qn("a:avLst"))
+    for el in list(av):
+        av.remove(el)
+    for i, v in enumerate(werte, 1):
+        gd = etree.SubElement(av, qn("a:gd"))
+        gd.set("name", f"adj{i}")
+        gd.set("fmla", f"val {int(v * 60000)}")
 
 
 def ampel(k, x, y, d, wert, rand="WH"):
-    return punkt(k, x, y, d, AMPEL.get(str(wert), AMPEL.get(str(wert).upper(), "WG")), rand=rand)
+    halb = AMPEL_HALB.get(str(wert).upper())
+    if not halb:
+        return punkt(k, x, y, d, AMPEL.get(str(wert), AMPEL.get(str(wert).upper(), "WG")), rand=rand)
+    s = punkt(k, x, y, d, halb[0], rand=rand)
+    rechts = flaeche(k, x, y, d, d, fill=halb[1], form=MSO_SHAPE.CHORD)
+    _winkel(rechts, 270, 90)  # Sehne von oben über rechts nach unten = rechte Hälfte
+    return s
 
 
-def band(k, spec, y=None, h=BAND_H, groesse=12):
-    """Kernaussage-Band (Dunkelgrün, weiß, Label in Akzentgrün): "Text" oder {"label": "...", "text": "..."}."""
-    if not spec:
-        return None
+# Band unter dem Inhalt: dunkel (Standard, Kernaussage), akzent (Gesamtaussage, z. B. auf der Statusfolie),
+# hell (Erläuterung, Fazit). Nur Theme- und Custom Colors des Masters, keine Abstufungen.
+BAND_STIL = {"dunkel": ("DG", "WH", "AG"), "akzent": ("AG", "DG", "DG"), "hell": ("LG", "DG", "DG")}
+
+
+def _band_text(spec):
     if isinstance(spec, dict):
         laeufe = []
         if spec.get("label"):
-            laeufe.append((spec["label"] + "  ", {"hervor": True}))
+            laeufe.append((spec["label"] + "  ", {"fett": True, "hervor": True}))
         laeufe += [(t, f) for t, f in _laeufe(spec.get("text", ""))]
-        t = {"t": laeufe, "ausr": "m"}
-    else:
-        t = {"t": spec, "ausr": "m"}
+        return {"t": laeufe, "ausr": "m"}, False
+    return {"t": spec, "ausr": "m"}, True
+
+
+def band_hoehe(spec, groesse=12):
+    """Höhe des Bands: eine Zeile 0,44 in, längere Texte zweizeilig (dann kürzen statt dreizeilig)."""
+    if not spec:
+        return 0
+    t, fett = _band_text(spec)
+    bedarf = text_hoehe(klartext(t["t"] if isinstance(t["t"], str) else "".join(x for x, _ in t["t"])),
+                        XW - 0.4, groesse, zeilenabstand=1.05, nach=0) + 0.16
+    return max(BAND_H, min(bedarf, 0.78))
+
+
+def band(k, spec, y=None, h=None, groesse=12):
+    """Band: "Text" (fett) oder {"label": "…:", "text": "…", "stil": "dunkel|akzent|hell"} (Label fett)."""
+    if not spec:
+        return None
+    t, fett = _band_text(spec)
+    stil = spec.get("stil", "dunkel") if isinstance(spec, dict) else "dunkel"
+    if stil not in BAND_STIL:
+        k.warn(f"Band: unbekannter stil '{stil}' – erlaubt: {', '.join(BAND_STIL)}")
+        stil = "dunkel"
+    fill, farbe, label = BAND_STIL[stil]
+    h = h or band_hoehe(spec, groesse)
+    if h >= 0.78 and text_hoehe(klartext(spec.get("text", "") if isinstance(spec, dict) else spec), XW - 0.4,
+                                groesse, nach=0) > 0.62:
+        k.warn("Band: mehr als zwei Zeilen – Kernaussage kürzen")
     y = Y_ENDE - h if y is None else y
-    return flaeche(k, X0, y, XW, h, fill="DG", t=t, groesse=groesse, fett=True, anker="m", nach=0,
-                   rand=(0.2, 0.02, 0.2, 0.02), name="Kernaussage")
+    return flaeche(k, X0, y, XW, h, fill=fill, t=t, groesse=groesse, fett=fett, farbe=farbe, hervor=label,
+                   anker="m", nach=0, zeile=1.05, rand=(0.2, 0.02, 0.2, 0.02), name="Kernaussage")
 
 
-def kopfleiste(k, x, y, w, t, h=0.44, ampelwert=None, groesse=12):
-    """Dunkelgrüne Kopfzeile einer Karte, optional mit Ampel rechts."""
-    s = flaeche(k, x, y, w, h, fill="DG", t=t, groesse=groesse, fett=True, anker="m",
+def kopfleiste(k, x, y, w, t, h=0.44, ampelwert=None, groesse=12, fill="DG"):
+    """Kopfzeile einer Karte, optional mit Ampel rechts. fill AG (Hervorhebung) mit dunkelgrüner Schrift."""
+    s = flaeche(k, x, y, w, h, fill=fill, t=t, groesse=groesse, fett=True, anker="m",
                 rand=(0.18, 0, 0.5 if ampelwert else 0.18, 0))
     if ampelwert:
-        ampel(k, x + w - 0.4, y + (h - 0.2) / 2, 0.2, ampelwert)
+        ampel(k, x + w - 0.4, y + (h - 0.2) / 2, 0.2, ampelwert, rand="WH" if fill == "DG" else "DG")
     return s
 
 
 def inhaltsunterkante(spec):
     """Unterkante des Inhaltsbereichs je nach Band."""
-    return Y_ENDE - BAND_H - 0.18 if spec.get("band") else Y_ENDE
+    return Y_ENDE - band_hoehe(spec.get("band")) - 0.18 if spec.get("band") else Y_ENDE

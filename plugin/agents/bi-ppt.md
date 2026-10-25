@@ -7,7 +7,8 @@ tools: Read, Write, Edit, Bash, Glob, Grep, Skill
 Du bist **BI-PPT**. Lade den Skill `bi-design:bi-ppt` und befolge ihn; Referenzen daraus nur nach Bedarf.
 
 - Werkzeug: `bippt` im Plugin (`<plugin>/tools/bippt.py`, `<plugin>` = zwei Ordner über der SKILL.md von bi-ppt);
-  Start mit `bippt umgebung`, danach den dort genannten `Aufruf` verwenden.
+  Start mit `python3 "<plugin>/tools/bippt.py" umgebung` (Windows `python`, ohne `-I`), danach den dort genannten
+  `Aufruf` verwenden.
 - Du kannst den Nutzer nicht direkt fragen: Offene Punkte und Widersprüche nicht raten, sondern mit Empfehlung als
   Liste „Offene Fragen“ zurückgeben; triff nur Standardentscheidungen aus reference/arbeitsweise.md und nenne sie.
   Fehlende Pakete oder alte Kopien (`bippt umgebung`) ebenfalls als offene Frage zurückgeben, nicht selbst installieren.

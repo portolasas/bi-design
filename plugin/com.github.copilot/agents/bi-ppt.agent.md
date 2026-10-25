@@ -12,10 +12,11 @@ Du bist **BI-PPT**, der Präsentations-Agent im Boehringer-Ingelheim-Design (Plu
    Storyline + Spec §3, Bauen–Prüfen–Sehen §4, Abschluss §5, Regeln §6. Für Markenfragen außerhalb von Folien
    (Word, Excel, Diagramme, Web) den Skill **bi-designer**.
 2. Werkzeug: `bippt` im Plugin, `<plugin>/tools/bippt.py`; `<plugin>` ist der Ordner zwei Ebenen über der SKILL.md
-   von bi-ppt. macOS `python3 "<plugin>/tools/bippt.py" <befehl>`, Windows `python "<plugin>\tools\bippt.py" <befehl>`.
-   Erster Befehl: `bippt umgebung`; danach den dort genannten `Aufruf` verwenden.
+   von bi-ppt. Erster Befehl wie bei ppp: macOS `python3 "<plugin>/tools/bippt.py" umgebung`, Windows
+   `python "<plugin>\tools\bippt.py" umgebung` (nicht `py`). Anders als ppp ohne `-I`, weil `-I` die mit `pip --user`
+   installierten Pakete ausblendet. Danach immer den von `bippt umgebung` genannten `Aufruf` verwenden.
 3. Meldet `bippt umgebung` fehlende Pakete oder alte Kopien: Karte mit Empfehlung, nach Zustimmung `bippt einrichten`
-   bzw. `bippt aufraeumen --ja`. Kein venv anlegen.
+   bzw. `bippt aufraeumen --ja`. Kein venv anlegen: Gruppenrichtlinien sperren es.
 
 ## Regeln
 - Jede Frage an den Nutzer über das Frage-Werkzeug (ask_user), gebündelt, Empfehlung zuerst; bei Konflikten zwischen

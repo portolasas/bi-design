@@ -100,16 +100,76 @@ def _fusszeile_basis(folie, text):
             _absatz_setzen(ph.text_frame.paragraphs[0], text)
 
 
+THEMA = {"bg1": "lt1", "tx1": "dk1", "bg2": "lt2", "tx2": "dk2"}
+
+
+def _themafarben(folie):
+    """Designfarben des Masters der Folie: {"accent1": "08312A", "lt1": "FFFFFF", …}."""
+    from lxml import etree
+    from pptx.opc.constants import RELATIONSHIP_TYPE as RT
+    a = "{http://schemas.openxmlformats.org/drawingml/2006/main}"
+    try:
+        x = etree.fromstring(folie.slide_layout.slide_master.part.part_related_by(RT.THEME).blob)
+    except KeyError:
+        return {}
+    out = {}
+    for el in x.iter(a + "clrScheme"):
+        for c in el:
+            f = c[0] if len(c) else None
+            if f is not None:
+                out[c.tag.split("}")[-1]] = (f.get("val") if f.tag == a + "srgbClr" else f.get("lastClr", "")).upper()
+    return out
+
+
+def _abgestuft(basis, mods):
+    """Näherung einer Abstufung (lumMod/lumOff/tint/shade) in RGB – reicht, um die nächste Markenfarbe zu finden."""
+    r, g, b = (int(basis[i:i + 2], 16) for i in (0, 2, 4))
+    for name, wert in mods:
+        f = wert / 100000
+        if name in ("lumMod", "shade"):
+            r, g, b = r * f, g * f, b * f
+        elif name == "lumOff":
+            r, g, b = r + 255 * f, g + 255 * f, b + 255 * f
+        elif name == "tint":
+            r, g, b = (255 - (255 - v) * f for v in (r, g, b))
+    return "".join(f"{max(0, min(255, round(v))):02X}" for v in (r, g, b))
+
+
 def farben_angleichen(folie, marke):
-    """Farben außerhalb von Marke + Vorlage auf die nächste Markenfarbe setzen (nur diese Folie)."""
+    """Farben außerhalb von Marke + Vorlage und Abstufungen von Designfarben (Master: nicht CD-konform) auf die
+    nächste Markenfarbe setzen (nur diese Folie; Formstile bleiben, sie füllen nichts sichtbar)."""
+    from lxml import etree
     from .umwandeln import _naechste
     a = "{http://schemas.openxmlformats.org/drawingml/2006/main}"
     palette = sorted(marke.erlaubte_farben() | {"000000", "FFFFFF"})
+    stufen = {"lumMod", "lumOff", "tint", "shade"}
+    thema = None
     n = 0
-    for el in folie._element.iter(a + "srgbClr"):
-        v = el.get("val", "").upper()
-        if v not in palette:
-            el.set("val", _naechste(v, palette))
+    for el in list(folie._element.iter(a + "srgbClr", a + "schemeClr")):
+        anc = el.getparent()
+        while anc is not None and anc.tag.split("}")[-1] != "style":
+            anc = anc.getparent()
+        if anc is not None:
+            continue
+        mods = [(c.tag.split("}")[-1], int(c.get("val", "100000"))) for c in el if c.tag.split("}")[-1] in stufen]
+        if el.tag == a + "srgbClr" and not mods:
+            v = el.get("val", "").upper()
+            if v not in palette:
+                el.set("val", _naechste(v, palette))
+                n += 1
+        elif mods:
+            if el.tag == a + "schemeClr":
+                thema = thema if thema is not None else _themafarben(folie)
+                basis = thema.get(THEMA.get(el.get("val"), el.get("val")), "")
+            else:
+                basis = el.get("val", "").upper()
+            if len(basis) != 6:
+                continue
+            neu = etree.Element(a + "srgbClr", val=_naechste(_abgestuft(basis, mods), palette))
+            for c in el:
+                if c.tag.split("}")[-1] == "alpha":
+                    neu.append(c)
+            el.getparent().replace(el, neu)
             n += 1
     return n
 
@@ -186,8 +246,9 @@ def bauen(spec_pfad, ausgabe=None, still=False):
             k = Kontext(prs, sl, m, schriften, warnungen, nr)
             k.heute = fs.get("heute", heute)
             k.dunkel = lay in vorlage.DUNKLE_LAYOUTS
-            if fs.get("titel") is not None and sl.shapes.title is not None:
-                sl.shapes.title.text = re.sub(r"\*\*|==", "", fs["titel"])
+            titel = fs.get("titel", "Agenda" if typ == "agenda" else None)
+            if titel is not None and sl.shapes.title is not None:
+                sl.shapes.title.text = re.sub(r"\*\*|==", "", titel)
             fn(k, fs)
             if fs.get("band") and typ not in ("titel", "kapitel", "kernaussage"):
                 band(k, fs["band"])

@@ -14,7 +14,7 @@ Befehle
   typen                        Folientypen auflisten
   icons <begriff…>             Brand-Icons suchen
   bauen <spec.json> [-o pptx]  Präsentation bauen
-  pruefen <pptx>               Brand-Prüfung (Farben, Schriften, Kontrast, Überlauf, Master)
+  pruefen <pptx> [--woerter N] Brand-Prüfung (Farben, Abstufungen, Schriften, Kontrast, Überlauf, Master)
   rendern <pptx> [--alle] [--dpi N] [--folien 2,5] [--erzwingen]   PDF/PNG/Kontaktbogen zur Sichtprüfung
   umwandeln entwurf|stil <pptx> [-o ziel]            fremdes Deck ins BI-Design
   vorlage <bi-deck.pptx> [-o ziel]                   BI-Vorlage aus einem Deck im BI-Master erzeugen
@@ -76,7 +76,9 @@ def _umgebung(_):
     from bippt import __version__, konfig
     print(f"bi-design {__version__} · {konfig.rechner()}")
     print(f"  Aufruf  {_aufruf()}")
-    ok = True
+    ok = sys.version_info >= (3, 9)
+    if not ok:
+        print(f"  FEHLT   Python ≥ 3.9 (gefunden {sys.version.split()[0]}) – anderes Python nutzen")
     for mod, pflicht in (("pptx", True), ("lxml", True), ("docx", False), ("pymupdf", False), ("PIL", False), ("openpyxl", False)):
         try:
             importlib.import_module(mod)
@@ -210,7 +212,7 @@ def _bauen(a):
 
 def _pruefen(a):
     from bippt.pruefen import bericht
-    return 1 if bericht(a.pptx) else 0
+    return 1 if bericht(a.pptx, woerter=a.woerter) else 0
 
 
 def _rendern(a):
@@ -261,7 +263,9 @@ def main(argv=None):
     sub.add_parser("typen").set_defaults(fn=_typen)
     p = sub.add_parser("icons"); p.add_argument("begriffe", nargs="+"); p.set_defaults(fn=_icons)
     p = sub.add_parser("bauen"); p.add_argument("spec"); p.add_argument("-o"); p.set_defaults(fn=_bauen)
-    p = sub.add_parser("pruefen"); p.add_argument("pptx"); p.set_defaults(fn=_pruefen)
+    p = sub.add_parser("pruefen"); p.add_argument("pptx")
+    p.add_argument("--woerter", type=int, default=170, help="Wortgrenze je Folie (Steering 120, Projektteam 200)")
+    p.set_defaults(fn=_pruefen)
     p = sub.add_parser("rendern"); p.add_argument("pptx"); p.add_argument("-o"); p.add_argument("--dpi", type=int, default=80)
     p.add_argument("--alle", action="store_true"); p.add_argument("--weg", choices=["powerpoint", "libreoffice"])
     p.add_argument("--folien"); p.add_argument("--erzwingen", action="store_true"); p.set_defaults(fn=_rendern)

@@ -1,12 +1,13 @@
 # Spezifikation und Folientypen
 
-Vollständiges Beispiel mit allen Typen: [../beispiele/beispiel.spec.json](../beispiele/beispiel.spec.json) (`bippt neu`).
+Vollständiges Beispiel mit allen Typen: [../beispiele/beispiel.spec.json](../beispiele/beispiel.spec.json) (`bippt neu`);
+Projektteam-Update nach Referenzdeck: [../beispiele/projektteam.spec.json](../beispiele/projektteam.spec.json).
 
 ## Kopf der Spezifikation
 | Feld | Bedeutung |
 |---|---|
 | `ausgabe` | Dateiname/Pfad der PPTX (relativ zur Spec) |
-| `fusszeile` | Präsentationstitel in der Fußzeile; Vermerk wird angehängt: `Titel     \|     ONLY FOR INTERNAL USE` |
+| `fusszeile` | Präsentationstitel in der Fußzeile (z. B. „Projekt \| Projektteam-Update“); Vermerk wird angehängt: `Titel     \|     ONLY FOR INTERNAL USE` |
 | `vertraulichkeit` | Vermerk (Standard aus config, „ONLY FOR INTERNAL USE“); `""` = keiner |
 | `heute` | Datum der Heute-Linie in Timelines (Standard: heute) |
 | `vorlage` | andere Vorlage (Standard: BI-Master v2.1) |
@@ -15,40 +16,55 @@ Vollständiges Beispiel mit allen Typen: [../beispiele/beispiel.spec.json](../be
 | `folien` | Liste der Folien in Reihenfolge |
 
 ## Felder jeder neuen Folie
-`typ`, `titel`, `band` (`"Text"` oder `{"label": "…:", "text": "…"}`), `quelle` (Quellenzeile unten), `notizen`,
+`typ`, `titel`, `band` (`"Text"` fett oder `{"label": "…:", "text": "…", "stil": "dunkel|akzent|hell"}`, höchstens zwei Zeilen;
+`dunkel` = Position/Entscheidung, `akzent` = Gesamtaussage der Statusfolie, `hell` = Kernänderung, kritischer Pfad, Fazit),
+`quelle` (Quellenzeile unten), `notizen`,
 `ausblenden`, `ab_hier_ausblenden` (z. B. am Backup-Kapitel), `dunkel` (dunkle Layoutvariante, wo vorhanden),
 `layout` (Layout-Kurzname erzwingen), `fusszeile: false`.
 
 Text überall: `"… **fett** … ==hervorgehoben== …"`, Liste = mehrere Absätze, oder
 `{"t": "…", "fett": true, "groesse": 12, "farbe": "DG", "punkt": true, "ebene": 1}`.
 Farben als Kürzel: DG, AG, WH, LG, WG, YEL, MYEL, LRED, RED, MRED, DRED, LBLU, BLU, MBLU, DBLU, LVIO, VIO, MVIO, DVIO,
-SGRN, SYEL, SRED, G1…G8 – oder Token-Namen aus bi-designer. Ampelwerte: G, Y, R, N.
+SGRN, SYEL, SRED, G1…G8 – oder Token-Namen aus bi-designer. Keine Abstufungen (Master: nicht CD-konform).
+Ampelwerte: G, Y, R, N und YR (Gelb–Rot: Verzug, Eskalation erwartet; halb gelb, halb rot).
 
 ## Basisfolien (Modus V)
 `{"basis": 7, "ausblenden": true, "ersetzen": {"alter Text": "neuer Text"}, "platzhalter": {"1": ["Zeile 1", "Zeile 2"]}, "titel": "…"}`
-`"farben_angleichen": true` (je Folie) bzw. `"basis_farben_angleichen": true` (Kopf) setzt Nicht-Markenfarben alter
-Folien auf die nächste Markenfarbe – sinnvoll, wenn `bippt pruefen` „Farben außerhalb der Marke“ in Basisfolien meldet.
+`"farben_angleichen": true` (je Folie) bzw. `"basis_farben_angleichen": true` (Kopf) setzt Nicht-Markenfarben und Abstufungen
+von Designfarben alter Folien auf die nächste Markenfarbe – sinnvoll, wenn `bippt pruefen` „Farben außerhalb der Marke“
+oder „Abstufungen“ in Basisfolien meldet. Danach im Render prüfen.
 
 ## Typen
 | typ | Layout | Felder | Einsatz |
 |---|---|---|---|
 | `titel` | Title slide (bright) / `dunkel` | `titel`, `untertitel` [Zeilen] | Titelfolie |
-| `agenda` | Agenda | `punkte` | Agenda |
+| `agenda` | Agenda | `punkte`; Titel ohne Angabe „Agenda“ | Agenda |
 | `kapitel` | Chapter divider (1) / `dunkel` | `titel`, `untertitel` | Abschnitt, „Backup“ |
 | `text` | One content | `punkte` (mit `ebene`) | Fließtext/Aufzählung im Master-Stil |
-| `status` | Only title | `phasen` [Namen], `straenge` [{`titel`, `ampel`, `stand` [2=fertig,1=aktiv,0=offen], `punkte`, `naechster`}], `legende` {G: …} | Status je Strang |
+| `status` | Only title | `phasen` [Namen], `straenge` [{`titel`, `ampel`, `stand` [2=fertig,1=aktiv,0=offen], `punkte`, `naechster`}], `legende` {G: …, YR: …} | Status je Strang |
 | `vergleich` | Only title | `spalten` [3], `zeilen` [[thema, alt, neu]]; Zelle `{"ampel": [..], "labels": [..]}` | Änderungen alt → neu |
-| `prozess` | Only title | `kopf` {label,text}, `schritte` [{`icon`, `titel`, `text`, `status`}], `hinweis`, `hinweis_ab`, `karten` | Ablauf/Prozesskette |
-| `karten` | Only title | `kopf`, `karten` [{`titel`, `ampel` \| `akzent`+`icon`, `stil` leiste/akzent/ohne, `hell`, Blöcke}] | 2–4 Bereiche nebeneinander |
-| `timeline` | Only title | `skala` monat/woche (auto), `von`, `bis`, `heute`, `zeilen` [{`titel`, `elemente`}], `marker`, `schatten`, `legende`, `fakten` \| `boxen` | Gantt/Roadmap |
-| `massnahmen` | Only title | `zeilen` [{`wann`, `was`, `details`, `tag`}] | Nächste Schritte |
+| `prozess` | Only title | `kopf` {label,text}, `schritte` [{`icon`, `titel`, `text`, `status`}], `hinweis`, `hinweis_ab`, `karten`, `hoehe`; mit `ueber`/`punkte` je Schritt → Schrittkarten (unten) | Ablauf/Prozesskette, Vorgehen, Eskalationslogik |
+| `karten` | Only title | `kopf`, `karten` [{`titel`, `ampel` \| `akzent`+`icon`, `stil` leiste/akzent/ohne, `hell`, `hervor`, Blöcke}], `hoehe` inhalt (Standard) / voll | 2–4 Bereiche nebeneinander, Varianten |
+| `timeline` | Only title | `skala` woche/monat/quartal (auto: ≤ 190 Tage Wochen, ≤ 18 Monate Monate, sonst Quartale), `von`, `bis`, `heute`, `zeilen` [{`titel`, `elemente`}], `marker`, `schatten`, `legende`, `fakten` \| `boxen` | Gantt/Roadmap |
+| `massnahmen` | Only title | `zeilen` [{`wann`, `was`, `details`, `tag`}], bis ca. 8 Zeilen | Nächste Schritte |
 | `tabelle` | Only title | `kopf`, `zeilen`, `breiten`, `groesse`, `erste_spalte_fett`; Zelle `{"ampel": "G", "t": "…"}` | echte, editierbare Tabelle |
 | `kennzahlen` | Only title | `kacheln` [{`wert`, `label`, `text`, `ampel`, `icon`}], `spalten` | KPIs |
 | `diagramm` | Only title | `art` saeulen/gestapelt/balken/linie/torte, `kategorien`, `reihen` [{name, werte}], `werte_anzeigen`, `fazit` {titel, punkte, icon} | echtes Diagramm (editierbar) |
+| `fluss` | Only title | `spalten` [{`titel`, `boxen` [{`titel`, `text`, `klein`, `stil` hell/weiss/dunkel/akzent}]}]; eine Box spannt über alle Zeilen | Datenfluss, Systemlandschaft, Zielbild |
 | `bild_text` | Content and image | `bild` (Pfad), `punkte` | Bild + Text |
 | `kernaussage` | One content dark | `titel` (Aussage), `text` | Botschaft / Entscheidung |
 | `abschluss` | One content dark Outro | `titel` | „Vielen Dank“ |
 | `frei` | Only title | `elemente` [{`form`: flaeche/text/linie/icon/punkt/pfeil/karte, x, y, w, h …}] in Zoll | Sonderfälle ohne Code |
+
+## Karten: Hervorhebung und Höhe
+`"hervor": true` – Kopfleiste in Accent Green mit dunkelgrüner Schrift (z. B. empfohlene Variante, Zielbild, Argumente).
+Nie Akzentgrün als Schrift, Rahmen oder dünne Linie auf Hell. `"hoehe": "inhalt"` (Standard bei `karten`): alle Karten so
+hoch wie die vollste; `"voll"`: bis zur Unterkante (Vergleich nebeneinander, Statusfolie).
+
+## Schrittkarten (`prozess`)
+`{"ueber": "KW 41", "titel": "Workshop", "punkte": [...], "status": "fertig|aktiv|plan|offen|klaerung|extern|kritisch"}` –
+Kopf in Statusfarbe (ohne Status Dark Green), Überzeile klein (Termin, KW, Bedingung), darunter Punkte; Pfeile zwischen
+den Köpfen. `kritisch` = Red mit dunkelgrüner Schrift (Eskalation). Ohne `karten` strecken sie sich bis zur Unterkante.
 
 ## Blöcke in Karten (`inhalt` oder Kurzfelder)
 `{"punkte": [...]}` · `{"text": "..."}` · `{"phasen": {"namen": [...], "stand": [2,1,0]}}` ·

@@ -230,12 +230,35 @@ def _blk(k, b, x, y, w, zeichnen, g):
     return 0
 
 
-def karte(k, kar, x, y, w, h, g=11):
-    stil = kar.get("stil") or ("akzent" if kar.get("akzent") else ("ohne" if not kar.get("titel") else "leiste"))
+def _kartenstil(kar):
+    return kar.get("stil") or ("akzent" if kar.get("akzent") else ("ohne" if not kar.get("titel") else "leiste"))
+
+
+def _kopf_h(stil):
+    return {"leiste": 0.44 + 0.16, "akzent": 0.55}.get(stil, 0.15)
+
+
+def karte_bedarf(k, kar, w, h, g=11):
+    """Schriftgröße und benötigte Höhe einer Karte: Schrift wächst bis 12,5 pt, solange der Inhalt unter 60 % der
+    verfügbaren Höhe h bleibt (wie bisher); Höhe = Kopf + Blöcke + Rand."""
+    pad = 0.18
+    iw = w - 2 * pad
+    bl = _bloecke(kar)
+    verfuegbar = h - _kopf_h(_kartenstil(kar)) - pad
+    def summe(gg):
+        return sum(_blk(k, b, 0, 0, iw, False, gg) + 0.1 for b in bl)
+    while bl and g < 12.5 and summe(g + 0.5) < 0.6 * verfuegbar:
+        g += 0.5
+    return g, _kopf_h(_kartenstil(kar)) + summe(g) + pad
+
+
+def karte(k, kar, x, y, w, h, g=11, wachsen=True):
+    stil = _kartenstil(kar)
     flaeche(k, x, y, w, h, fill="WH" if kar.get("hell") else "LG", linie="WG" if kar.get("hell") else None)
     pad = 0.18
     if stil == "leiste":
-        kopfleiste(k, x, y, w, kar.get("titel", ""), ampelwert=kar.get("ampel"))
+        kopfleiste(k, x, y, w, kar.get("titel", ""), ampelwert=kar.get("ampel"),
+                   fill="AG" if kar.get("hervor") else "DG")
         cy = y + 0.44 + 0.16
     elif stil == "akzent":
         flaeche(k, x, y, 0.07, h, fill=AMPEL.get(kar.get("akzent"), kar.get("akzent", "DG")))
@@ -259,8 +282,8 @@ def karte(k, kar, x, y, w, h, g=11):
         _blk(k, b, iy, yb, iw, True, g)
         yb -= 0.1
     verfuegbar = yb - cy
-    bedarf = sum(_blk(k, b, iy, 0, iw, False, g) + 0.1 for b in oben)
-    while oben and g < 12.5 and sum(_blk(k, b, iy, 0, iw, False, g + 0.5) + 0.1 for b in oben) < 0.6 * verfuegbar:
+    while wachsen and oben and g < 12.5 and \
+            sum(_blk(k, b, iy, 0, iw, False, g + 0.5) + 0.1 for b in oben) < 0.6 * verfuegbar:
         g += 0.5
     yy = cy
     for b in oben:
@@ -271,11 +294,16 @@ def karte(k, kar, x, y, w, h, g=11):
         yy += hh + 0.1
 
 
-def karten_reihe(k, karten, x, y, w, h, abstand=0.22, g=11):
+def karten_reihe(k, karten, x, y, w, h, abstand=0.22, g=11, hoehe="voll"):
+    """Karten nebeneinander. hoehe voll = bis zur Unterkante; inhalt = alle so hoch wie die vollste Karte
+    (gleiche Höhe in der Reihe, Rest bleibt frei). Gibt die gezeichnete Höhe zurück."""
     n = max(1, len(karten))
     cw = (w - abstand * (n - 1)) / n
-    for i, kar in enumerate(karten):
-        karte(k, kar, x + i * (cw + abstand), y, cw, h, g=kar.get("groesse", g))
+    bedarf = [karte_bedarf(k, kar, cw, h, kar.get("groesse", g)) for kar in karten]
+    hh = h if hoehe == "voll" else min(h, max([b for _, b in bedarf] or [h]))
+    for i, (kar, (gg, _)) in enumerate(zip(karten, bedarf)):
+        karte(k, kar, x + i * (cw + abstand), y, cw, hh, g=gg, wachsen=False)
+    return hh
 
 
 @folientyp("karten")
@@ -284,14 +312,15 @@ def karten(k, s):
     unten = inhaltsunterkante(s)
     y = Y0 - 0.25
     if s.get("kopf"):
-        _kopfband(k, s["kopf"], y)
-        y += BAND_H + 0.18
-    karten_reihe(k, s.get("karten", []), X0, y, XW, unten - y, g=s.get("groesse", 11))
+        y += _kopfband(k, s["kopf"], y) + 0.18
+    karten_reihe(k, s.get("karten", []), X0, y, XW, unten - y, g=s.get("groesse", 11), hoehe=s.get("hoehe", "inhalt"))
 
 
 def _kopfband(k, spec, y):
-    from .bausteine import band
+    """Band oben (z. B. „Zu entscheiden:“); gibt seine Höhe zurück."""
+    from .bausteine import band, band_hoehe
     band(k, spec, y=y, groesse=11.5)
+    return band_hoehe(spec, 11.5)
 
 
 @folientyp("status")
@@ -388,28 +417,33 @@ def prozess(k, s):
     unten = inhaltsunterkante(s)
     y = Y0 - 0.25
     if s.get("kopf"):
-        _kopfband(k, s["kopf"], y)
-        y += BAND_H + 0.2
+        y += _kopfband(k, s["kopf"], y) + 0.2
     schritte = s.get("schritte", [])
     n = max(1, len(schritte))
-    gap = 0.45
-    sw = (XW - gap * (n - 1)) / n
-    th = max(text_hoehe(st.get("text", ""), sw - 0.16, 9.5, nach=0) for st in schritte) if schritte else 0.3
-    sh = max(1.5, 1.0 + th + 0.1)
-    for i, st in enumerate(schritte):
-        x = X0 + i * (sw + gap)
-        flaeche(k, x, y, sw, sh, fill=STATUSFARBE.get(st.get("status"), ("LG",))[0] if st.get("status") else "LG")
-        flaeche(k, x, y, sw, 0.06, fill="DG")
-        if st.get("icon"):
-            icon(k, st["icon"], x + sw / 2 - 0.21, y + 0.18, 0.42)
-        textfeld(k, x + 0.06, y + 0.66, sw - 0.12, 0.3, {"t": st.get("titel", ""), "ausr": "m"}, groesse=11.5,
-                 fett=True, rand=(0, 0, 0, 0))
-        if st.get("text"):
-            textfeld(k, x + 0.08, y + 0.97, sw - 0.16, sh - 1.0, {"t": st["text"], "ausr": "m"}, groesse=9.5,
-                     rand=(0, 0, 0, 0))
-        if i < n - 1:
-            pfeil(k, x + sw + 0.085, y + sh / 2 - 0.11)
-    y += sh + 0.14
+    if any(st.get("punkte") or st.get("ueber") for st in schritte):
+        gap = 0.3
+        sw = (XW - gap * (n - 1)) / n
+        y += _schrittkarten(k, schritte, y, sw, gap, unten - y if not s.get("karten") else None) + 0.22
+    else:
+        gap = 0.45
+        sw = (XW - gap * (n - 1)) / n
+        th = max(text_hoehe(st.get("text", ""), sw - 0.16, 9.5, nach=0) for st in schritte) if schritte else 0.3
+        sh = max(1.5, 1.0 + th + 0.1)
+        for i, st in enumerate(schritte):
+            x = X0 + i * (sw + gap)
+            fill, farbe = STATUSFARBE.get(st.get("status"), ("LG", "DG"))
+            flaeche(k, x, y, sw, sh, fill=fill)
+            flaeche(k, x, y, sw, 0.06, fill="AG" if fill == "DG" else "DG")
+            if st.get("icon"):
+                icon(k, st["icon"], x + sw / 2 - 0.21, y + 0.18, 0.42, variante="white" if fill == "DG" else None)
+            textfeld(k, x + 0.06, y + 0.66, sw - 0.12, 0.3, {"t": st.get("titel", ""), "ausr": "m"}, groesse=11.5,
+                     fett=True, farbe=farbe, rand=(0, 0, 0, 0))
+            if st.get("text"):
+                textfeld(k, x + 0.08, y + 0.97, sw - 0.16, sh - 1.0, {"t": st["text"], "ausr": "m"}, groesse=9.5,
+                         farbe=farbe, rand=(0, 0, 0, 0))
+            if i < n - 1:
+                pfeil(k, x + sw + 0.085, y + sh / 2 - 0.11)
+        y += sh + 0.14
     if s.get("hinweis"):
         ab = s.get("hinweis_ab", 0)
         hx = X0 + ab * (sw + gap)
@@ -417,7 +451,92 @@ def prozess(k, s):
                 anker="m", rand=(0.15, 0, 0.15, 0))
         y += 0.46 + 0.2
     if s.get("karten"):
-        karten_reihe(k, s["karten"], X0, y, XW, unten - y, abstand=0.2, g=10.5)
+        karten_reihe(k, s["karten"], X0, y, XW, unten - y, abstand=0.2, g=10.5, hoehe=s.get("hoehe", "voll"))
+
+
+# Kopf der Schrittkarten je Status: (Füllung, Schrift); ohne Status Dunkelgrün wie im Referenzdeck
+SCHRITTKOPF = {None: ("DG", "WH"), "fertig": ("DG", "WH"), "aktiv": ("AG", "DG"), "plan": ("WG", "DG"),
+               "offen": ("WG", "DG"), "klaerung": ("MYEL", "DG"), "extern": ("LG", "DG"), "kritisch": ("RED", "DG")}
+
+
+def _schrittkarten(k, schritte, y, sw, gap, voll_h=None, g=10.5):
+    """Schritte als Karten: Kopf (Überzeile klein, Titel fett) in Statusfarbe, darunter Punkte oder Text;
+    Pfeile zwischen den Köpfen. voll_h = bis zur Unterkante strecken, sonst so hoch wie der vollste Schritt."""
+    ueber = 0.2 if any(st.get("ueber") for st in schritte) else 0
+    kh = max(0.46, ueber + max(text_hoehe(st.get("titel", ""), sw - 0.26, 11.5, zeilenabstand=1.0, nach=0)
+                               for st in schritte) + 0.14)
+    inhalt = []
+    for st in schritte:
+        b = {"punkte": st["punkte"]} if st.get("punkte") else ({"text": st["text"]} if st.get("text") else None)
+        inhalt.append(b)
+    bh = max([_blk(k, b, 0, 0, sw - 0.3, False, g) for b in inhalt if b] or [0.3]) + 0.3
+    if voll_h:
+        bh = max(bh, voll_h - kh)
+    for i, (st, b) in enumerate(zip(schritte, inhalt)):
+        x = X0 + i * (sw + gap)
+        fill, farbe = SCHRITTKOPF.get(st.get("status"), SCHRITTKOPF[None])
+        flaeche(k, x, y + kh, sw, bh, fill="LG")
+        t = []
+        if st.get("ueber"):
+            t.append({"t": st["ueber"], "groesse": 9, "nach": 1})
+        t.append({"t": st.get("titel", ""), "groesse": 11.5, "fett": True})
+        flaeche(k, x, y, sw, kh, fill=fill, t=t, farbe=farbe, anker="m", rand=(0.14, 0.04, 0.1, 0.04), nach=0)
+        if b:
+            _blk(k, b, x + 0.12, y + kh + 0.14, sw - 0.24, True, g)
+        if i < len(schritte) - 1:
+            pfeil(k, x + sw + (gap - 0.2) / 2, y + kh / 2 - 0.09, 0.2, 0.18)
+    return kh + bh
+
+
+# ======================================================================= Datenfluss
+@folientyp("fluss")
+def fluss(k, s):
+    """Datenfluss in Spalten: spalten [{titel, boxen [{titel, text, klein, stil hell|weiss|dunkel|akzent}]}].
+    Boxen einer Spalte liegen in Zeilen; eine Spalte mit einer Box spannt über alle Zeilen. Pfeile je Zeile."""
+    spalten = s.get("spalten", [])
+    if not spalten:
+        k.warn("fluss: keine spalten")
+        return
+    unten = inhaltsunterkante(s)
+    y = Y0 - 0.2
+    n = len(spalten)
+    gap = 0.42
+    sw = (XW - gap * (n - 1)) / n
+    zeilen = max(len(sp.get("boxen", [])) for sp in spalten)
+    kopf = 0.32 if any(sp.get("titel") for sp in spalten) else 0
+    oben = y + kopf
+    zh_gap = 0.18
+    zh = (unten - oben - zh_gap * (zeilen - 1)) / max(1, zeilen)
+    stile = {"hell": ("LG", "DG"), "weiss": ("WH", "DG"), "dunkel": ("DG", "WH"), "akzent": ("AG", "DG")}
+    lagen = []  # je Spalte: [(y, h)] der Boxen
+    for i, sp in enumerate(spalten):
+        x = X0 + i * (sw + gap)
+        if sp.get("titel"):
+            textfeld(k, x, y, sw, 0.28, sp["titel"], groesse=10.5, fett=True, farbe="G7", rand=(0, 0, 0, 0),
+                     warn_ueberlauf=False)
+        boxen = sp.get("boxen", [])
+        if len(boxen) == 1 and zeilen > 1:
+            pos = [(oben, unten - oben)]
+        else:
+            pos = [(oben + j * (zh + zh_gap), zh) for j in range(len(boxen))]
+        lagen.append(pos)
+        for bx, (by, bh) in zip(boxen, pos):
+            fill, farbe = stile.get(bx.get("stil", "hell"), stile["hell"])
+            t = [{"t": bx.get("titel", ""), "fett": True, "groesse": 12.5 if len(pos) == 1 else 11.5, "ausr": "m", "nach": 3}]
+            if bx.get("text"):
+                t.append({"t": bx["text"], "groesse": 11, "ausr": "m", "nach": 3})
+            if bx.get("klein"):
+                t.append({"t": bx["klein"], "groesse": 9.5, "kursiv": True, "ausr": "m"})
+            flaeche(k, x, by, sw, bh, fill=fill, linie="WG" if fill == "WH" else None, t=t, farbe=farbe,
+                    hervor="AG" if fill == "DG" else None, anker="m", rand=(0.12, 0.06, 0.12, 0.06))
+            if text_hoehe(t, sw - 0.24, 11) > bh + 0.1:
+                k.warn(f"fluss: Box „{bx.get('titel', '')}“ zu voll – kürzen")
+    for i in range(n - 1):
+        xa = X0 + i * (sw + gap) + sw
+        links, rechts = lagen[i], lagen[i + 1]
+        mitten = [by + bh / 2 for by, bh in (links if len(links) >= len(rechts) else rechts)]
+        for cy in mitten:
+            pfeil(k, xa + (gap - 0.26) / 2, cy - 0.1, 0.26, 0.2)
 
 
 # ======================================================================= Timeline (Gantt)
@@ -454,6 +573,12 @@ class _Skala:
                 j, w, _ = d.isocalendar()
                 self.spalten.append((d, d + dt.timedelta(days=7), f"KW {w}", j))
                 d += dt.timedelta(days=7)
+        elif art == "quartal":
+            d = dt.date(von.year, 3 * ((von.month - 1) // 3) + 1, 1)
+            while d <= bis:
+                n = dt.date(d.year + (d.month + 2) // 12, (d.month + 2) % 12 + 1, 1)
+                self.spalten.append((d, n, f"Q{(d.month - 1) // 3 + 1}", d.year))
+                d = n
         else:
             d = dt.date(von.year, von.month, 1)
             while d <= bis:
@@ -478,15 +603,16 @@ def _breite(txt, g, fett=True):
 
 @folientyp("timeline")
 def timeline(k, s):
-    """Gantt in Monaten oder Kalenderwochen mit Balken, Meilensteinen, Heute-Linie, Markern, Legende, Fakten."""
+    """Gantt in Kalenderwochen, Monaten oder Quartalen mit Balken, Meilensteinen, Heute-Linie, Markern, Legende, Fakten."""
     zeilen = s.get("zeilen", [])
     alle = [e for z in zeilen for e in z.get("elemente", [])]
     daten = [_datum(e[f]) for e in alle for f in ("von", "bis", "datum") if e.get(f)]
     von = _datum(s["von"]) if s.get("von") else min(daten)
     bis = _datum(s["bis"], ende=True) if s.get("bis") else max(daten)
-    art = s.get("skala") or ("woche" if (bis - von).days <= 190 else "monat")
+    tage = (bis - von).days
+    art = s.get("skala") or ("woche" if tage <= 190 else ("monat" if tage <= 548 else "quartal"))
     lx0 = X0
-    cx0 = X0 + (s.get("beschriftung_breite") or (3.0 if art == "woche" else 2.25))
+    cx0 = X0 + (s.get("beschriftung_breite") or (3.0 if art == "woche" else 2.1))
     cx1 = X0 + XW
     sk = _Skala(von, bis, art, cx0, cx1)
     unten = inhaltsunterkante(s)
@@ -507,7 +633,7 @@ def timeline(k, s):
             linie(k, xa, ty, xa, ty + 0.3, farbe="WH", w=1.5)
     for i, (a, b, lab, j) in enumerate(sk.spalten):
         flaeche(k, cx0 + i * sk.sw, ty + 0.3, sk.sw, 0.24, fill="LG" if i % 2 == 0 else "WG", t={"t": lab, "ausr": "m"},
-                groesse=8 if art == "monat" else 7.5, anker="m", rand=(0, 0, 0, 0))
+                groesse=7.5 if art == "woche" else 8.5, anker="m", rand=(0, 0, 0, 0))
     grid_top = ty + 0.54
     rows_y = grid_top + 0.06
     # Platz für Legende und Fakten
@@ -521,15 +647,15 @@ def timeline(k, s):
     elif boxen:
         f_h = max(text_hoehe(b.get("text", ""), XW / len(boxen) - 0.4, 10) for b in boxen) + 0.55
     verf = unten_raster - leg_h - (f_h + 0.12 if f_h else 0) - rows_y
-    rh = max(0.36, min(0.6, verf / max(1, len(zeilen))))
+    rh = max(0.32, min(0.6, verf / max(1, len(zeilen))))
     if rh * len(zeilen) > verf + 0.01:
         k.warn("Timeline: zu viele Zeilen für den Platz – Zeilen zusammenfassen oder Fakten kürzen")
     grid_bot = rows_y + rh * len(zeilen)
     for i, z in enumerate(zeilen):
         yy = rows_y + i * rh
         flaeche(k, lx0, yy + 0.03, cx1 - lx0, rh - 0.06, fill="LG" if i % 2 == 0 else "WH")
-        textfeld(k, lx0, yy, cx0 - lx0 - 0.05, rh, z.get("titel", ""), groesse=s.get("groesse", 10.5 if art == "monat" else 10),
-                 fett=art == "monat", anker="m", rand=(0.08, 0, 0, 0), warn_ueberlauf=False)
+        textfeld(k, lx0, yy, cx0 - lx0 - 0.05, rh, z.get("titel", ""), groesse=s.get("groesse", 10 if art == "woche" else 10.5),
+                 fett=art != "woche", anker="m", rand=(0.08, 0, 0, 0), warn_ueberlauf=False)
     for sch in s.get("schatten", []):
         xa, xb = sk.x(_datum(sch["von"])), sk.x(_datum(sch["bis"], ende=True))
         flaeche(k, xa, grid_top, xb - xa, grid_bot - grid_top, fill="WG")
@@ -573,6 +699,7 @@ def timeline(k, s):
             wahl = reihenfolge[0]
             k.warn(f"Timeline: Beschriftung „{txt}“ überlappt – pos setzen oder kürzen")
         lx, ly, au = kand[wahl]
+        lx = max(X0, min(lx, X0 + XW - w))  # nie über den Folienrand
         belegen(row, lx, w, ly, 0.24)
         textfeld(k, lx, ly, w, 0.24, {"t": txt, "ausr": au}, groesse=g if wahl in ("rechts", "links") else 7.5,
                  fett=True, anker="m", rand=(0, 0, 0, 0), warn_ueberlauf=False, umbruch=False)
@@ -676,11 +803,11 @@ def massnahmen(k, s):
     ww, wa, wt = 2.3, 3.5, 0.8
     wd = XW - ww - wa - wt - 0.35
     g = s.get("groesse", 10.5)
-    hs = [max(0.5, text_hoehe(r.get("details", ""), wd - 0.1, g, nach=0) + 0.18,
+    hs = [max(0.42, text_hoehe(r.get("details", ""), wd - 0.1, g, nach=0) + 0.18,
               text_hoehe(r.get("was", ""), wa - 0.1, g + 0.5, nach=0) + 0.18) for r in rows]
     gap = 0.06
     if y0 + sum(hs) + gap * len(rows) > unten:
-        k.warn("Maßnahmen: zu viele Zeilen – max. ca. 7, Rest ins Backup")
+        k.warn("Maßnahmen: zu viele Zeilen – max. ca. 8, Rest ins Backup")
     elif rows:
         frei_h = (unten - 0.1 - y0 - sum(hs) - gap * len(rows)) / len(rows)
         hs = [min(h + frei_h, 0.8) for h in hs]
@@ -812,6 +939,8 @@ def bild_text(k, s):
 DIAGRAMM = {"saeulen": XL_CHART_TYPE.COLUMN_CLUSTERED, "gestapelt": XL_CHART_TYPE.COLUMN_STACKED,
             "balken": XL_CHART_TYPE.BAR_CLUSTERED, "linie": XL_CHART_TYPE.LINE_MARKERS, "torte": XL_CHART_TYPE.DOUGHNUT}
 LINIEN_AUF_WEISS = ["DG", "DBLU", "DVIO", "DRED", "MRED", "DYEL"]
+# „Automatic diagram color sequence“ des BI-Masters v2.1 (Designfarben Akzent 1–6), danach dunkle Custom Colors
+DIAGRAMM_FOLGE = ["DG", "AG", "VIO", "YEL", "RED", "BLU", "DBLU", "DVIO", "DRED", "DYEL"]
 
 
 @folientyp("diagramm")
@@ -841,7 +970,7 @@ def diagramm(k, s):
     if ch.has_legend:
         ch.legend.position = XL_LEGEND_POSITION.BOTTOM
         ch.legend.include_in_layout = False
-    folge = [k.c(c) for c in LINIEN_AUF_WEISS] if art == "linie" else k.m.diagramm_folge
+    folge = [k.c(c) for c in (LINIEN_AUF_WEISS if art == "linie" else DIAGRAMM_FOLGE)]
     plot = ch.plots[0]
     if s.get("werte_anzeigen"):
         plot.has_data_labels = True

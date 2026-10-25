@@ -11,6 +11,14 @@ Quelle: Plugin **bi-design** aus dem privaten Marktplatz `portolasas/bi-design`.
   Skill `/bi-design:bi-ppt` im Hauptchat oder Subagent `bi-ppt` für abgegrenzte Bauaufträge.
 - Dann `bippt umgebung`; Pakete mit `bippt einrichten`, alte Kopien mit `bippt aufraeumen --ja`.
 
+## Python
+- Wie bei ppp: Windows `python` (Firmenrechner: Python 3.13), macOS `python3`; nicht `py`. Mindestens Python 3.9.
+- Anders als ppp **ohne `-I`**: bippt braucht Pakete aus PyPI, und `-I` blendet die mit `pip --user` installierten aus.
+- Pakete nur mit `bippt einrichten` (`"<Interpreter>" -m pip install --user -r requirements.txt`), kein venv:
+  Gruppenrichtlinien sperren virtuelle Umgebungen. In einem bereits aktiven venv installiert es ohne `--user` dorthin.
+- Mehrere Pythons (auf dem Mac z. B. 3.9 und 3.10): `bippt umgebung` nennt in `Aufruf` den absoluten Pfad des
+  Interpreters; denselben für alle Befehle verwenden, sonst fehlen die Pakete.
+
 ## Aktualisieren
 VS Code holt neue Versionen selbst (bei `extensions.autoUpdate` etwa alle 24 Stunden), danach „Developer: Reload Window“.
 Claude Code: `/plugin marketplace update bi-design`, dann `/plugin uninstall bi-design@bi-design` und

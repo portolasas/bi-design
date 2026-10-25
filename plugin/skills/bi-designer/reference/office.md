@@ -23,6 +23,9 @@ LINES_ON_WHITE = ["08312A", "076D7E", "5D4495", "86251B", "EE6541", "E18600"]  #
 Whole decks (new, new version of an existing deck, conversion into the BI design): agent/skill **bi-ppt**
 (same plugin – generator `bippt` on the BI master v2.1 with status, timeline, process … slide types). The rules
 below are for single slides or other generators. Traffic lights = signal colors with a legend.
+Master v2.1 (binding): only theme and custom colors, **no tints/shades** (lighter/darker x %) and no standard colors.
+Chart series in PowerPoint follow the master's automatic sequence, theme accents 1–6:
+`PPT_CHART = ["08312A", "00E47C", "C5C3EE", "FFE667", "F58A68", "A3E5EE"]`; lines on white use `LINES_ON_WHITE`.
 - 16:9 (`prs.slide_width = Inches(13.333)`, `prs.slide_height = Inches(7.5)`); margins ≥ 0.5 in.
 - Title slide: full Dark Green area, title White, one Accent Green highlight (line or keyword) on the
   Dark Green; logo Accent Green or White variant.
@@ -40,7 +43,7 @@ run = band.text_frame.paragraphs[0].add_run(); run.text = "Titel"
 run.font.size = Pt(28); run.font.color.rgb = rgb(BI["White"]); run.font.name = "Segoe UI"
 # chart series: bars → fill, lines → line colour
 for i, s in enumerate(chart.plots[0].series):
-    s.format.fill.solid(); s.format.fill.fore_color.rgb = rgb(CHART[i % len(CHART)])
+    s.format.fill.solid(); s.format.fill.fore_color.rgb = rgb(PPT_CHART[i % len(PPT_CHART)])
 ```
 
 ## 3. Word (python-docx) [D]

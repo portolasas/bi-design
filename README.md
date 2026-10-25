@@ -2,13 +2,16 @@
 
 Plugin für **VS Code (GitHub Copilot)** und **Claude Code**, das Agenten das Corporate Design von Boehringer Ingelheim beibringt. Privat, weil es den BI-Master und Markenwerte enthält.
 
+Verbindlich ist der **BI-Master v2.1** (How-to slides): nur seine Designfarben und Custom Colors, keine Abstufungen, keine Standardfarben, Fußzeile mit Vertraulichkeitsvermerk. Referenzdecks liefern Storyline und Textmuster, nicht die Farben.
+
 - **Skill `bi-designer`** – Marke für alles Visuelle: Farben (Tokens, Rollen, erlaubte Kontrastpaare), Schriften, Logo- und Symbolvarianten, 895 Icons, Rezepte für Power Apps, Power BI, PowerPoint/Word/Excel, Diagramme, Web, HTML-Mail, Teams-Karten. ppp nutzt ihn für Power-Apps-Theme, Prototypen und Power-BI-Theme.
 - **Agent und Skill `bi-ppt`** – PowerPoint im BI-Master v2.1: aus Transkripten, Projektaufträgen, Notizen oder Excel ein neues Deck bauen, eine neue Version eines bestehenden Decks erzeugen (z. B. Projektteam-Update → Steering-Update), fremde Decks ins BI-Design umwandeln, Brand-Regeln prüfen und zur Sichtprüfung rendern.
 - **Generator `bippt`** (Python, python-pptx) – baut die Folien aus einer Spezifikation (JSON) mit Folientypen wie Status, Vergleich, Prozess, Timeline/Gantt, Maßnahmen, Kennzahlen, Diagramm, Tabelle. Änderungen später = Spec ändern und neu bauen.
 
 ## Voraussetzungen
 - VS Code mit GitHub Copilot und Agent Plugins, oder Claude Code; Zugriff auf dieses private Repo (Git-Anmeldung des Rechners).
-- Python 3.9 oder neuer. Die Pakete installiert `bippt einrichten` mit `pip --user`, ohne venv.
+- Python 3.9 oder neuer, aufgerufen wie bei ppp (Windows `python`, Mac `python3`), aber ohne `-I`, weil `-I` die mit
+  `pip --user` installierten Pakete ausblendet. Die Pakete installiert `bippt einrichten` mit `pip --user`, ohne venv.
 - PowerPoint zum Rendern (Mac oder Windows); sonst nur Prüfen.
 - Für Logos und Icons der Ordner BrandDesign (nicht im Repo; Schriftdateien sind lizenziert).
 

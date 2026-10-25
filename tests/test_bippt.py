@@ -14,6 +14,8 @@ import os  # noqa: E402
 
 os.environ.setdefault("BIPPT_HOME", tempfile.mkdtemp())  # keine echte config verändern
 from pptx import Presentation  # noqa: E402
+from lxml import etree  # noqa: E402
+from pptx.oxml.ns import qn  # noqa: E402
 
 from bippt import analyse, bauen, konfig, pruefen, umwandeln  # noqa: E402
 from bippt.marke import Marke  # noqa: E402
@@ -91,6 +93,43 @@ with tempfile.TemporaryDirectory() as td:
     fall("Stil: Farben/Schriften bereinigt",
          not [b for b in b4 if b[0] == "FEHLER" and ("Farben" in b[2] or "Schriften" in b[2])],
          "; ".join(b[2] for b in b4))
+
+    print("Projektteam-Update (Referenzmuster, Master-Regeln)")
+    pspec = td / "projektteam.spec.json"
+    shutil.copy(PLUGIN / "skills" / "bi-ppt" / "beispiele" / "projektteam.spec.json", pspec)
+    zp, wp = bauen.bauen(pspec, still=True)
+    fall("Projektteam: keine Bau-Warnungen", not wp, "; ".join(wp))
+    bp = pruefen.pruefen(zp, woerter=200)
+    fall("Projektteam: Prüfung ohne Fehler und Warnungen", not [b for b in bp if b[0] in ("FEHLER", "WARNUNG")],
+         "; ".join(f"{b[1]}: {b[2]}" for b in bp if b[0] in ("FEHLER", "WARNUNG")))
+    pp = Presentation(str(zp))
+    fall("Agenda mit Titel", pp.slides[1].shapes.title.text_frame.text == "Agenda")
+    geo = [sh._element.spPr.find(qn("a:prstGeom")) for sh in pp.slides[2].shapes if hasattr(sh._element, "spPr")]
+    fall("Ampel Gelb–Rot als Halbkreis", any(g is not None and g.get("prst") == "chord" for g in geo))
+    texte = {sh.text_frame.text for sh in pp.slides[8].shapes if sh.has_text_frame}
+    fall("Quartalsskala ab 18 Monaten", {"Q1", "Q4", "2028"} <= texte, str(sorted(texte)[:8]))
+    pfeile = [sh for sh in pp.slides[10].shapes if sh.shape_type == 1 and sh.auto_shape_type == 33]
+    fall("Datenfluss mit Pfeilen je Zeile", len(pfeile) >= 7, str(len(pfeile)))
+    farben = {str(sh.fill.fore_color.rgb) for sl in pp.slides for sh in sl.shapes
+              if sh.shape_type == 1 and sh.fill.type == 1}
+    fall("keine Abstufungen, nur Marke", farben <= Marke().erlaubte_farben() | {"FFFFFF"},
+         str(farben - Marke().erlaubte_farben()))
+
+    print("Prüfung: Abstufungen von Designfarben")
+    ab = Presentation(str(zp))
+    form = ab.slides[2].shapes.add_shape(1, 0, 0, 914400, 914400)
+    form.fill.solid()
+    fill = form._element.spPr.find(qn("a:solidFill"))
+    for el in list(fill):
+        fill.remove(el)
+    sc = etree.SubElement(fill, qn("a:schemeClr"))
+    sc.set("val", "accent2")
+    etree.SubElement(sc, qn("a:lumMod")).set("val", "20000")
+    etree.SubElement(sc, qn("a:lumOff")).set("val", "80000")
+    ab.save(str(td / "abstufung.pptx"))
+    ba = pruefen.pruefen(td / "abstufung.pptx", woerter=200)
+    fall("Abstufung accent2 als FEHLER erkannt", any(b[0] == "FEHLER" and "Abstufungen" in b[2] for b in ba),
+         "; ".join(b[2] for b in ba))
 
 print("ALLE FÄLLE BESTANDEN" if not fehler else f"FEHLGESCHLAGEN: {', '.join(fehler)}")
 sys.exit(1 if fehler else 0)
