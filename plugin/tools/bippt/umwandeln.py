@@ -32,8 +32,9 @@ def _naechste(h, palette):
 
 
 def entwurf(pfad, ziel=None):
-    spec = analyse.entwurf(pfad)
+    """Spec-Entwurf neben die Quelle bzw. nach ziel; Bilder in <Quelle>_medien/ neben der Spec."""
     ziel = Path(ziel) if ziel else Path(pfad).with_name(Path(pfad).stem + "_BI.spec.json")
+    spec = analyse.entwurf(pfad, ziel.with_name(Path(pfad).stem + "_medien"))
     ziel.write_text(json.dumps(spec, indent=2, ensure_ascii=False), encoding="utf-8")
     print(f"ENTWURF: {ziel} – {len(spec['folien'])} Folien. Jetzt Typen verdichten, dann: bippt bauen {ziel.name}")
     return ziel

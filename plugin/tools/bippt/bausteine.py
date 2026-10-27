@@ -8,6 +8,7 @@ Textangaben (überall gleich):
 """
 import math
 import re
+from pathlib import Path
 
 from lxml import etree
 from pptx.dml.color import RGBColor
@@ -41,6 +42,16 @@ class Kontext:
         self.kopf, self.text = schriften
         self.warnungen = warnungen
         self.dunkel = False
+        self.ordner = None  # Ordner der Spec: relative Pfade (Bilder) zuerst dort
+
+    def pfad(self, p):
+        """Pfad aus der Spec: absolut, relativ zur Spec oder (wie bisher) zum Arbeitsordner."""
+        if not p:
+            return None
+        q = Path(p).expanduser()
+        if not q.is_absolute() and self.ordner is not None and (Path(self.ordner) / q).is_file():
+            return Path(self.ordner) / q
+        return q
 
     def c(self, f):
         return self.m.c(f)
@@ -252,6 +263,31 @@ def icon(k, name, x, y, d, variante=None):
         k.warn(f"Icon '{name}' ({variante}) nicht gefunden{' – ähnlich: ' + vorschlag if vorschlag else ''}")
         return None
     return k.folie.shapes.add_picture(str(p), E(x), E(y), E(d), E(d))
+
+
+def bild_mass(pfad):
+    """(Breite, Höhe) in Pixeln oder None, wenn das Bild fehlt."""
+    from PIL import Image
+    try:
+        with Image.open(pfad) as im:
+            return im.size
+    except (OSError, ValueError, TypeError):
+        return None
+
+
+def bild_einpassen(k, pfad, x, y, w, h, ausr="m"):
+    """Bild in den Kasten x, y, w, h einpassen (Seitenverhältnis bleibt, ausr l/m/r, senkrecht mittig)."""
+    mass = bild_mass(pfad) if pfad else None
+    if mass is None:
+        k.warn(f"Bild fehlt: {pfad}")
+        return None
+    if w < 0.3 or h < 0.3:
+        k.warn(f"Kein Platz für Bild {Path(pfad).name} ({w:.2f} × {h:.2f} in) – Text kürzen oder hoehe angeben")
+        return None
+    bw = min(w, h * mass[0] / mass[1])
+    bh = bw * mass[1] / mass[0]
+    bx = {"l": x, "r": x + w - bw}.get(ausr, x + (w - bw) / 2)
+    return k.folie.shapes.add_picture(str(pfad), E(bx), E(y + (h - bh) / 2), E(bw), E(bh))
 
 
 # Ampel = Signalfarben des BI-Masters v2.1 (Custom Colors „Signal Green/Yellow/Red“); YR = Gelb–Rot

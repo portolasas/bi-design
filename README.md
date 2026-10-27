@@ -6,7 +6,7 @@ Verbindlich ist der **BI-Master v2.1** (How-to slides): nur seine Designfarben u
 
 - **Skill `bi-designer`** – Marke für alles Visuelle: Farben (Tokens, Rollen, erlaubte Kontrastpaare), Schriften, Logo- und Symbolvarianten, 895 Icons, Rezepte für Power Apps, Power BI, PowerPoint/Word/Excel, Diagramme, Web, HTML-Mail, Teams-Karten. ppp nutzt ihn für Power-Apps-Theme, Prototypen und Power-BI-Theme.
 - **Agent und Skill `bi-ppt`** – PowerPoint im BI-Master v2.1: aus Transkripten, Projektaufträgen, Notizen oder Excel ein neues Deck bauen, eine neue Version eines bestehenden Decks erzeugen (z. B. Projektteam-Update → Steering-Update), fremde Decks ins BI-Design umwandeln, Brand-Regeln prüfen und zur Sichtprüfung rendern.
-- **Generator `bippt`** (Python, python-pptx) – baut die Folien aus einer Spezifikation (JSON) mit Folientypen wie Status, Vergleich, Prozess, Timeline/Gantt, Maßnahmen, Kennzahlen, Diagramm, Tabelle. Änderungen später = Spec ändern und neu bauen.
+- **Generator `bippt`** (Python, python-pptx) – baut die Folien aus einer Spezifikation (JSON) mit Folientypen wie Status, Vergleich, Prozess, Timeline/Gantt, Maßnahmen, Kennzahlen, Diagramm, Tabelle. Änderungen später = Spec ändern und neu bauen; bestehende Folien ändert `aendern` (Bild tauschen, Absätze, Läufe, Formen verschieben).
 
 ## Voraussetzungen
 - VS Code mit GitHub Copilot und Agent Plugins, oder Claude Code; Zugriff auf dieses private Repo (Git-Anmeldung des Rechners).
@@ -79,5 +79,7 @@ Einstellungen je Rechner: `~/.bi-design/config.json` (`asset_root`, `vorlage`, `
 - Tests: `python3 -I tests/test_plugin.py` und `python3 tests/test_bippt.py` (Python mit den Paketen aus `plugin/tools/requirements.txt`).
 - Jede Änderung, die nach `main` geht, erhöht die Version in beiden Manifesten und bekommt einen Eintrag in `plugin/CHANGELOG.md`; nur so holen VS Code und Claude Code die neue Fassung. `test_plugin.py` prüft den Gleichstand.
 - Neuer Folientyp: `plugin/tools/bippt/folien.py` (`@folientyp`), Doku in `plugin/skills/bi-ppt/reference/folientypen.md`, Beispiel in `plugin/skills/bi-ppt/beispiele/beispiel.spec.json`.
+- Formen einer Folie immer über `formen.alle()` durchgehen (`plugin/tools/bippt/formen.py`): Fremde Decks enthalten Formen,
+  bei denen python-pptx abbricht. Änderungen an bestehenden Folien gehören nach `plugin/tools/bippt/aendern.py`.
 - Neue Marke: Profil in `plugin/skills/bi-designer/marken/<profil>/` und eigene Vorlage (`bippt vorlage <deck> -o …`).
 - Keine Projekt- oder Personendaten und keine Schriftdateien ins Repo. Referenz-Präsentationen und Chats zum Anlernen liegen lokal außerhalb von Git.

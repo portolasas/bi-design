@@ -7,7 +7,6 @@ import calendar
 import datetime as dt
 import math
 import re
-from pathlib import Path
 
 from pptx.chart.data import CategoryChartData
 from pptx.dml.color import RGBColor
@@ -17,8 +16,9 @@ from pptx.oxml.ns import qn
 from pptx.util import Pt
 
 from . import vorlage
-from .bausteine import (AMPEL, BAND_H, E, X0, XW, Y0, Y_ENDE, absaetze, ampel, flaeche, icon, inhaltsunterkante,
-                        kopfleiste, klartext, linie, pfeil, punkt, raute, text, text_hoehe, textfeld)
+from .bausteine import (AMPEL, BAND_H, E, X0, XW, Y0, Y_ENDE, absaetze, ampel, band, bild_einpassen, bild_mass, flaeche,
+                        icon, inhaltsunterkante, kopfleiste, klartext, linie, pfeil, punkt, raute, text, text_hoehe,
+                        textfeld)
 
 TYPEN = {}
 
@@ -204,15 +204,30 @@ def _blk_kennzahl(k, b, x, y, w, zeichnen, g):
     return h
 
 
+def _blk_bild(k, b, x, y, w, zeichnen, g):
+    """Bild über die Kartenbreite; Höhe nach Seitenverhältnis (höchstens 2,6 in) oder "hoehe"."""
+    bl = b["bild"] if isinstance(b["bild"], dict) else {"datei": b["bild"]}
+    pfad = k.pfad(bl.get("datei"))
+    mass = bild_mass(pfad) if pfad else None
+    if mass is None:
+        if zeichnen:
+            k.warn(f"Bild fehlt: {bl.get('datei')}")
+        return 0
+    h = bl.get("hoehe") or min(w * mass[1] / mass[0], 2.6)
+    if zeichnen:
+        bild_einpassen(k, pfad, x, y, w, h)
+    return h
+
+
 BLOECKE = {"punkte": _blk_punkte, "text": _blk_text, "hinweis": _blk_hinweis, "phasen": _blk_phasen,
-           "schritte": _blk_schritte, "von_nach": _blk_von_nach, "kennzahl": _blk_kennzahl}
+           "schritte": _blk_schritte, "von_nach": _blk_von_nach, "kennzahl": _blk_kennzahl, "bild": _blk_bild}
 
 
 def _bloecke(kar):
     if kar.get("inhalt"):
         return kar["inhalt"]
     out = []
-    for key in ("phasen", "kennzahl", "von_nach", "punkte", "schritte", "text"):
+    for key in ("phasen", "kennzahl", "von_nach", "bild", "punkte", "schritte", "text"):
         if kar.get(key) is not None:
             out.append({key: kar[key]})
     if kar.get("naechster"):
@@ -423,11 +438,13 @@ def prozess(k, s):
     if any(st.get("punkte") or st.get("ueber") for st in schritte):
         gap = 0.3
         sw = (XW - gap * (n - 1)) / n
-        y += _schrittkarten(k, schritte, y, sw, gap, unten - y if not s.get("karten") else None) + 0.22
+        y += _schrittkarten(k, schritte, y, sw, gap, unten - y if not s.get("karten") else None,
+                            g=s.get("groesse", 10.5), gk=s.get("kopf_groesse", 11.5)) + 0.22
     else:
         gap = 0.45
         sw = (XW - gap * (n - 1)) / n
-        th = max(text_hoehe(st.get("text", ""), sw - 0.16, 9.5, nach=0) for st in schritte) if schritte else 0.3
+        gt = s.get("groesse", 9.5)
+        th = max(text_hoehe(st.get("text", ""), sw - 0.16, gt, nach=0) for st in schritte) if schritte else 0.3
         sh = max(1.5, 1.0 + th + 0.1)
         for i, st in enumerate(schritte):
             x = X0 + i * (sw + gap)
@@ -439,7 +456,7 @@ def prozess(k, s):
             textfeld(k, x + 0.06, y + 0.66, sw - 0.12, 0.3, {"t": st.get("titel", ""), "ausr": "m"}, groesse=11.5,
                      fett=True, farbe=farbe, rand=(0, 0, 0, 0))
             if st.get("text"):
-                textfeld(k, x + 0.08, y + 0.97, sw - 0.16, sh - 1.0, {"t": st["text"], "ausr": "m"}, groesse=9.5,
+                textfeld(k, x + 0.08, y + 0.97, sw - 0.16, sh - 1.0, {"t": st["text"], "ausr": "m"}, groesse=gt,
                          farbe=farbe, rand=(0, 0, 0, 0))
             if i < n - 1:
                 pfeil(k, x + sw + 0.085, y + sh / 2 - 0.11)
@@ -459,11 +476,12 @@ SCHRITTKOPF = {None: ("DG", "WH"), "fertig": ("DG", "WH"), "aktiv": ("AG", "DG")
                "offen": ("WG", "DG"), "klaerung": ("MYEL", "DG"), "extern": ("LG", "DG"), "kritisch": ("RED", "DG")}
 
 
-def _schrittkarten(k, schritte, y, sw, gap, voll_h=None, g=10.5):
+def _schrittkarten(k, schritte, y, sw, gap, voll_h=None, g=10.5, gk=11.5):
     """Schritte als Karten: Kopf (Überzeile klein, Titel fett) in Statusfarbe, darunter Punkte oder Text;
-    Pfeile zwischen den Köpfen. voll_h = bis zur Unterkante strecken, sonst so hoch wie der vollste Schritt."""
+    Pfeile zwischen den Köpfen. voll_h = bis zur Unterkante strecken, sonst so hoch wie der vollste Schritt.
+    g = Schriftgröße des Inhalts, gk = des Titels im Kopf."""
     ueber = 0.2 if any(st.get("ueber") for st in schritte) else 0
-    kh = max(0.46, ueber + max(text_hoehe(st.get("titel", ""), sw - 0.26, 11.5, zeilenabstand=1.0, nach=0)
+    kh = max(0.46, ueber + max(text_hoehe(st.get("titel", ""), sw - 0.26, gk, zeilenabstand=1.0, nach=0)
                                for st in schritte) + 0.14)
     inhalt = []
     for st in schritte:
@@ -479,7 +497,7 @@ def _schrittkarten(k, schritte, y, sw, gap, voll_h=None, g=10.5):
         t = []
         if st.get("ueber"):
             t.append({"t": st["ueber"], "groesse": 9, "nach": 1})
-        t.append({"t": st.get("titel", ""), "groesse": 11.5, "fett": True})
+        t.append({"t": st.get("titel", ""), "groesse": gk, "fett": True})
         flaeche(k, x, y, sw, kh, fill=fill, t=t, farbe=farbe, anker="m", rand=(0.14, 0.04, 0.1, 0.04), nach=0)
         if b:
             _blk(k, b, x + 0.12, y + kh + 0.14, sw - 0.24, True, g)
@@ -892,7 +910,7 @@ def tabelle(k, s):
 
 @folientyp("kennzahlen")
 def kennzahlen(k, s):
-    """Kacheln: [{wert, label, text, ampel}] – 2 bis 8 Stück, 2 bis 4 je Reihe."""
+    """Kacheln: [{wert, label, text, ampel, icon, bild}] – 2 bis 8 Stück, 2 bis 4 je Reihe."""
     kz = s.get("kacheln", [])
     n = len(kz)
     proReihe = s.get("spalten") or (n if n <= 4 else math.ceil(n / 2))
@@ -912,8 +930,13 @@ def kennzahlen(k, s):
         textfeld(k, x + 0.2, y + 0.22, kw - 0.4, 0.7, {"t": str(t.get("wert", "")), "kopf": True}, groesse=s.get("wert_groesse", 32),
                  fett=True, rand=(0, 0, 0, 0), warn_ueberlauf=False)
         textfeld(k, x + 0.2, y + 0.95, kw - 0.4, 0.35, t.get("label", ""), groesse=12, fett=True, rand=(0, 0, 0, 0))
+        ty = y + 1.32
         if t.get("text"):
-            textfeld(k, x + 0.2, y + 1.32, kw - 0.4, kh - 1.4, t["text"], groesse=10.5, rand=(0, 0, 0, 0))
+            th = text_hoehe(t["text"], kw - 0.4, 10.5) + 0.05 if t.get("bild") else kh - 1.4
+            textfeld(k, x + 0.2, ty, kw - 0.4, th, t["text"], groesse=10.5, rand=(0, 0, 0, 0))
+            ty += th + 0.1
+        if t.get("bild"):
+            bild_einpassen(k, k.pfad(t["bild"]), x + 0.2, ty, kw - 0.4, y + kh - 0.18 - ty)
 
 
 # ======================================================================= Bild, Diagramm, Frei
@@ -921,14 +944,14 @@ def kennzahlen(k, s):
 def bild_text(k, s):
     """Bild im Bildplatzhalter + punkte im Textplatzhalter (bild = Pfad)."""
     ph = vorlage.platzhalter(k.folie, idx=10)
-    bild = s.get("bild")
-    if bild and Path(bild).is_file():
+    bild = k.pfad(s.get("bild"))
+    if bild and bild.is_file():
         if ph is not None:
             ph.insert_picture(str(bild))
         else:
             k.folie.shapes.add_picture(str(bild), E(X0 + XW * 0.38), E(Y0), width=E(XW * 0.62))
     else:
-        k.warn(f"Bild fehlt: {bild}")
+        k.warn(f"Bild fehlt: {s.get('bild')}")
     tx = vorlage.platzhalter(k.folie, idx=1)
     if tx is not None:
         _ph_text(tx, [klartext(a) for a in absaetze(s.get("punkte", []))] or [""])
@@ -1001,7 +1024,7 @@ def diagramm(k, s):
 
 @folientyp("frei")
 def frei(k, s):
-    """Eigene Elemente ohne Code: elemente = [{form: flaeche|text|linie|icon|punkt|pfeil|karte, …}]."""
+    """Eigene Elemente ohne Code: elemente = [{form: flaeche|text|linie|icon|punkt|pfeil|karte|band|bild, …}]."""
     for el in s.get("elemente", []):
         f = el.get("form")
         if f == "flaeche":
@@ -1023,6 +1046,10 @@ def frei(k, s):
             pfeil(k, el["x"], el["y"], el.get("w", 0.28), el.get("h", 0.22), fill=el.get("fill", "DG"))
         elif f == "karte":
             karte(k, el, el["x"], el["y"], el["w"], el["h"], g=el.get("groesse", 11))
+        elif f == "band":
+            band(k, el, y=el.get("y"), h=el.get("h"))
+        elif f == "bild":
+            bild_einpassen(k, k.pfad(el.get("datei")), el["x"], el["y"], el["w"], el["h"], ausr=el.get("ausr", "m"))
         else:
             k.warn(f"frei: unbekannte Form {f}")
 

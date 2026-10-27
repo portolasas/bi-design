@@ -81,10 +81,13 @@ Entscheidungsbedarf nur, wenn wirklich nötig (`kernaussage` oder Band) → `kap
 ## Neue Version einer bestehenden Präsentation (Modus V)
 1. `bippt analyse alt.pptx` → Folienliste mit Nummern.
 2. Je Folie entscheiden: behalten (ggf. `ersetzen`), ausblenden (Backup), entfernen, oder durch neuen Typ ersetzen.
-3. Veraltete Aussagen in behaltenen Folien über `ersetzen` korrigieren (exakter Textausschnitt aus `analyse`).
-   `bippt bauen` warnt, wenn eine Ersetzung nicht gefunden wurde.
-4. Titelfolie: `{"basis": 1, "platzhalter": {"1": ["Neuer Anlass", "Name | Datum"]}}`.
-5. Basisfolien mit Abstufungen oder fremden Farben: `farben_angleichen` und im Render prüfen.
+3. Veraltete Aussagen in behaltenen Folien über `ersetzen` korrigieren (exakter Textausschnitt aus `analyse`; die
+   Formatierung außerhalb des Treffers bleibt). `bippt bauen` warnt, wenn eine Ersetzung nicht gefunden wurde.
+4. Mehr als Text tauschen (Bild im Bildplatzhalter, Absätze ergänzen, Läufe im Band, Formen verschieben, entfernen):
+   `bippt analyse alt.pptx --formen` nennt id, Name und Läufe je Form; dann `aendern` und `elemente` an der Basisfolie
+   ([folientypen.md](folientypen.md) › Basisfolien). Kein eigenes python-pptx-Skript.
+5. Titelfolie: `{"basis": 1, "platzhalter": {"1": ["Neuer Anlass", "Name | Datum"]}}`.
+6. Basisfolien mit Abstufungen oder fremden Farben: `farben_angleichen` und im Render prüfen.
 
 ## Effizienz
 - Quellen einmal lesen (`bippt lesen -o _quellen.md`), danach nur gezielt nachschlagen.

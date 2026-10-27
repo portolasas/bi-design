@@ -1,5 +1,29 @@
 # Changelog
 
+## 2.2.0 – 2026-10-27
+Befunde aus brrp (26./27.10.2026): `bippt` brach an einer fremden Präsentation ab, und bi-ppt musste bestehende Folien mit
+einem eigenen python-pptx-Skript nacharbeiten.
+- Fehler: `analyse`, `pruefen`, `umwandeln entwurf` und der Basis-Modus brachen mit „Shape instance of unrecognized shape
+  type“ ab (Form ohne Geometrie, z. B. ein früherer Platzhalter). Das neue Modul `formen.py` geht Formen sicher durch:
+  Formen ohne Geometrie, Freihand (`p:contentPart`), SmartArt und `mc:AlternateContent` werden gemeldet (`analyse`:
+  „Unbekannt“, `pruefen`: HINWEIS); ihr Text wird gelesen, sonst werden sie übersprungen.
+- Fehler: `pruefen` meldete Akzentgrün-Text auf dunklem Folienhintergrund (`p:bg` von Folie, Layout oder Master) als FEHLER.
+- Fehler: `umwandeln entwurf` brach an verknüpften Bildern ab und legte `<Quelle>_medien/` auch mit `-o` neben die Quelle;
+  jetzt neben die Spec und nur, wenn es Bilder gibt.
+- Basisfolien: `aendern` spricht Formen über Name (`nr` bei doppelten Namen), `id` oder `formen` (mehrere, auch Gruppen) an
+  und tauscht Bilder in Bildform oder Bildplatzhalter (Rahmen bleibt; Zuschnitt wie bisher, `oben`/`mitte`/`unten`/`links`/
+  `rechts` oder `{"oben_px": n}`; eine SVG-Fassung des alten Bildes entfällt), setzt, ergänzt oder entfernt Absätze, setzt
+  Läufe einzeln, verschiebt (`x`, `y`, `w`, `h`, `dx`, `dy`), benennt um und entfernt. `elemente` legt neue Formen wie im
+  Typ `frei` auf die Basisfolie.
+- Gemischte Formatierung bleibt: `ersetzen` ändert nur die getroffenen Läufe; gesetzter Text mit `**fett**` übernimmt das
+  Format eines fetten bzw. normalen Laufs im Absatz. `bauen` nennt die nicht gefundenen Ersetzungen.
+- `bippt analyse --formen` listet je Form id, Name, Art, Lage und Absätze mit Läufen.
+- `frei`: Formen `band` (mit `y`, `h`, z. B. helles Band als Untertitel) und `bild` (eingepasst).
+- Bildfeld: Block `bild` in Karten, `bild` in Kennzahlen-Kacheln. `prozess`: `groesse` und `kopf_groesse` (Schrittkarten).
+- Bildpfade (`bild_text`, Bildfelder, `aendern`) relativ zur Spec, sonst wie bisher zum Arbeitsordner.
+- Skill, Agenten und Referenzen: bestehende Folien über `aendern` nacharbeiten, kein eigenes python-pptx-Skript.
+- Tests: Agenda-Fall (nachgebaut, ohne die Originaldatei), Änderungsmodus, Bildfelder, Schriftgröße der Schrittkarten.
+
 ## 2.1.0 – 2026-10-25
 Nachbau-Abgleich mit dem CPV-Projektteam-Update (24.09.2026) und den How-to slides des BI-Masters v2.1. Der Master ist
 verbindlich (Nutzer): nur Theme- und Custom Colors, keine Abstufungen, keine Standardfarben.

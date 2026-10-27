@@ -30,6 +30,37 @@ Ampelwerte: G, Y, R, N und YR (Gelb–Rot: Verzug, Eskalation erwartet; halb gel
 
 ## Basisfolien (Modus V)
 `{"basis": 7, "ausblenden": true, "ersetzen": {"alter Text": "neuer Text"}, "platzhalter": {"1": ["Zeile 1", "Zeile 2"]}, "titel": "…"}`
+`ersetzen` findet Text auch über Läufe hinweg; Läufe außerhalb des Treffers behalten ihr Format.
+
+**Einzelne Formen ändern** – `"aendern": [{…}, …]`, Reihenfolge wie angegeben; Namen, ids und Läufe aus
+`bippt analyse <basis.pptx> --formen`. Ansprechen: `"form": "Name"` (bei doppeltem Namen `"nr": 2`), `"id": 12` oder
+`"formen": ["Name", …]` (z. B. eine Reihe). Je Eintrag beliebig kombinierbar:
+
+| Feld | Wirkung |
+|---|---|
+| `x`, `y`, `w`, `h` · `dx`, `dy` | Lage und Größe in Zoll, absolut bzw. relativ |
+| `bild`, `ausschnitt` | Bild in Bildform oder Bildplatzhalter tauschen (Pfad relativ zur Spec). Rahmen bleibt, das Bild füllt ihn ohne Verzerrung. Ohne `ausschnitt`: gleiches Seitenverhältnis → gleicher Zuschnitt, sonst an derselben Kante wie bisher; sonst `oben`, `mitte`, `unten`, `links`, `rechts` oder `{"oben_px": 586}` / `{"links_px": n}` (Pixel des neuen Bildes) |
+| `absaetze` | alle Absätze: `["Text", null, {"t": "Text", "wie": 2}]`; `null` = Absatz bleibt; überzählige alte entfallen |
+| `anhaengen` | Absätze anhängen (Format des letzten oder `wie`) |
+| `absatz` + `text` | einen Absatz (ab 1) setzen |
+| `absatz` + `laeufe` | Läufe des Absatzes einzeln: `["Label:  ", null]`; `null` = Lauf bleibt, `{"t", "wie": n}` = neuer Lauf im Format von Lauf n |
+| `absatz` + `entfernen: true` | Absatz bzw. Liste von Absätzen entfernen |
+| `name` · `entfernen: true` | umbenennen · Form entfernen |
+
+Text ohne Markierung bekommt das Format des ersten Laufs im Absatz; `**fett**` übernimmt das Format eines fetten Laufs, der
+Rest das eines normalen – so bleibt gemischte Formatierung (Band: Label fett, Text normal). Fehlt eine Form oder ist sie
+mehrdeutig, warnt `bippt bauen` und lässt sie aus.
+```json
+{"basis": 10, "aendern": [
+  {"form": "Picture Placeholder 4", "bild": "bilder/screenshot_01.png", "ausschnitt": "oben"},
+  {"form": "TextBox 9", "anhaengen": ["Ein dritter Punkt im Format des zweiten"], "h": 1.4},
+  {"formen": ["TextBox 10", "TextBox 11"], "dy": 0.4},
+  {"form": "Kernaussage", "laeufe": [null, "Neue Frage an die Runde?"]}]}
+```
+
+**Neue Formen auf der Basisfolie** – `"elemente"` wie im Typ `frei`, z. B. ein helles Band als Untertitel:
+`{"form": "band", "label": "Heute:", "text": "…", "stil": "hell", "y": 1.43, "h": 0.44}`.
+
 `"farben_angleichen": true` (je Folie) bzw. `"basis_farben_angleichen": true` (Kopf) setzt Nicht-Markenfarben und Abstufungen
 von Designfarben alter Folien auf die nächste Markenfarbe – sinnvoll, wenn `bippt pruefen` „Farben außerhalb der Marke“
 oder „Abstufungen“ in Basisfolien meldet. Danach im Render prüfen.
@@ -43,18 +74,18 @@ oder „Abstufungen“ in Basisfolien meldet. Danach im Render prüfen.
 | `text` | One content | `punkte` (mit `ebene`) | Fließtext/Aufzählung im Master-Stil |
 | `status` | Only title | `phasen` [Namen], `straenge` [{`titel`, `ampel`, `stand` [2=fertig,1=aktiv,0=offen], `punkte`, `naechster`}], `legende` {G: …, YR: …} | Status je Strang |
 | `vergleich` | Only title | `spalten` [3], `zeilen` [[thema, alt, neu]]; Zelle `{"ampel": [..], "labels": [..]}` | Änderungen alt → neu |
-| `prozess` | Only title | `kopf` {label,text}, `schritte` [{`icon`, `titel`, `text`, `status`}], `hinweis`, `hinweis_ab`, `karten`, `hoehe`; mit `ueber`/`punkte` je Schritt → Schrittkarten (unten) | Ablauf/Prozesskette, Vorgehen, Eskalationslogik |
+| `prozess` | Only title | `kopf` {label,text}, `schritte` [{`icon`, `titel`, `text`, `status`}], `hinweis`, `hinweis_ab`, `karten`, `hoehe`, `groesse` (Schritttext, Standard 9,5 bzw. 10,5 in Schrittkarten), `kopf_groesse` (Titel in Schrittkarten, 11,5); mit `ueber`/`punkte` je Schritt → Schrittkarten (unten) | Ablauf/Prozesskette, Vorgehen, Eskalationslogik |
 | `karten` | Only title | `kopf`, `karten` [{`titel`, `ampel` \| `akzent`+`icon`, `stil` leiste/akzent/ohne, `hell`, `hervor`, Blöcke}], `hoehe` inhalt (Standard) / voll | 2–4 Bereiche nebeneinander, Varianten |
 | `timeline` | Only title | `skala` woche/monat/quartal (auto: ≤ 190 Tage Wochen, ≤ 18 Monate Monate, sonst Quartale), `von`, `bis`, `heute`, `zeilen` [{`titel`, `elemente`}], `marker`, `schatten`, `legende`, `fakten` \| `boxen` | Gantt/Roadmap |
 | `massnahmen` | Only title | `zeilen` [{`wann`, `was`, `details`, `tag`}], bis ca. 8 Zeilen | Nächste Schritte |
 | `tabelle` | Only title | `kopf`, `zeilen`, `breiten`, `groesse`, `erste_spalte_fett`; Zelle `{"ampel": "G", "t": "…"}` | echte, editierbare Tabelle |
-| `kennzahlen` | Only title | `kacheln` [{`wert`, `label`, `text`, `ampel`, `icon`}], `spalten` | KPIs |
+| `kennzahlen` | Only title | `kacheln` [{`wert`, `label`, `text`, `ampel`, `icon`, `bild`}], `spalten`; `bild` füllt den Rest der Kachel unter dem Text | KPIs |
 | `diagramm` | Only title | `art` saeulen/gestapelt/balken/linie/torte, `kategorien`, `reihen` [{name, werte}], `werte_anzeigen`, `fazit` {titel, punkte, icon} | echtes Diagramm (editierbar) |
 | `fluss` | Only title | `spalten` [{`titel`, `boxen` [{`titel`, `text`, `klein`, `stil` hell/weiss/dunkel/akzent}]}]; eine Box spannt über alle Zeilen | Datenfluss, Systemlandschaft, Zielbild |
-| `bild_text` | Content and image | `bild` (Pfad), `punkte` | Bild + Text |
+| `bild_text` | Content and image | `bild` (Pfad, relativ zur Spec oder zum Arbeitsordner), `punkte` | Bild + Text |
 | `kernaussage` | One content dark | `titel` (Aussage), `text` | Botschaft / Entscheidung |
 | `abschluss` | One content dark Outro | `titel` | „Vielen Dank“ |
-| `frei` | Only title | `elemente` [{`form`: flaeche/text/linie/icon/punkt/pfeil/karte, x, y, w, h …}] in Zoll | Sonderfälle ohne Code |
+| `frei` | Only title | `elemente` [{`form`: flaeche/text/linie/icon/punkt/pfeil/karte/band/bild, x, y, w, h …}] in Zoll; `band` mit `label`, `text`, `stil`, `y`, `h`; `bild` mit `datei` (eingepasst, `ausr` l/m/r) | Sonderfälle ohne Code |
 
 ## Karten: Hervorhebung und Höhe
 `"hervor": true` – Kopfleiste in Accent Green mit dunkelgrüner Schrift (z. B. empfohlene Variante, Zielbild, Argumente).
@@ -70,8 +101,9 @@ den Köpfen. `kritisch` = Red mit dunkelgrüner Schrift (Eskalation). Ohne `kart
 `{"punkte": [...]}` · `{"text": "..."}` · `{"phasen": {"namen": [...], "stand": [2,1,0]}}` ·
 `{"schritte": [{"status": "fertig|aktiv|offen", "titel", "text"}]}` ·
 `{"von_nach": {"von": {"klein", "gross"}, "nach": {...}}}` · `{"kennzahl": {"wert", "label"}}` ·
+`{"bild": "pfad.png" | {"datei", "hoehe"}}` (Kartenbreite, Höhe nach Seitenverhältnis, höchstens 2,6 in) ·
 `{"hinweis": "..." | {"titel", "text", "strich": true}, "unten": true}`.
-Kurzform: `punkte`, `schritte`, `phasen`, `text`, `von_nach`, `naechster` (→ Hinweis „Nächster Schritt“ unten), `hinweis`.
+Kurzform: `punkte`, `schritte`, `phasen`, `text`, `von_nach`, `bild`, `naechster` (→ Hinweis „Nächster Schritt“ unten), `hinweis`.
 
 ## Timeline-Elemente
 `{"art": "balken", "von", "bis", "text", "status", "pos"}` · `{"art": "meilenstein", "datum", "text", "status", "pos"}` ·

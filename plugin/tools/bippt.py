@@ -10,7 +10,7 @@ Befehle
   aufraeumen [--ja]            alte Kopien von BI-PPT 1.x und PPP 0.17 im Benutzerordner zeigen bzw. löschen
   konfig [--setze k=v …]       Einstellungen zeigen/setzen (~/.bi-ppt/config.json)
   lesen <datei…> [-o md]       Quellen als Text (vtt, docx, pptx, pdf, xlsx, md)
-  analyse <pptx> [--json]      Bestehendes Deck knapp beschreiben
+  analyse <pptx> [--json] [--formen]   Bestehendes Deck knapp beschreiben; --formen: id, Name, Absätze, Läufe für aendern
   typen                        Folientypen auflisten
   icons <begriff…>             Brand-Icons suchen
   bauen <spec.json> [-o pptx]  Präsentation bauen
@@ -182,7 +182,7 @@ def _lesen(a):
 
 def _analyse(a):
     from bippt import analyse
-    r = analyse.analyse(a.pptx)
+    r = analyse.analyse(a.pptx, formen=a.formen)
     print(json.dumps(r, ensure_ascii=False, indent=1, default=str) if a.json else analyse.als_markdown(r, notizen=not a.ohne_notizen))
     return 0
 
@@ -259,7 +259,8 @@ def main(argv=None):
     p = sub.add_parser("konfig"); p.add_argument("--setze", nargs="*"); p.set_defaults(fn=_konfig)
     p = sub.add_parser("lesen"); p.add_argument("dateien", nargs="+"); p.add_argument("-o"); p.set_defaults(fn=_lesen)
     p = sub.add_parser("analyse"); p.add_argument("pptx"); p.add_argument("--json", action="store_true")
-    p.add_argument("--ohne-notizen", action="store_true"); p.set_defaults(fn=_analyse)
+    p.add_argument("--ohne-notizen", action="store_true"); p.add_argument("--formen", action="store_true")
+    p.set_defaults(fn=_analyse)
     sub.add_parser("typen").set_defaults(fn=_typen)
     p = sub.add_parser("icons"); p.add_argument("begriffe", nargs="+"); p.set_defaults(fn=_icons)
     p = sub.add_parser("bauen"); p.add_argument("spec"); p.add_argument("-o"); p.set_defaults(fn=_bauen)

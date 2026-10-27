@@ -7,15 +7,16 @@ Farben nach dem BI-Master v2.1 (How-to slides, Folie 6): nur Theme Colors und Cu
 import re
 
 from lxml import etree
-from pptx.enum.shapes import MSO_SHAPE_TYPE
 from pptx.opc.constants import RELATIONSHIP_TYPE as RT
 from pptx.util import Emu
 
 from . import vorlage
 from .bausteine import text_hoehe
+from .formen import alle, meldung
 from .marke import Marke
 
 A = "{http://schemas.openxmlformats.org/drawingml/2006/main}"
+P = "{http://schemas.openxmlformats.org/presentationml/2006/main}"
 HELL = {"FFFFFF", "F6F5F3", "E5E3DE", "FBF9AA", "FFE667", "D2F2F7", "A3E5EE", "F5CDB9", "E0E1F6", "C5C3EE"}
 SCHRIFT_OK = re.compile(r"^(Boehringer Forward.*|Segoe UI.*|\+mj-.*|\+mn-.*|Arial|Symbol|Wingdings.*)$")
 
@@ -33,14 +34,6 @@ def _theme_farben(prs):
     except KeyError:
         pass
     return farben
-
-
-def _formen(shapes):
-    for sh in shapes:
-        if sh.shape_type == MSO_SHAPE_TYPE.GROUP:
-            yield from _formen(sh.shapes)
-        else:
-            yield sh
 
 
 def _fuellung(sh):
@@ -65,6 +58,23 @@ def _untergrund(formen, i):
             f = _fuellung(u)
             if f:
                 return f
+    return None
+
+
+def _hintergrund(sl):
+    """Einfarbiger Hintergrund der Folie (sonst des Layouts, sonst des Masters) als RGB, None wenn unbekannt."""
+    for teil in (sl, sl.slide_layout, sl.slide_layout.slide_master):
+        bg = teil._element.find(f"{P}cSld/{P}bg")
+        if bg is None:
+            continue
+        el = bg.find(f"{P}bgPr/{A}solidFill/*")
+        if el is None or len(el):  # Verlauf, Bild, Formstil oder abgestuft: nicht sicher
+            return None
+        if el.tag == A + "srgbClr":
+            return el.get("val", "").upper()
+        if el.tag == A + "schemeClr":
+            return vorlage.themafarben(sl).get(vorlage.THEMA.get(el.get("val"), el.get("val")))
+        return None
     return None
 
 
@@ -109,7 +119,11 @@ def pruefen(pfad, profil=None, theme_farben_erlauben=True, woerter=170):
         hat_titel = sl.shapes.title is not None and sl.shapes.title.has_text_frame and sl.shapes.title.text_frame.text.strip()
         if not hat_titel and sl.slide_layout.name not in ("Title slide (bright)", "Title slide (dark)", "Empty"):
             b("HINWEIS", nr, "keine Titelzeile (Navigation/Barrierefreiheit)")
-        formen = list(_formen(sl.shapes))
+        grund = _hintergrund(sl)
+        unbekannt = []
+        formen = list(alle(sl.shapes, unbekannt))
+        for u in unbekannt:
+            b("HINWEIS", nr, meldung(u))
         for i_sh, sh in enumerate(formen):
             x = sh._element
             for el in x.iter(A + "srgbClr"):
@@ -128,7 +142,7 @@ def pruefen(pfad, profil=None, theme_farben_erlauben=True, woerter=170):
                     b("WARNUNG", nr, f"„{sh.name}“ ragt über den Folienrand")
             if not sh.has_text_frame or not sh.text_frame.text.strip():
                 continue
-            fill = _fuellung(sh) or _untergrund(formen, i_sh)
+            fill = _fuellung(sh) or _untergrund(formen, i_sh) or grund
             gr_max = 0
             for p in sh.text_frame.paragraphs:
                 for r in p.runs:

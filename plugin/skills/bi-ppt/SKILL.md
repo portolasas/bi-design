@@ -37,7 +37,10 @@ Umsetzung immer über Spezifikation + `bippt bauen` (nie Formen einzeln per Hand
 
 ## 2. Verstehen (token-sparsam)
 1. Quellen nur über `bippt lesen <dateien…> -o <arbeitsordner>/_quellen.md` (VTT, DOCX, PPTX, PDF, XLSX) und
-   die Datei dann gezielt lesen. Basis-PPT: `bippt analyse <pptx>` (Text je Folie, Layout, ausgeblendet).
+   die Datei dann gezielt lesen. Basis-PPT: `bippt analyse <pptx>` (Text je Folie, Layout, ausgeblendet; `--formen`
+   zusätzlich id, Name und Läufe je Form für `aendern`). Formen, die python-pptx nicht kennt (früherer Platzhalter ohne
+   Geometrie, Freihand, SmartArt), meldet `analyse` bzw. `pruefen` als „Unbekannt“/HINWEIS – ihr Text wird gelesen,
+   sonst werden sie übersprungen.
 2. Ordner, die der Nutzer ausschließt (z. B. `Archiv/`), nie öffnen. Aktuellste Quelle hat Vorrang
    (z. B. Monolog/Transkript vor Projektplan vor alter Präsentation) – Widersprüche nicht still auflösen.
 3. **Eine gebündelte Rückfragerunde** (Tool ask_user / AskUserQuestion, je Frage Empfehlung zuerst) nach
@@ -51,7 +54,10 @@ Umsetzung immer über Spezifikation + `bippt bauen` (nie Formen einzeln per Hand
 2. Spezifikation `<Name>.spec.json` **neben die Ausgabe** schreiben (Startgerüst: `bippt neu <ordner> --name <Name>`).
    Folientypen und Felder: [reference/folientypen.md](reference/folientypen.md) (`bippt typen`). Icons: `bippt icons <begriff>`.
 3. Modus V: `"basis": "<alte.pptx>"`; jede Folie entweder neu (`"typ"`) oder `{"basis": n, "ausblenden"?, "ersetzen"?,
-   "platzhalter"?}`. Nicht aufgeführte Basisfolien entfallen. Titel-Folie der Basis über `platzhalter` aktualisieren.
+   "platzhalter"?, "aendern"?, "elemente"?}`. Nicht aufgeführte Basisfolien entfallen. Titel-Folie der Basis über
+   `platzhalter` aktualisieren. Bild tauschen (Zuschnitt bleibt), Absätze ergänzen, Läufe im Band, Formen verschieben
+   oder entfernen: `aendern`; neue Formen auf der Basisfolie: `elemente` ([reference/folientypen.md](reference/folientypen.md)
+   › Basisfolien). Nie ein eigenes python-pptx-Skript zum Nacharbeiten.
 
 ## 4. Bauen – Prüfen – Sehen (max. 3 Runden)
 ```

@@ -28,6 +28,7 @@ LAYOUTS = {
     "kontakt": ["Contact"],
 }
 DUNKLE_LAYOUTS = {"titel_dunkel", "kapitel_dunkel", "inhalt_dunkel", "abschluss"}
+THEMA = {"bg1": "lt1", "tx1": "dk1", "bg2": "lt2", "tx2": "dk2"}  # Farbzuordnung des Masters (Standard)
 
 
 def oeffnen(pfad=None):
@@ -57,6 +58,23 @@ def _als_pptx(p):
             zout.writestr(item, data)
     buf.seek(0)
     return Presentation(buf)
+
+
+def themafarben(folie):
+    """Designfarben des Masters der Folie: {"accent1": "08312A", "lt1": "FFFFFF", …}."""
+    from pptx.opc.constants import RELATIONSHIP_TYPE as RT
+    a = "{http://schemas.openxmlformats.org/drawingml/2006/main}"
+    try:
+        x = etree.fromstring(folie.slide_layout.slide_master.part.part_related_by(RT.THEME).blob)
+    except KeyError:
+        return {}
+    out = {}
+    for el in x.iter(a + "clrScheme"):
+        for c in el:
+            f = c[0] if len(c) else None
+            if f is not None:
+                out[c.tag.split("}")[-1]] = (f.get("val") if f.tag == a + "srgbClr" else f.get("lastClr", "")).upper()
+    return out
 
 
 def ist_bi_master(prs):

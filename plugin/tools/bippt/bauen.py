@@ -9,9 +9,9 @@ Spezifikation (Auszug, vollständig in reference/folientypen.md):
   "heute": "2026-10-07",
   "folien": [ {"typ": "titel", …}, {"basis": 7, "ausblenden": true, "ersetzen": {"alt": "neu"}}, … ]
 }
-Folien aus der Basis, die nicht in "folien" stehen, werden entfernt.
+Folien aus der Basis, die nicht in "folien" stehen, werden entfernt. Basisfolien ändern: ersetzen, platzhalter, titel,
+aendern (einzelne Formen, siehe aendern.py), elemente (neue Formen wie im Typ frei).
 """
-import copy
 import datetime as dt
 import json
 import re
@@ -23,8 +23,9 @@ from pptx.opc.constants import RELATIONSHIP_TYPE as RT
 from pptx.oxml.ns import qn
 
 from . import konfig, vorlage
+from .aendern import _absatz_setzen, aendern, ersetzen, platzhalter_zeilen
 from .bausteine import Kontext, band
-from .folien import TYPEN
+from .folien import TYPEN, frei
 from .marke import Marke
 
 
@@ -40,85 +41,10 @@ def _theme_schriften(prs):
         return "", ""
 
 
-def _absatz_setzen(p, text):
-    """Text eines Absatzes ersetzen, Format des ersten Laufs bleibt."""
-    runs = p.runs
-    if runs:
-        runs[0].text = text
-        for r in runs[1:]:
-            r._r.getparent().remove(r._r)
-    else:
-        p.add_run().text = text
-
-
-def platzhalter_zeilen(ph, zeilen):
-    """Zeilen in einen vorhandenen Platzhalter schreiben, Absatzformate bleiben erhalten."""
-    zeilen = zeilen if isinstance(zeilen, list) else [zeilen]
-    tf = ph.text_frame
-    ps = list(tf.paragraphs)
-    for i, z in enumerate(zeilen):
-        if i < len(ps):
-            _absatz_setzen(ps[i], z)
-        else:
-            neu = copy.deepcopy(ps[-1]._p)
-            tf._txBody.append(neu)
-            _absatz_setzen(tf.paragraphs[-1], z)
-    for p in ps[len(zeilen):]:
-        p._p.getparent().remove(p._p)
-
-
-def _textrahmen(folie):
-    for sh in folie.shapes:
-        for x in (sh.shapes if sh.shape_type == 6 else [sh]):
-            if x.has_text_frame:
-                yield x.text_frame
-            if getattr(x, "has_table", False) and x.has_table:
-                for row in x.table.rows:
-                    for c in row.cells:
-                        yield c.text_frame
-
-
-def ersetzen(folie, zuordnung):
-    """Textstellen ersetzen (auch über Läufe hinweg, in Gruppen und Tabellen). Rückgabe: Anzahl Treffer."""
-    n = 0
-    for tf in _textrahmen(folie):
-        for p in tf.paragraphs:
-            voll = "".join(r.text for r in p.runs)
-            neu = voll
-            for a, b in zuordnung.items():
-                if a in neu:
-                    neu = neu.replace(a, b)
-            if neu != voll:
-                n += 1
-                _absatz_setzen(p, neu)
-    return n
-
-
 def _fusszeile_basis(folie, text):
     for ph in folie.placeholders:
         if ph._element.find(".//" + qn("p:ph")).get("type") == "ftr" and ph.text_frame.paragraphs:
             _absatz_setzen(ph.text_frame.paragraphs[0], text)
-
-
-THEMA = {"bg1": "lt1", "tx1": "dk1", "bg2": "lt2", "tx2": "dk2"}
-
-
-def _themafarben(folie):
-    """Designfarben des Masters der Folie: {"accent1": "08312A", "lt1": "FFFFFF", …}."""
-    from lxml import etree
-    from pptx.opc.constants import RELATIONSHIP_TYPE as RT
-    a = "{http://schemas.openxmlformats.org/drawingml/2006/main}"
-    try:
-        x = etree.fromstring(folie.slide_layout.slide_master.part.part_related_by(RT.THEME).blob)
-    except KeyError:
-        return {}
-    out = {}
-    for el in x.iter(a + "clrScheme"):
-        for c in el:
-            f = c[0] if len(c) else None
-            if f is not None:
-                out[c.tag.split("}")[-1]] = (f.get("val") if f.tag == a + "srgbClr" else f.get("lastClr", "")).upper()
-    return out
 
 
 def _abgestuft(basis, mods):
@@ -159,8 +85,8 @@ def farben_angleichen(folie, marke):
                 n += 1
         elif mods:
             if el.tag == a + "schemeClr":
-                thema = thema if thema is not None else _themafarben(folie)
-                basis = thema.get(THEMA.get(el.get("val"), el.get("val")), "")
+                thema = thema if thema is not None else vorlage.themafarben(folie)
+                basis = thema.get(vorlage.THEMA.get(el.get("val"), el.get("val")), "")
             else:
                 basis = el.get("val", "").upper()
             if len(basis) != 6:
@@ -216,10 +142,14 @@ def bauen(spec_pfad, ausgabe=None, still=False):
             if not 0 <= i < len(alte):
                 raise SystemExit(f"Folie {nr}: basis {fs['basis']} existiert nicht (Basis hat {len(alte)} Folien)")
             sl = alte[i]
+            k = Kontext(prs, sl, m, schriften, warnungen, nr)
+            k.ordner = ordner
+            k.dunkel = any(sl.slide_layout.name in vorlage.LAYOUTS[kurz] for kurz in vorlage.DUNKLE_LAYOUTS)
             if fs.get("ersetzen"):
-                treffer = ersetzen(sl, fs["ersetzen"])
-                if treffer < len(fs["ersetzen"]):
-                    warnungen.append(f"Folie {nr} (Basis {i + 1}): nur {treffer} von {len(fs['ersetzen'])} Ersetzungen gefunden")
+                fehlt = [a for a in fs["ersetzen"] if a not in ersetzen(sl, fs["ersetzen"])]
+                if fehlt:
+                    warnungen.append(f"Folie {nr} (Basis {i + 1}): {len(fehlt)} von {len(fs['ersetzen'])} Ersetzungen "
+                                     "nicht gefunden: " + "; ".join(f"„{a[:40]}“" for a in fehlt))
             for idx, zeilen in (fs.get("platzhalter") or {}).items():
                 ph = vorlage.platzhalter(sl, idx=int(idx))
                 if ph is None:
@@ -228,6 +158,10 @@ def bauen(spec_pfad, ausgabe=None, still=False):
                     platzhalter_zeilen(ph, zeilen)
             if fs.get("titel") and sl.shapes.title is not None:
                 platzhalter_zeilen(sl.shapes.title, fs["titel"])
+            if fs.get("aendern"):
+                aendern(k, fs["aendern"], ordner)
+            if fs.get("elemente"):
+                frei(k, fs)
             if fs.get("farben_angleichen", spec.get("basis_farben_angleichen")):
                 n = farben_angleichen(sl, m)
                 if n:
@@ -244,6 +178,7 @@ def bauen(spec_pfad, ausgabe=None, still=False):
             lay = fs.get("layout", lay)
             sl = prs.slides.add_slide(vorlage.layout(prs, lay))
             k = Kontext(prs, sl, m, schriften, warnungen, nr)
+            k.ordner = ordner
             k.heute = fs.get("heute", heute)
             k.dunkel = lay in vorlage.DUNKLE_LAYOUTS
             titel = fs.get("titel", "Agenda" if typ == "agenda" else None)

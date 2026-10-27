@@ -7,14 +7,7 @@ from pptx.enum.shapes import MSO_SHAPE_TYPE
 from pptx.util import Emu
 
 from . import vorlage
-
-
-def _formen(shapes):
-    for sh in shapes:
-        if sh.shape_type == MSO_SHAPE_TYPE.GROUP:
-            yield from _formen(sh.shapes)
-        else:
-            yield sh
+from .formen import Unbekannt as _U, alle, art, meldung
 
 
 def _ph_typ(sh):
@@ -23,12 +16,15 @@ def _ph_typ(sh):
     return str(sh.placeholder_format.type).split(".")[-1].split(" ")[0]
 
 
-def folie_lesen(sl, nr):
+def folie_lesen(sl, nr, formen=False):
     d = {"nr": nr, "layout": sl.slide_layout.name, "ausgeblendet": sl._element.get("show") == "0",
-         "titel": "", "texte": [], "tabellen": [], "bilder": [], "diagramme": [], "notizen": ""}
+         "titel": "", "texte": [], "tabellen": [], "bilder": [], "diagramme": [], "notizen": "", "unbekannt": []}
+    if formen:
+        d["formen"] = []
     if sl.shapes.title is not None and sl.shapes.title.has_text_frame:
         d["titel"] = sl.shapes.title.text_frame.text.strip()
-    for sh in _formen(sl.shapes):
+    unbekannt = []
+    for sh in alle(sl.shapes, unbekannt):
         pt = _ph_typ(sh)
         if pt in ("FOOTER", "SLIDE_NUMBER", "DATE") or (sl.shapes.title is not None and sh.shape_id == sl.shapes.title.shape_id):
             continue
@@ -39,12 +35,13 @@ def folie_lesen(sl, nr):
                 t = "".join(r.text for r in p.runs).strip()
                 if t:
                     absaetze.append({"t": t, "ebene": p.level, "fett": any(r.font.bold for r in p.runs)})
-            d["texte"].append({"form": sh.name, "ph": pt, "pos": pos, "absaetze": absaetze})
+            d["texte"].append({"form": sh.name, "id": sh.shape_id, "ph": pt, "pos": pos, "absaetze": absaetze})
         if getattr(sh, "has_table", False) and sh.has_table:
             d["tabellen"].append({"pos": pos, "zeilen": [[c.text.strip() for c in r.cells] for r in sh.table.rows]})
-        if sh.shape_type == MSO_SHAPE_TYPE.PICTURE or (pt == "PICTURE" and hasattr(sh, "image")):
+        if art(sh) == MSO_SHAPE_TYPE.PICTURE or (pt == "PICTURE" and hasattr(sh, "image")):
             try:
-                d["bilder"].append({"form": sh.name, "pos": pos, "typ": sh.image.ext, "bytes": len(sh.image.blob)})
+                d["bilder"].append({"form": sh.name, "id": sh.shape_id, "pos": pos, "typ": sh.image.ext,
+                                    "bytes": len(sh.image.blob), "zuschnitt": _zuschnitt(sh)})
             except (AttributeError, ValueError):
                 pass
         if getattr(sh, "has_chart", False) and sh.has_chart:
@@ -56,19 +53,41 @@ def folie_lesen(sl, nr):
                 kat, reihen = [], []
             d["diagramme"].append({"pos": pos, "art": str(ch.chart_type).split(".")[-1].split(" ")[0],
                                    "kategorien": [str(x) for x in kat], "reihen": reihen})
-    if sl.has_notes_slide:
+        if formen:
+            d["formen"].append(_form(sh, pt, pos))
+    d["unbekannt"] = [u._asdict() for u in unbekannt]
+    if sl.has_notes_slide and sl.notes_slide.notes_text_frame is not None:
         d["notizen"] = sl.notes_slide.notes_text_frame.text.strip()
     return d
 
 
-def analyse(pfad):
+def _zuschnitt(sh):
+    """Zuschnitt in % (links, oben, rechts, unten), None ohne Zuschnitt."""
+    try:
+        z = [round(100 * v, 1) for v in (sh.crop_left, sh.crop_top, sh.crop_right, sh.crop_bottom)]
+    except (AttributeError, ValueError):
+        return None
+    return z if any(z) else None
+
+
+def _form(sh, pt, pos):
+    """Eine Form für `aendern`: id, Name, Art, Lage; Absätze als Liste der Lauftexte (gemischte Formatierung sichtbar)."""
+    t = art(sh)
+    typ = pt or (str(t).split(".")[-1].split(" ")[0] if t is not None else "unbekannt")
+    f = {"id": sh.shape_id, "name": sh.name, "art": typ.lower(), "pos": pos}
+    if sh.has_text_frame and sh.text_frame.text.strip():
+        f["absaetze"] = [[r.text for r in p.runs] for p in sh.text_frame.paragraphs]
+    return f
+
+
+def analyse(pfad, formen=False):
     prs = vorlage.oeffnen(pfad)
     return {
         "datei": str(pfad),
         "format": f"{Emu(prs.slide_width).inches:.2f} x {Emu(prs.slide_height).inches:.2f} in",
         "bi_master": vorlage.ist_bi_master(prs),
         "layouts": [l.name for l in prs.slide_layouts],
-        "folien": [folie_lesen(s, i) for i, s in enumerate(prs.slides, 1)],
+        "folien": [folie_lesen(s, i, formen) for i, s in enumerate(prs.slides, 1)],
     }
 
 
@@ -84,9 +103,18 @@ def als_markdown(a, notizen=True):
             for r in tb["zeilen"]:
                 z.append("| " + " | ".join(c.replace("\n", " / ") for c in r) + " |")
         for b in f["bilder"]:
-            z.append(f"[Bild {b['form']} {b['typ']} @ {b['pos']}]")
+            zs = f" Zuschnitt {b['zuschnitt']} %" if b.get("zuschnitt") else ""
+            z.append(f"[Bild {b['form']} {b['typ']} @ {b['pos']}{zs}]")
         for d in f["diagramme"]:
             z.append(f"[Diagramm {d['art']}: {', '.join(d['kategorien'][:8])} | Reihen: {', '.join(r['name'] for r in d['reihen'])}]")
+        for u in f["unbekannt"]:
+            z.append(f"[Unbekannt: {meldung(_U(**u))}]")
+        if f.get("formen"):
+            z.append("Formen (für aendern; Läufe mit ‖ getrennt):")
+            for fo in f["formen"]:
+                z.append(f"  #{fo['id']} „{fo['name']}“ {fo['art']} @ {fo['pos']}")
+                for i, p in enumerate(fo.get("absaetze", []), 1):
+                    z.append(f"      {i}) " + "‖".join(p))
         if notizen and f["notizen"]:
             z.append(f"> Notizen: {f['notizen'][:400]}")
         z.append("")
@@ -124,7 +152,6 @@ def entwurf(pfad, medien_ordner=None):
             t = f["tabellen"][0]["zeilen"]
             spec.update({"typ": "tabelle", "kopf": t[0], "zeilen": t[1:]})
         elif f["bilder"] and alle:
-            medien.mkdir(parents=True, exist_ok=True)
             bild = _bild_sichern(sl, medien, i)
             spec.update({"typ": "bild_text", "bild": bild, "punkte": [p["t"] for p in alle]})
         elif len(texte) >= 2 and len(texte) <= 4 and all(len(t["absaetze"]) >= 2 for t in texte):
@@ -141,13 +168,19 @@ def entwurf(pfad, medien_ordner=None):
 
 
 def _bild_sichern(sl, medien, nr):
+    """Größtes eingebettetes Bild der Folie nach medien/folieNN.<ext>; verknüpfte Bilder zählen nicht."""
     groesstes = None
-    for sh in _formen(sl.shapes):
-        if sh.shape_type == MSO_SHAPE_TYPE.PICTURE:
+    for sh in alle(sl.shapes):
+        if art(sh) == MSO_SHAPE_TYPE.PICTURE:
+            try:
+                sh.image
+            except (ValueError, KeyError, AttributeError):
+                continue
             if groesstes is None or sh.width * sh.height > groesstes.width * groesstes.height:
                 groesstes = sh
     if groesstes is None:
         return None
+    medien.mkdir(parents=True, exist_ok=True)
     ziel = medien / f"folie{nr:02d}.{groesstes.image.ext}"
     ziel.write_bytes(groesstes.image.blob)
     return str(ziel)

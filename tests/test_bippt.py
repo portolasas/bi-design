@@ -131,5 +131,152 @@ with tempfile.TemporaryDirectory() as td:
     fall("Abstufung accent2 als FEHLER erkannt", any(b[0] == "FEHLER" and "Abstufungen" in b[2] for b in ba),
          "; ".join(b[2] for b in ba))
 
+    print("Fremde Formen (Agenda-Fall: früherer Platzhalter ohne Geometrie, Freihand, AlternateContent)")
+    from PIL import Image
+    from bippt import aendern
+    from bippt.bausteine import E
+    vl = Presentation(str(PLUGIN / "vorlagen" / "BI_Vorlage_16x9.pptx"))
+    fs = vl.slides.add_slide(next(lay for lay in vl.slide_layouts if lay.name == "Agenda"))
+    fs.shapes.title.text = "Agenda"
+    fs.background.fill.solid()
+    fs.background.fill.fore_color.rgb = RGBColor.from_string("08312A")
+    tb = fs.shapes.add_textbox(E(7.8), E(1.7), E(4.7), E(0.7))
+    tb.name = "Textplatzhalter 2"
+    r = tb.text_frame.paragraphs[0].add_run()
+    r.text = "Zielbild für den Prozess"
+    r.font.color.rgb = RGBColor.from_string("00E47C")  # Akzentgrün auf dunklem Folienhintergrund: erlaubt
+    tb._element.find(qn("p:nvSpPr")).find(qn("p:cNvSpPr")).attrib.pop("txBox")
+    tb._element.spPr.remove(tb._element.spPr.find(qn("a:prstGeom")))
+    Image.new("RGB", (64, 64), (0, 228, 124)).save(td / "clipart.png")
+    fs.shapes.add_picture(str(td / "clipart.png"), E(7.1), E(1.76), E(0.43), E(0.43)).name = "BI Clipart Zielbild"
+    ns = ('xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main" '
+          'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" '
+          'xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"')
+    fs.shapes._spTree.append(etree.fromstring(
+        f'<p:contentPart {ns} r:id="rId99"><p:nvContentPartPr><p:cNvPr id="40" name="Freihand 39"/>'
+        '<p:cNvContentPartPr/><p:nvPr/></p:nvContentPartPr></p:contentPart>'))
+    fs.shapes._spTree.append(etree.fromstring(f'<mc:AlternateContent {ns}><mc:Choice Requires="p14"/>'
+                                              '<mc:Fallback/></mc:AlternateContent>'))
+    vl.save(str(td / "agenda_fremd.pptx"))
+    af = analyse.analyse(td / "agenda_fremd.pptx", formen=True)["folien"][0]
+    fall("Agenda-Fall: Analyse liest den Text der Form ohne Geometrie",
+         any("Zielbild" in p["t"] for t in af["texte"] for p in t["absaetze"]), str(af["texte"]))
+    gruende = " | ".join(f"{u['name']}: {u['grund']}" for u in af["unbekannt"])
+    fall("Agenda-Fall: drei unbekannte Formen gemeldet", len(af["unbekannt"]) == 3 and "Textplatzhalter 2" in gruende
+         and "Freihand 39" in gruende and "AlternateContent" in gruende, gruende)
+    fall("Agenda-Fall: Titel und Bild gelesen", af["titel"] == "Agenda" and
+         [b["form"] for b in af["bilder"]] == ["BI Clipart Zielbild"], f"{af['titel']} {af['bilder']}")
+    bf = pruefen.pruefen(td / "agenda_fremd.pptx")
+    fall("Agenda-Fall: Prüfung meldet die Form als Hinweis",
+         any(b[0] == "HINWEIS" and "Textplatzhalter 2" in b[2] for b in bf), "; ".join(b[2] for b in bf))
+    fall("Agenda-Fall: Akzentgrün auf dunklem Folienhintergrund ist kein Fehler",
+         not any("Akzentgrün" in b[2] for b in bf), "; ".join(b[2] for b in bf))
+    fall("Agenda-Fall: Entwurf zum Umwandeln", umwandeln.entwurf(td / "agenda_fremd.pptx", td / "af.spec.json").is_file())
+    (td / "af_v2.spec.json").write_text(json.dumps({"basis": "agenda_fremd.pptx", "ausgabe": "af_v2.pptx", "folien": [
+        {"basis": 1, "ersetzen": {"Zielbild": "Ziel"}}]}), encoding="utf-8")
+    zf, wf = bauen.bauen(td / "af_v2.spec.json", still=True)
+    texte = " ".join(sh.text_frame.text for sh in Presentation(str(zf)).slides[0].shapes if sh.has_text_frame)
+    fall("Agenda-Fall: Basis-Modus ersetzt in der Form ohne Geometrie", "Ziel für den Prozess" in texte and not wf,
+         f"{texte} {wf}")
+
+    print("Änderungsmodus für Basisfolien (aendern, elemente)")
+    Image.new("RGB", (1440, 1000), (0, 228, 124)).save(td / "alt.png")
+    Image.new("RGB", (1440, 1000), (8, 49, 42)).save(td / "neu_gleich.png")
+    Image.new("RGB", (1440, 2000), (229, 227, 222)).save(td / "neu_hoch.png")
+    (td / "aendern.spec.json").write_text(json.dumps({"ausgabe": "aendern_basis.pptx", "fusszeile": "Test", "folien": [
+        {"typ": "bild_text", "titel": "Bild", "bild": "alt.png", "punkte": ["A"]},
+        {"typ": "frei", "titel": "Frei", "band": {"label": "Zu klären:", "text": "Alte Frage?"}, "elemente": [
+            {"form": "text", "x": 1, "y": 1.5, "w": 5, "h": 1, "t": ["Erster Punkt", {"t": "Zweiter Punkt", "groesse": 14}]},
+            {"form": "text", "x": 1, "y": 3, "w": 5, "h": 0.5, "t": "Weg damit"},
+            {"form": "flaeche", "x": 7, "y": 1.5, "w": 2, "h": 1, "fill": "LG", "t": "Karte"}]},
+        {"typ": "bild_text", "titel": "Bild 2", "bild": "alt.png", "punkte": ["B"]},
+        {"typ": "kennzahlen", "titel": "Kennzahlen", "kacheln": [{"wert": "3", "label": "mit Bild", "bild": "alt.png"},
+                                                                 {"wert": "4", "label": "ohne"}]},
+        {"typ": "karten", "titel": "Karten", "karten": [{"titel": "Screenshot", "bild": "alt.png", "punkte": ["x"]},
+                                                        {"titel": "Text", "punkte": ["y"]}]},
+        {"typ": "prozess", "titel": "Prozess", "groesse": 12.5, "kopf_groesse": 13,
+         "schritte": [{"titel": "Schritt A", "punkte": ["Eins"]}, {"titel": "Schritt B", "punkte": ["Zwei"]}]}]}),
+        encoding="utf-8")
+    za, wa = bauen.bauen(td / "aendern.spec.json", still=True)
+    fall("Bildfeld, Schriftgröße: Bau ohne Warnungen", not wa, "; ".join(wa))
+    pa = Presentation(str(za))
+    bilder = [sum(1 for sh in pa.slides[i].shapes if sh.shape_type == 13) for i in (3, 4)]
+    fall("Bildfeld in Kennzahlen- und Kartenfolie", bilder == [1, 1], str(bilder))
+    gr = {r.text: r.font.size.pt for sh in pa.slides[5].shapes if sh.has_text_frame
+          for p in sh.text_frame.paragraphs for r in p.runs if r.font.size}
+    fall("Schrittkarten: groesse und kopf_groesse", gr.get("Eins") == 12.5 and gr.get("Schritt A") == 13, str(gr))
+    fa = analyse.analyse(za, formen=True)["folien"]
+    ph1, ph3 = fa[0]["bilder"][0]["form"], fa[2]["bilder"][0]["form"]
+    nach_text = {fo["absaetze"][0][0]: fo["name"] for fo in fa[1]["formen"] if fo.get("absaetze")}
+    tb1, tb2, karte_ = nach_text["Erster Punkt"], nach_text["Weg damit"], nach_text["Karte"]
+    alt_crop = Presentation(str(za)).slides[2].shapes
+    alt_crop = [(s.crop_top, s.crop_bottom) for s in alt_crop if s.name == ph3][0]
+    (td / "aendern_v2.spec.json").write_text(json.dumps({"basis": "aendern_basis.pptx", "ausgabe": "aendern_v2.pptx",
+                                                         "folien": [
+        {"basis": 1, "aendern": [{"form": ph1, "bild": "neu_hoch.png", "ausschnitt": {"oben_px": 586}}]},
+        {"basis": 2, "ersetzen": {"Alte Frage?": "Neue Frage?"}, "aendern": [
+            {"form": tb1, "absaetze": [None, "**Zweiter** Punkt neu", "Dritter Punkt"], "h": 1.4},
+            {"form": "Kernaussage", "laeufe": ["Offen:  ", None]},
+            {"formen": [tb1, karte_], "dy": 0.5},
+            {"form": tb2, "entfernen": True},
+            {"form": "Gibt es nicht", "y": 1}],
+         "elemente": [{"form": "band", "label": "Heute:", "text": "von Hand.", "stil": "hell", "y": 1.43, "h": 0.44}]},
+        {"basis": 3, "aendern": [{"form": ph3, "bild": "neu_gleich.png"}]}]}), encoding="utf-8")
+    zv, wv = bauen.bauen(td / "aendern_v2.spec.json", still=True)
+    fall("aendern: nur die Warnung zur fehlenden Form", len(wv) == 1 and "Gibt es nicht" in wv[0], "; ".join(wv))
+    pv = Presentation(str(zv))
+    s1, s2, s3 = pv.slides[0], pv.slides[1], pv.slides[2]
+    bild1 = [s for s in s1.shapes if s.name == ph1][0]
+    sichtbar = 1440 * bild1.height / bild1.width / 2000  # Anteil der Bildhöhe, der bei voller Breite in den Rahmen passt
+    fall("Bild getauscht, volle Breite, Zuschnitt ab Pixel 586", bild1.image.size == (1440, 2000)
+         and abs(bild1.crop_top - 586 / 2000) < 0.001 and abs(bild1.crop_bottom - (1 - 586 / 2000 - sichtbar)) < 0.001
+         and abs(bild1.crop_left) < 0.001 and abs(bild1.crop_right) < 0.001,
+         f"{bild1.image.size} {bild1.crop_top:.3f} {bild1.crop_bottom:.3f} (erwartet {1 - 586 / 2000 - sichtbar:.3f})")
+    bildrels = [r for r in s1.part.rels.values() if r.reltype.endswith("/image")]
+    fall("altes Bild nicht mehr verknüpft", len(bildrels) == 1, str(len(bildrels)))
+    bild3 = [s for s in s3.shapes if s.name == ph3][0]
+    fall("gleiches Seitenverhältnis: Zuschnitt bleibt", bild3.image.size == (1440, 1000)
+         and abs(bild3.crop_top - alt_crop[0]) < 0.001 and abs(bild3.crop_bottom - alt_crop[1]) < 0.001,
+         f"{(bild3.crop_top, bild3.crop_bottom)} statt {alt_crop}")
+    form1 = [s for s in s2.shapes if s.name == tb1][0]
+    ps = form1.text_frame.paragraphs
+    fall("Absätze gesetzt und ergänzt", [p.text for p in ps] == ["Erster Punkt", "Zweiter Punkt neu", "Dritter Punkt"],
+         str([p.text for p in ps]))
+    fall("neuer Absatz im Format des letzten, **fett** als eigener Lauf",
+         ps[2].runs[0].font.size.pt == 14 and [(r.text, bool(r.font.bold)) for r in ps[1].runs]
+         == [("Zweiter", True), (" Punkt neu", False)], str([(r.text, r.font.bold) for r in ps[1].runs]))
+    fall("Form verschoben und vergrößert", abs(form1.top - E(2.0)) < 1000 and abs(form1.height - E(1.4)) < 1000,
+         f"{form1.top / 914400:.2f} {form1.height / 914400:.2f}")
+    karte2 = [s for s in s2.shapes if s.name == karte_][0]
+    fall("Reihe mit formen + dy verschoben", abs(karte2.top - E(2.0)) < 1000, f"{karte2.top / 914400:.2f}")
+    fall("Form entfernt", not [s for s in s2.shapes if s.name == tb2])
+    baender = [s for s in s2.shapes if s.name == "Kernaussage"]
+    unten = max(baender, key=lambda s: s.top)
+    fall("Band: Läufe einzeln, Formatierung bleibt", [(r.text, bool(r.font.bold)) for r in
+                                                       unten.text_frame.paragraphs[0].runs]
+         == [("Offen:  ", True), ("Neue Frage?", False)], str([(r.text, r.font.bold) for r in
+                                                              unten.text_frame.paragraphs[0].runs]))
+    fall("elemente: helles Band als Untertitel", len(baender) == 2 and abs(min(s.top for s in baender) - E(1.43)) < 1000,
+         str([round(s.top / 914400, 2) for s in baender]))
+    fall("Prüfung der geänderten Fassung ohne Fehler", not [b for b in pruefen.pruefen(zv) if b[0] == "FEHLER"],
+         "; ".join(b[2] for b in pruefen.pruefen(zv) if b[0] == "FEHLER"))
+    gp = Presentation()
+    gs = gp.slides.add_slide(gp.slide_layouts[6])
+    gruppe = gs.shapes.add_group_shape()
+    gruppe.name = "Reihe 1"
+    gruppe.shapes.add_textbox(E(1), E(1), E(2), E(0.5)).text_frame.text = "in der Gruppe"
+    from bippt.bausteine import Kontext
+    gw = []
+    aendern.aendern(Kontext(gp, gs, Marke(), ("", ""), gw, 1), [{"form": "Reihe 1", "dy": 0.5}], td)
+    fall("aendern: ganze Gruppe ansprechen und verschieben", not gw and abs(gruppe.top - E(1.5)) < 1000,
+         f"{gw} {gruppe.top / 914400:.2f}")
+    p = Presentation().slides.add_slide(Presentation().slide_layouts[6]).shapes.add_textbox(0, 0, 9, 9).text_frame.paragraphs[0]
+    for t, fett in (("Stand ", False), ("07.10.", True), ("2026 fertig", False)):
+        r = p.add_run()
+        r.text, r.font.bold = t, fett
+    aendern._ersetzen_absatz(p, "07.10.2026", "01.01.2027")
+    fall("ersetzen über Läufe: Format außerhalb des Treffers bleibt", [(r.text, bool(r.font.bold)) for r in p.runs]
+         == [("Stand ", False), ("01.01.2027", True), (" fertig", False)], str([(r.text, r.font.bold) for r in p.runs]))
+
 print("ALLE FÄLLE BESTANDEN" if not fehler else f"FEHLGESCHLAGEN: {', '.join(fehler)}")
 sys.exit(1 if fehler else 0)

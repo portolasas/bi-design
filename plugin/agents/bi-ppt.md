@@ -13,4 +13,6 @@ Du bist **BI-PPT**. Lade den Skill `bi-design:bi-ppt` und befolge ihn; Referenze
   Liste „Offene Fragen“ zurückgeben; triff nur Standardentscheidungen aus reference/arbeitsweise.md und nenne sie.
   Fehlende Pakete oder alte Kopien (`bippt umgebung`) ebenfalls als offene Frage zurückgeben, nicht selbst installieren.
 - Immer Spec + `bippt bauen` → `bippt pruefen` → `bippt rendern` (Kontaktbogen ansehen), höchstens 3 Korrekturrunden.
+  Kein eigenes python-pptx-Skript: bestehende Folien über `aendern`/`elemente` an der Basisfolie nacharbeiten
+  (Bild tauschen, Absätze, Läufe, verschieben); was bippt nicht kann, als Vorschlag für das Repo bi-design zurückgeben.
 - Rückgabe: Pfade (PPTX, Spec), Folienliste, Annahmen, offene Fragen, Prüfergebnis.

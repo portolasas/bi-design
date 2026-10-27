@@ -9,7 +9,8 @@
 
 ## Weg 1 – Neu bauen
 1. `bippt analyse fremd.pptx` (Überblick) und `bippt pruefen fremd.pptx` (Ausgangsbefunde, für den Abschluss).
-2. `bippt umwandeln entwurf fremd.pptx` → `fremd_BI.spec.json` (+ `fremd_medien/` mit Bildern).
+2. `bippt umwandeln entwurf fremd.pptx [-o ziel.spec.json]` → `fremd_BI.spec.json` (+ `fremd_medien/` mit Bildern
+   neben der Spec; verknüpfte Bilder werden nicht übernommen).
    Der Entwurf ordnet zu: Titel → `titel`, Diagramm → `diagramm` (Daten übernommen), Tabelle → `tabelle`,
    Bild+Text → `bild_text`, 2–4 Textblöcke → `karten`, sonst `text`. Originalnotizen bleiben.
 3. Spec verdichten (das ist die eigentliche Arbeit): Aktionstitel, passende Typen (Abläufe → `prozess`, Termine →
