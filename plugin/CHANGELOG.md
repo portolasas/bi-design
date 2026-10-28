@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.3.1 – 2026-10-28
+- Sichern wie bei ppp (Nutzer): Liegt der Arbeitsordner in einem Git-Repo, holt bi-ppt zu Beginn mit `git pull` und
+  committet nach jedem abgeschlossenen Schritt (Deck gebaut und geprüft, Änderung fertig, Umwandlung fertig) ohne
+  Rückfrage und pusht nach `main` – PPTX, Spec, Folienbeschreibung und neue Bilder, ein Commit je Schritt. Bisher nur auf
+  Anweisung. Der Abschluss nennt den Commit.
+
 ## 2.3.0 – 2026-10-28
 Anforderung des Nutzers: Zu jeder Präsentation gehört ein Dokument, das den Inhalt jeder Folie beschreibt, damit andere
 Agenten und Sitzungen das Deck lesen, ohne die PPTX auszulesen; beim Überarbeiten ändert bi-ppt nur, was sich wirklich

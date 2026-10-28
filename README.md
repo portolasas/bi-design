@@ -48,6 +48,8 @@ Mit dem Agenten **bi-ppt**, zum Beispiel:
 
 Der Agent liest die Quellen, stellt eine gebündelte Rückfragerunde (Publikum, Datum, Ampeln, Widersprüche), schreibt `<Name>.spec.json` neben die Ausgabe, baut, prüft und rendert. Neben der PPTX liegen danach die Spec und die **Folienbeschreibung** `<Name>.md`: je Folie Typ, Gestaltung, Kernaussage, Inhalt und Notizen, damit andere Agenten und Sitzungen das Deck lesen können, ohne die PPTX auszulesen. Eine vorhandene Vorlage (z. B. von ppp) wird über `dokument` in der Spec zur Folienbeschreibung; ihr Text bleibt, bippt hängt seinen Abschnitt an.
 
+Liegt der Arbeitsordner in einem Git-Repo (z. B. ein ppp-Projekt), committet der Agent wie ppp nach jedem abgeschlossenen Schritt ohne Rückfrage und pusht nach `main`: PPTX, Spec, Folienbeschreibung und neue Bilder.
+
 Spätere Änderungen („Ändere auf Folie 4 den Termin“) liest der Agent aus der Folienbeschreibung und ändert nur die betroffenen Folien; `bippt bauen` meldet in `ÄNDERUNGEN`, welche Folien sich geändert haben. Wurde das Deck nach dem Bau in PowerPoint bearbeitet, bricht `bippt bauen` ab, statt die Handänderungen zu überschreiben; der Agent übernimmt das Deck dann als Basis und ändert nur die betroffenen Folien.
 
 Für andere Medien (Word, Excel, Diagramme, Power BI, Web, Mail) genügt im normalen Chat „im BI-Design“; dann lädt der Agent den Skill `bi-designer`.

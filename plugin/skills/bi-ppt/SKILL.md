@@ -32,6 +32,8 @@ Abschnitt zwischen `<!-- bippt:folienbeschreibung … -->` und `<!-- /bippt:foli
   danach VS Code neu laden bzw. neue Claude-Code-Sitzung.
 - alles andere: [reference/installation.md](reference/installation.md).
 
+Liegt der Arbeitsordner in einem Git-Repo (`git rev-parse --show-toplevel` gelingt), danach `git pull`.
+
 ## 1. Modus erkennen
 | Modus | Auslöser | Ablauf |
 |---|---|---|
@@ -105,10 +107,16 @@ Kein Renderweg? Dann nur `pruefen` und das im Abschluss sagen.
   Spec und Folienbeschreibung daneben lassen (spätere Änderungen = Spec + `bippt bauen`, die Beschreibung folgt).
   Eigene Hinweise zur Folienbeschreibung außerhalb der Marken schreiben. `_render_*`-Ordner und `_quellen.md` löschen,
   wenn der Nutzer sie nicht braucht.
-- Git-Repo und Nutzer will veröffentlichen: committen und direkt nach `main` pushen (nur auf Anweisung).
+- **Sichern wie bei ppp:** Im Git-Repo nach jedem abgeschlossenen Schritt ohne Rückfrage committen und nach `main`
+  pushen. Schritte: Deck gebaut und geprüft (§4 fertig), Änderung fertig (§3a Schritt 4), Umwandlung fertig – ein Commit
+  je Schritt, nicht je Korrekturrunde. Stagen nur die Dateien des Decks: PPTX, Spec, Folienbeschreibung (bzw.
+  `dokument`) und neu abgelegte Bilder; `_render_*`-Ordner und `_quellen.md` bleiben draußen. Nachricht
+  `<Name>: <was sich geändert hat>`, z. B. „SC-Update 12.11.: Termin auf Folie 4“. Push abgelehnt: `git pull --rebase`,
+  erneut pushen. Ohne Remote nur committen; steht das Repo auf einem anderen Branch, dort committen und pushen und das
+  im Abschluss nennen.
 - Antwort: Pfade (PPTX, Spec, Folienbeschreibung) · Folienliste (sichtbar/Backup) mit je einer Zeile Inhalt · bei
   Modus V/Ä die geänderten Folien laut `ÄNDERUNGEN` · getroffene Annahmen · offene Punkte · Prüfergebnis (`pruefen`,
-  Render ja/nein).
+  Render ja/nein) · Commit und Push (Kurz-Hash) oder „kein Git-Repo“.
 
 ## 6. Regeln (BI-Master v2.1 + bi-designer)
 - **Der Master ist verbindlich** (How-to slides, vor jedem Referenzdeck): nur Layouts der Vorlage, nur Theme- und Custom
