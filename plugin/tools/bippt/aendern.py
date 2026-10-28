@@ -122,15 +122,31 @@ def laeufe_setzen(p, eintraege):
             _Run(el, p).text = e.get("t", "") if isinstance(e, dict) else str(e)
 
 
-def _ersetzen_absatz(p, alt, neu):
-    """alt → neu in einem Absatz, auch über Läufe hinweg. Läufe außerhalb des Treffers behalten Text und Format, der
-    Treffer bekommt das Format seines ersten Laufs. Rückgabe: Anzahl Treffer."""
-    n, ab = 0, 0
-    while True:
+def _naechster_treffer(text, such, ab):
+    """(Position, Suchtext) des ersten Treffers ab `ab`; bei gleicher Position gewinnt der längere Suchtext."""
+    best = None
+    for a in such:
+        i = text.find(a, ab)
+        if i >= 0 and (best is None or i < best[0] or (i == best[0] and len(a) > len(best[1]))):
+            best = (i, a)
+    return best
+
+
+def _ersetzen_absatz(p, alt, neu=None):
+    """alt → neu in einem Absatz, auch über Läufe hinweg; alt darf auch eine Zuordnung {alt: neu, …} sein (neu dann
+    None). Alle Suchtexte in einem Durchgang von links nach rechts: eingesetzter Text wird nie noch einmal ersetzt, auch
+    wenn er einen Suchtext enthält („GBS“ → „GBS United“). Läufe außerhalb des Treffers behalten Text und Format, der
+    Treffer bekommt das Format seines ersten Laufs. Rückgabe: {Suchtext: Anzahl Treffer}."""
+    zuordnung = alt if neu is None else {alt: neu}
+    such = [a for a in zuordnung if a]
+    treffer, ab = {}, 0
+    while such:
         runs = p.runs
-        i = "".join(r.text for r in runs).find(alt, ab)
-        if i < 0:
-            return n
+        best = _naechster_treffer("".join(r.text for r in runs), such, ab)
+        if best is None:
+            return treffer
+        i, alt = best
+        neu = str(zuordnung[alt])
         j, pos, erster = i + len(alt), 0, None
         for k, r in enumerate(runs):
             ende = pos + len(r.text)
@@ -148,8 +164,9 @@ def _ersetzen_absatz(p, alt, neu):
             runs[letzter].text = runs[letzter].text[b:]
             for r in runs[erster + 1:letzter]:
                 r._r.getparent().remove(r._r)
-        n += 1
+        treffer[alt] = treffer.get(alt, 0) + 1
         ab = i + len(neu)
+    return treffer
 
 
 def _textrahmen(folie):
@@ -164,13 +181,12 @@ def _textrahmen(folie):
 
 def ersetzen(folie, zuordnung):
     """Textstellen ersetzen (auch über Läufe hinweg, in Gruppen und Tabellen); Formatierung außerhalb der Treffer bleibt.
-    Rückgabe: Menge der gefundenen Suchtexte."""
+    Je Absatz ein Durchgang über alle Suchtexte (siehe _ersetzen_absatz) – darum je Folie genau EINMAL aufrufen: ein
+    zweiter Aufruf ersetzt erneut, wenn der neue Text den alten enthält. Rückgabe: Menge der gefundenen Suchtexte."""
     gefunden = set()
     for tf in _textrahmen(folie):
         for p in tf.paragraphs:
-            for a, b in zuordnung.items():
-                if a and _ersetzen_absatz(p, a, b):
-                    gefunden.add(a)
+            gefunden |= set(_ersetzen_absatz(p, zuordnung))
     return gefunden
 
 

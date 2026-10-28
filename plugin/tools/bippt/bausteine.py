@@ -24,6 +24,8 @@ ANKER = {"o": MSO_ANCHOR.TOP, "m": MSO_ANCHOR.MIDDLE, "u": MSO_ANCHOR.BOTTOM}
 X0, XW = 0.52, 12.29
 Y0, Y_ENDE = 1.45, 6.45
 BAND_H = 0.44
+# Quellenzeile des BI-Masters: Platzhalter idx 13, 6,35–6,51 in, unten bündig, 8 pt (wächst nach oben)
+QUELLE_UNTEN, QUELLE_G = 6.506, 8
 
 
 def E(inch):
@@ -43,6 +45,8 @@ class Kontext:
         self.warnungen = warnungen
         self.dunkel = False
         self.ordner = None  # Ordner der Spec: relative Pfade (Bilder) zuerst dort
+        self.zu_breit = {}  # Wort → (Breite, Platz) in Zoll, gesammelt von text(), gemeldet von wortbreite_melden()
+        self.tipp_wortbreite = None  # Rat des Folientyps dazu (z. B. Schrittkarten: weniger Schritte)
 
     def pfad(self, p):
         """Pfad aus der Spec: absolut, relativ zur Spec oder (wie bisher) zum Arbeitsordner."""
@@ -58,6 +62,25 @@ class Kontext:
 
     def warn(self, txt):
         self.warnungen.append(f"Folie {self.nr}: {txt}")
+
+    def wort_zu_breit(self, wort, breite, platz):
+        """Ein Wort ist breiter als sein Textfeld (aus text()); gesammelt, eine Warnung je Folie (wortbreite_melden)."""
+        alt = self.zu_breit.get(wort)
+        if alt is None or platz < alt[1]:
+            self.zu_breit[wort] = (breite, platz)
+
+    def wortbreite_melden(self):
+        """Eine Warnung für alle zu breiten Wörter der Folie (bauen.py nach dem Bau jeder Folie)."""
+        zu = self.zu_breit
+        if not zu:
+            return
+        liste = "; ".join(f"„{w}“ ({b:.2f} > {p:.2f} in)" for w, (b, p) in list(zu.items())[:6])
+        mehr = f" und {len(zu) - 6} weitere" if len(zu) > 6 else ""
+        tipp = self.tipp_wortbreite or "breitere Spalten (weniger Spalten, breiten) oder kleinere Schrift (groesse)"
+        self.warn(f"{'Ein Wort ist' if len(zu) == 1 else f'{len(zu)} Wörter sind'} breiter als ihr Textfeld – "
+                  f"PowerPoint trennt mitten im Wort: {liste}{mehr}. Abhilfe: kürzen, mit Bindestrich trennen "
+                  f"(Projekt-Workshop) oder {tipp}")
+        self.zu_breit = {}
 
 
 # ---------------------------------------------------------------- Text
@@ -115,6 +138,83 @@ def text_hoehe(spec, breite, groesse, zeilenabstand=1.12, nach=3, punkt=False):
     return h
 
 
+# Zeichenbreiten in em für Boehringer Forward Text (normal), aus den Schriftmetriken auf Gruppen gerundet: je Wort und
+# Zeile ±2 % (am Render mit PowerPoint geprüft). Fett × 1,04, Head × 0,96 (Head fett ≈ Text normal), sonst 0,6 em.
+_ZEICHEN = [(" ", 0.21), ("iljI!.,:;'|", 0.25), ("frt()[]-", 0.38), ("/*\"", 0.45), ("skvxyzJ?_", 0.52),
+            ("abcdeghnopquäöüßEFLPTZ0123456789–+=<>§•✓", 0.59), ("ABKRSUVXYÄÜ", 0.66), ("CDGHNOQÖ&#€→", 0.76),
+            ("mw%", 0.85), ("MW@", 0.99)]
+EM = {z: b for zeichen, b in _ZEICHEN for z in zeichen}
+# Umbruch außer an Leerzeichen (PowerPoint für Mac, geprüft): nach Bindestrich und weichem Trennstrich, vor und nach
+# Gedankenstrich; nach Schrägstrich nicht („Power/Apps“ bricht mitten im Wort).
+UMBRUCH_NACH, STRICHE = "-­", "–—"
+TOLERANZ = 0.02  # in: so viel darf ein Wort rechnerisch breiter sein (Schätzung ±2 %, Kerning)
+
+
+def _faktor(fett, kopf):
+    return (1.04 if fett else 1.0) * (0.96 if kopf else 1.0)
+
+
+def text_breite(txt, groesse, fett=False, kopf=False):
+    """Breite (in) eines Textes in einer Zeile."""
+    return sum(EM.get(z, 0.6) for z in klartext(txt)) * _faktor(fett, kopf) * groesse / 72
+
+
+def _stuecke(t, fett, kopf):
+    """Absatz (Text mit **…**/==…== oder Läufe) → Stücke zwischen möglichen Umbrüchen: (Text, Breite em, Leerzeichen
+    davor); "\\n" = harter Umbruch."""
+    out, cur, em, leer = [], "", 0.0, False
+    for txt, fmt in _laeufe(t):
+        f = _faktor(bool(fmt.get("fett", fett) or fmt.get("hervor")), kopf)
+        for z in str(txt):
+            if z in "\n\v" or z.isspace():
+                if cur:
+                    out.append((cur, em, leer))
+                    cur, em = "", 0.0
+                if z in "\n\v":
+                    out.append(("\n", 0.0, False))
+                leer = True
+                continue
+            if z in STRICHE and cur:
+                out.append((cur, em, leer))
+                cur, em, leer = "", 0.0, False
+            cur += z
+            em += EM.get(z, 0.6) * f
+            if z in UMBRUCH_NACH or z in STRICHE:
+                out.append((cur, em, leer))
+                cur, em, leer = "", 0.0, False
+    if cur:
+        out.append((cur, em, leer))
+    return out
+
+
+def wortbreiten(t, groesse, fett=False, kopf=False):
+    """[(Wort, Breite in)] eines Absatzes; Wörter wie beim Umbruch (nach Bindestrich getrennt)."""
+    return [(s, em * groesse / 72) for s, em, _ in _stuecke(t, fett, kopf) if s != "\n"]
+
+
+def umbrechen(t, breite, groesse, fett=False, kopf=False):
+    """Zeilenumbruch eines Absatzes wie in PowerPoint: an Leerzeichen und nach UMBRUCH_NACH; ein Wort, das allein nicht
+    in die Zeile passt, bricht PowerPoint mitten im Wort. breite = Textbreite (in) ohne Ränder und Einzug.
+    Rückgabe: (Zeilen, [(Wort, Breite in)] der Wörter, die breiter als die Zeile sind)."""
+    platz = max(breite, 0.05) * 72 / groesse  # em
+    tol = TOLERANZ * 72 / groesse
+    zeilen, x, zu_breit = 1, 0.0, []
+    for s, em, leer in _stuecke(t, fett, kopf):
+        if s == "\n":
+            zeilen, x = zeilen + 1, 0.0
+            continue
+        if em > platz + tol:
+            zu_breit.append((s.rstrip("-­"), em * groesse / 72))
+        luecke = EM[" "] if leer and x else 0.0
+        if x and x + luecke + em > platz:
+            zeilen, x = zeilen + 1, em
+        else:
+            x += luecke + em
+        while x > platz + tol:  # mitten im Wort getrennt
+            zeilen, x = zeilen + 1, x - platz
+    return zeilen, zu_breit
+
+
 def _aufzaehlung(p, farbe, ebene=0):
     pPr = p._p.get_or_add_pPr()
     marl = 0.17 * (ebene + 1)
@@ -139,8 +239,17 @@ def _kein_punkt(p):
 
 
 def text(k, tf, spec, groesse=12, farbe="DG", fett=False, ausr="l", anker="o", rand=(0.08, 0.04, 0.08, 0.04),
-         nach=3, zeile=1.1, punkt=False, kopf=False, hervor=None, umbruch=True):
-    """Text in einen Textrahmen schreiben. hervor = Farbe für ==…== (Standard: AG auf Dunkel, sonst fett)."""
+         nach=3, zeile=1.1, punkt=False, kopf=False, hervor=None, umbruch=True, breite=None):
+    """Text in einen Textrahmen schreiben. hervor = Farbe für ==…== (Standard: AG auf Dunkel, sonst fett).
+    breite = Breite des Rahmens (in): dann meldet k Wörter, die breiter als die Zeile sind (PowerPoint trennt sie mitten
+    im Wort; gilt für jede Form, Karte, Schrittkarte und Tabellenzelle)."""
+    if breite is not None and umbruch:
+        for a in absaetze(spec, punkt):
+            einzug = 0.17 * (1 + a.get("ebene", 0)) if a.get("punkt") else 0
+            platz = breite - rand[0] - rand[2] - einzug
+            for wort, b in umbrechen(a.get("t", ""), platz, a.get("groesse", groesse), a.get("fett", fett),
+                                     a.get("kopf", kopf))[1]:
+                k.wort_zu_breit(wort, b, platz)
     tf.word_wrap = umbruch
     tf.auto_size = None
     tf.vertical_anchor = ANKER.get(anker, anker)
@@ -210,7 +319,7 @@ def flaeche(k, x, y, w, h, fill=None, linie=None, lw=0.75, strich=False, form=MS
         if fill in ("DG", "darkGreen") and "farbe" not in kw:
             kw["farbe"] = "WH"
             kw.setdefault("hervor", "AG")
-        text(k, s.text_frame, t, **kw)
+        text(k, s.text_frame, t, breite=w, **kw)
     else:
         s.text_frame.margin_left = s.text_frame.margin_right = 0
     return s
@@ -218,7 +327,7 @@ def flaeche(k, x, y, w, h, fill=None, linie=None, lw=0.75, strich=False, form=MS
 
 def textfeld(k, x, y, w, h, t, warn_ueberlauf=True, **kw):
     s = k.folie.shapes.add_textbox(E(x), E(y), E(w), E(h))
-    text(k, s.text_frame, t, **kw)
+    text(k, s.text_frame, t, breite=w, **kw)
     if warn_ueberlauf and kw.get("umbruch", True):
         g = kw.get("groesse", 12)
         rand = kw.get("rand", (0.08, 0.04, 0.08, 0.04))
@@ -342,8 +451,9 @@ def band_hoehe(spec, groesse=12):
     return max(BAND_H, min(bedarf, 0.78))
 
 
-def band(k, spec, y=None, h=None, groesse=12):
-    """Band: "Text" (fett) oder {"label": "…:", "text": "…", "stil": "dunkel|akzent|hell"} (Label fett)."""
+def band(k, spec, y=None, h=None, groesse=12, unten=Y_ENDE):
+    """Band: "Text" (fett) oder {"label": "…:", "text": "…", "stil": "dunkel|akzent|hell"} (Label fett).
+    Ohne y endet es bei unten (unterkante() der Folie: über der Quellenzeile, wenn es eine gibt)."""
     if not spec:
         return None
     t, fett = _band_text(spec)
@@ -356,7 +466,7 @@ def band(k, spec, y=None, h=None, groesse=12):
     if h >= 0.78 and text_hoehe(klartext(spec.get("text", "") if isinstance(spec, dict) else spec), XW - 0.4,
                                 groesse, nach=0) > 0.62:
         k.warn("Band: mehr als zwei Zeilen – Kernaussage kürzen")
-    y = Y_ENDE - h if y is None else y
+    y = unten - h if y is None else y
     return flaeche(k, X0, y, XW, h, fill=fill, t=t, groesse=groesse, fett=fett, farbe=farbe, hervor=label,
                    anker="m", nach=0, zeile=1.05, rand=(0.2, 0.02, 0.2, 0.02), name="Kernaussage")
 
@@ -370,6 +480,16 @@ def kopfleiste(k, x, y, w, t, h=0.44, ampelwert=None, groesse=12, fill="DG"):
     return s
 
 
+def unterkante(spec):
+    """Unterkante für Band und Inhalt: Y_ENDE, mit Quellenzeile (`quelle`) darüber – sie steht unten bündig bei
+    QUELLE_UNTEN und wächst mit jeder Zeile nach oben."""
+    if not spec.get("quelle"):
+        return Y_ENDE
+    zeilen = umbrechen(spec["quelle"], XW, QUELLE_G)[0]
+    return min(Y_ENDE, QUELLE_UNTEN - zeilen * QUELLE_G * 1.2 / 72 - 0.08)
+
+
 def inhaltsunterkante(spec):
-    """Unterkante des Inhaltsbereichs je nach Band."""
-    return Y_ENDE - band_hoehe(spec.get("band")) - 0.18 if spec.get("band") else Y_ENDE
+    """Unterkante des Inhaltsbereichs je nach Band und Quellenzeile."""
+    u = unterkante(spec)
+    return u - band_hoehe(spec.get("band")) - 0.18 if spec.get("band") else u

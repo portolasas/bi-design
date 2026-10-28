@@ -357,5 +357,92 @@ with tempfile.TemporaryDirectory() as td:
     fall("analyse --folien liest nur diese Folien", [f["nr"] for f in analyse.analyse(zp, folien=[2, 5])["folien"]]
          == [2, 5])
 
+    print("Messen beim Bau (Befunde brrp 28.10.2026): ersetzen, Titel, Wortbreite, Tabelle, Quelle")
+    (td / "ers.spec.json").write_text(json.dumps({"ausgabe": "ers.pptx", "folien": [
+        {"typ": "karten", "titel": "Rollen", "karten": [
+            {"titel": "Team", "punkte": ["Entfällt mit GBS", "Prüft Chargen", "Meldet Abweichungen"]},
+            {"titel": "SCM", "punkte": ["Plant Freigaben", "Fragt nach", "Eskaliert", "X1 und Y1"]}]}]}), encoding="utf-8")
+    bauen.bauen(td / "ers.spec.json", still=True)
+    zuordnung = {"Entfällt mit GBS": "Entfällt mit GBS United", "Prüft Chargen": "Prüft alle Chargen",
+                 "Meldet": "Meldet sofort", "Plant Freigaben": "Plant die Freigaben", "Fragt nach": "Fragt gezielt nach",
+                 "Eskaliert": "Eskaliert früh", "X1": "X1Y1", "Y1": "Z1", "Gibt es nicht": "egal"}
+    (td / "ers_v2.spec.json").write_text(json.dumps({"basis": "ers.pptx", "ausgabe": "ers_v2.pptx", "folien": [
+        {"basis": 1, "ersetzen": zuordnung}]}), encoding="utf-8")
+    ze, we = bauen.bauen(td / "ers_v2.spec.json", still=True)
+    te = "\n".join(sh.text_frame.text for sh in Presentation(str(ze)).slides[0].shapes if sh.has_text_frame)
+    fall("ersetzen: nur die wirklich fehlende Ersetzung gemeldet", len(we) == 1 and "1 von 9 Ersetzungen" in we[0]
+         and "Gibt es nicht" in we[0], "; ".join(we))
+    fall("ersetzen: neuer Text, der den alten enthält, genau einmal", te.count("GBS United") == 1 and "United United"
+         not in te and "Meldet sofort Abweichungen" in te and "Eskaliert früh" in te and "früh früh" not in te, te)
+    fall("ersetzen: eingesetzter Text wird nicht von einem anderen Suchtext ersetzt", "X1Y1 und Z1" in te, te)
+
+    from bippt.bausteine import umbrechen
+    fall("Umbruch: nach Bindestrich und Gedankenstrich, nicht nach Schrägstrich",
+         [w for w, _ in umbrechen("Power/Apps/Flows Ein–Aus–Schalter Projekt-Workshop", 0.74, 12)[1]]
+         == ["Power/Apps/Flows", "Workshop"], str(umbrechen("Power/Apps/Flows Ein–Aus–Schalter Projekt-Workshop", 0.74, 12)))
+
+    schritte = [{"ueber": f"KW {40 + i}", "titel": t, "punkte": [p]} for i, (t, p) in enumerate([
+        ("Analyse", "SOP und WI lesen"), ("Projektworkshop", "Gemeinsames Verständnis"), ("Rundgang", "Aufzeichnung"),
+        ("Messung", "Ausgangswerte erheben"), ("Klärung", "Anforderungen festhalten"), ("Prototyp", "Klickdummy"),
+        ("Umsetzung", "Power Apps und Flows"), ("Einführung", "Schulung")])]
+    karten2 = [{"titel": "Heute", "punkte": ["Mails"]}, {"titel": "Ziel", "punkte": ["Cockpit"]}]
+    band_ = {"label": "Fazit:", "text": "Die letzte Zeile muss sichtbar sein."}
+
+    def tab(n, **kw):
+        return {"typ": "tabelle", "titel": f"Tabelle {n}", "kopf": ["Schritt", "Was", "Wer"], "breiten": [1, 3, 1],
+                "zeilen": [[f"Schritt {i}", f"Beschreibung des Schritts {i}", "Team"] for i in range(1, n + 1)], **kw}
+
+    (td / "messen.spec.json").write_text(json.dumps({"ausgabe": "messen.pptx", "folien": [
+        {"typ": "karten", "titel": "Vom Rundgang zum Zielbild: Was der Workshop klären soll und was nicht",
+         "karten": karten2},
+        {"typ": "karten", "titel": "Vom Rundgang zum Zielbild: Was der Projektworkshop klären soll und was nicht",
+         "karten": karten2},
+        {"typ": "text", "titel": "Vom Rundgang zum Zielbild: Was der Projektworkshop klären soll und was nicht",
+         "punkte": ["Eins"]},
+        {"typ": "prozess", "titel": "Acht Schritte", "schritte": schritte},
+        {"typ": "prozess", "titel": "Sechs Schritte", "schritte": schritte[:6]},
+        tab(13, groesse=10, band=band_),
+        tab(30, band=band_),
+        {"typ": "prozess", "titel": "Quelle, Band, Karten", "quelle": "Quelle: SOP und WI", "band": band_,
+         "schritte": [{"titel": "Eingang", "text": "Charge"}, {"titel": "Prüfung", "text": "Checkliste"}],
+         "karten": karten2},
+        tab(17, groesse=12, band=band_)]}, ensure_ascii=False), encoding="utf-8")
+    zm, wm = bauen.bauen(td / "messen.spec.json", still=True)
+    pm = Presentation(str(zm))
+
+    def warn_folie(n):
+        return [w for w in wm if w.startswith(f"Folie {n}:")]
+
+    def unterkante_(sh):
+        return (sh.top + sh.height) / 914400
+
+    fall("Titel mit 69 Zeichen passt in eine Zeile", not warn_folie(1), "; ".join(warn_folie(1)))
+    fall("Titel mit 76 Zeichen auf karten: Warnung zwei Zeilen", any("Titel braucht 2 Zeilen" in w and "ragt in den Inhalt"
+                                                                     in w for w in warn_folie(2)), "; ".join(wm))
+    fall("zweizeiliger Titel über dem Inhaltsplatzhalter: keine Warnung", not warn_folie(3), "; ".join(warn_folie(3)))
+    fall("pruefen meldet den zweizeiligen Titel", any(b_[0] == "WARNUNG" and b_[1] == 2 and "Titel braucht 2 Zeilen" in b_[2]
+                                                     for b_ in pruefen.pruefen(zm, woerter=200)))
+    w4 = " ".join(warn_folie(4))
+    fall("8 Schrittkarten: zu breite Wörter gemeldet, Rat höchstens 6 Schritte", "Projektworkshop" in w4
+         and "Verständnis" in w4 and "mitten im Wort" in w4 and "höchstens 6 Schritte" in w4 and len(warn_folie(4)) == 1, w4)
+    fall("6 Schrittkarten: keine Warnung", not warn_folie(5), "; ".join(warn_folie(5)))
+    for nr, n in ((6, 13), (8, None)):
+        sl_ = pm.slides[nr - 1]
+        band_top = min(sh.top for sh in sl_.shapes if sh.name == "Kernaussage") / 914400
+        inhalt = [sh for sh in sl_.shapes if sh.name != "Kernaussage" and not sh.is_placeholder]
+        unten_ = max(sh.top / 914400 + (sum(r.height for r in sh.table.rows) / 914400 if sh.has_table else sh.height / 914400)
+                     for sh in inhalt)
+        fall(f"Folie {nr}: Inhalt endet über dem Band", unten_ <= band_top + 0.005 and not warn_folie(nr),
+             f"{unten_:.2f} > {band_top:.2f} {warn_folie(nr)}")
+    fall("Tabelle mit 31 Zeilen: konkrete Warnung mit Bedarf und Platz", any("Tabelle: 31 Zeilen brauchen" in w and
+                                                                             "unter dem Band" in w for w in warn_folie(7)),
+         "; ".join(warn_folie(7)))
+    fall("Tabelle mit fester groesse: Rat zur passenden Größe", any("groesse 9.5 (statt 12) passt" in w
+                                                                    for w in warn_folie(9)), "; ".join(warn_folie(9)))
+    quelle_ = [sh for sh in pm.slides[7].placeholders if sh.placeholder_format.idx == 13]
+    kb = [sh for sh in pm.slides[7].shapes if sh.name == "Kernaussage"]
+    fall("Quelle und Band: Band endet über der Quellenzeile", quelle_ and kb and unterkante_(kb[0]) <= quelle_[0].top / 914400,
+         f"{unterkante_(kb[0]) if kb else '-'} / {quelle_[0].top / 914400 if quelle_ else '-'}")
+
 print("ALLE FÄLLE BESTANDEN" if not fehler else f"FEHLGESCHLAGEN: {', '.join(fehler)}")
 sys.exit(1 if fehler else 0)

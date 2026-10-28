@@ -1,5 +1,25 @@
 # Changelog
 
+## 2.3.2 – 2026-10-28
+Befunde aus brrp (28.10.2026, Deck mit Basisfolien und neuen Folien): falsche Warnungen, doppelte Ersetzungen und
+Überdeckungen, die erst im Render auffielen.
+- Fehler: `ersetzen` lief je Eintrag einmal über die ganze Folie. Folgen: falsche Warnungen („8 von 9 Ersetzungen nicht
+  gefunden“, obwohl alle ersetzt waren) und mehrfach ersetzter Text, wenn der neue Text den alten enthält („GBS United
+  United“). Jetzt ein Aufruf je Folie; alle Einträge wirken in einem Durchgang von links nach rechts, eingesetzter Text
+  wird nie noch einmal ersetzt (auch nicht von einem anderen Eintrag).
+- Titel: `bauen` und `pruefen` schätzen die Zeilen des Titels (Schrift, Größe, Ränder und Anker geerbt aus Layout und
+  Master) und warnen, wenn eine zweite Zeile in den Inhalt darunter ragt (Typen auf „Only title“, ab etwa 68–72 Zeichen)
+  oder ein unten verankerter Titel (Titel-, Kapitelfolie) über Logo oder Folienrand wächst. Der Inhalt rückt nicht nach
+  unten – Titel kürzen.
+- Wortbreite: Textbreiten nach den Zeichenbreiten von Boehringer Forward (±2 %, am Render geprüft), Umbruch wie in
+  PowerPoint. `bauen` meldet je Folie Wörter, die breiter als ihr Textfeld sind und mitten im Wort brechen (Karten,
+  Schrittkarten, Tabellenzellen, Boxen); bei `prozess` mit der Zahl Schritte, die nebeneinander passen.
+- Tabelle: Zeilenhöhe aus Umbruch, Schriftgröße und Spaltenbreite (am Render kalibriert) statt fest mindestens 0,36 in –
+  13 Zeilen à 10 pt passen jetzt über das Band. Ohne `groesse` wird die Schrift bis 9 pt kleiner; passt es nicht, warnt
+  `bauen` mit Bedarf und Platz statt „viele Zeilen – Höhe prüfen“ (bei fester `groesse` mit der passenden Größe).
+- Quelle: Mit `quelle` enden Band und Inhalt über der Quellenzeile; bisher lag die Quelle unter dem Band.
+- Tests: Ersetzen (falsche Warnung, Wiederholung, Kette), Umbruchzeichen, Titel, Schrittkarten, Tabelle, Quelle und Band.
+
 ## 2.3.1 – 2026-10-28
 - Sichern wie bei ppp (Nutzer): Liegt der Arbeitsordner in einem Git-Repo, holt bi-ppt zu Beginn mit `git pull` und
   committet nach jedem abgeschlossenen Schritt (Deck gebaut und geprüft, Änderung fertig, Umwandlung fertig) ohne

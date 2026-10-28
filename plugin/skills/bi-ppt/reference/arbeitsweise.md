@@ -51,7 +51,8 @@ Entscheidungsbedarf nur, wenn wirklich nötig (`kernaussage` oder Band) → `kap
 ## Texte – so schreiben
 - **Aktionstitel:** Der Titel ist die Aussage, nicht das Thema. Strangfolien beginnen mit dem Strang:
   „Strang A – Die Freigabe des Zugriffswegs ist der kritische Pfad“, nicht „Strang A – Zugriffsweg“. Fragen nur als
-  Orientierung auf Status- und Änderungsfolie („Wo stehen wir?“, „Was hat sich … geändert?“).
+  Orientierung auf Status- und Änderungsfolie („Wo stehen wir?“, „Was hat sich … geändert?“). Eine Zeile: auf
+  Inhaltsfolien höchstens etwa 68 Zeichen (25 pt) – der Inhalt beginnt direkt darunter; `bippt bauen` warnt bei zwei Zeilen.
 - **Punkte sind ganze Aussagen** mit Subjekt und Verb, konkret: wer, was, bis wann, wie viel („Partner beauftragt,
   Kick-off erfolgt, Workshop KW 41“; „~10 Kampagnen bis zum Systemwechsel“). Keine Schlagworte ohne Aussage.
 - **Folge mit Gedankenstrich:** Fakt – Konsequenz („Go-Live Ende 01/2027 – Überbrückung ca. 4 Wochen, innerhalb des

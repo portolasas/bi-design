@@ -170,6 +170,121 @@ def quelle(folie, text):
     return ph is not None
 
 
+def _kette(ph):
+    """Platzhalter der Folie, dann des Layouts und des Masters, von denen er erbt."""
+    kette = [ph]
+    while len(kette) < 3:
+        try:
+            basis = kette[-1]._base_placeholder
+        except (AttributeError, KeyError, NotImplementedError, ValueError):
+            basis = None
+        if basis is None:
+            break
+        kette.append(basis)
+    return kette
+
+
+def _erster(werte, std):
+    return next((w for w in werte if w is not None), std)
+
+
+def titel_format(folie):
+    """Titel mit Maßen für die Zeilenschätzung, geerbt wie in PowerPoint (Lauf → Platzhalter von Folie, Layout und
+    Master → titleStyle des Masters), oder None ohne Titel. Längen in Zoll."""
+    t = folie.shapes.title
+    if t is None or not t.has_text_frame or not t.text_frame.text.strip() or t.width is None or t.top is None:
+        return None
+    kette = _kette(t)
+    stil = folie.slide_layout.slide_master._element.find(f"{qn('p:txStyles')}/{qn('p:titleStyle')}")
+    ebene1 = [ph._element.find(f"{qn('p:txBody')}/{qn('a:lstStyle')}/{qn('a:lvl1pPr')}") for ph in kette]
+    ebene1 = [x for x in ebene1 + [stil.find(qn("a:lvl1pPr")) if stil is not None else None] if x is not None]
+    absatz1 = t.text_frame.paragraphs[0]._p.find(qn("a:pPr"))
+    zeichen = [r._r.find(qn("a:rPr")) for p in t.text_frame.paragraphs for r in p.runs]
+    zeichen = [x for x in zeichen if x is not None] + [x.find(qn("a:defRPr")) for x in ebene1]
+    zeichen = [x for x in zeichen if x is not None]
+    abstand = [x.find(f"{qn('a:lnSpc')}/{qn('a:spcPct')}") for x in [absatz1] + ebene1 if x is not None]
+    body = [ph._element.find(f"{qn('p:txBody')}/{qn('a:bodyPr')}") for ph in kette]
+    body = [x for x in body if x is not None]
+    passen = next((c.tag for x in body for c in x
+                   if c.tag in (qn("a:noAutofit"), qn("a:normAutofit"), qn("a:spAutoFit"))), None)
+
+    def rand(attr, std):
+        return int(_erster([x.get(attr) for x in body], std)) / 914400
+
+    return {"form": t, "absaetze": [p.text for p in t.text_frame.paragraphs], "links": t.left / 914400,
+            "oben": t.top / 914400, "breite": t.width / 914400, "hoehe": t.height / 914400,
+            "rand_l": rand("lIns", 91440), "rand_r": rand("rIns", 91440), "rand_o": rand("tIns", 45720),
+            "rand_u": rand("bIns", 45720),
+            "groesse": int(_erster([x.get("sz") for x in zeichen], 1800)) / 100,
+            "fett": _erster([x.get("b") for x in zeichen], "0") in ("1", "true"),
+            "zeile": int(_erster([x.get("val") for x in abstand if x is not None], 100000)) / 100000,
+            "anker": _erster([x.get("anchor") for x in body], "t"), "verkleinern": passen == qn("a:normAutofit")}
+
+
+def _ueber(folie, f):
+    """(Oberkante, Unterkante) der Formen über dem Titelrahmen, die ihn waagrecht überlappen – auf der Folie, im Layout
+    und im Master (z. B. das Logo der Titelfolie)."""
+    from .formen import alle
+    formen = [sh for sh in alle(folie.shapes, gruppen=True) if sh._element is not f["form"]._element
+              and sh._element.getparent().tag != qn("p:grpSp")]
+    formen += [sh for sh in folie.slide_layout.shapes if not sh.is_placeholder]
+    if folie.slide_layout._element.get("showMasterSp") != "0":
+        formen += [sh for sh in folie.slide_layout.slide_master.shapes if not sh.is_placeholder]
+    out = []
+    for sh in formen:
+        if None in (sh.top, sh.left, sh.width, sh.height):
+            continue
+        y, x, w, h = (v / 914400 for v in (sh.top, sh.left, sh.width, sh.height))
+        if y + h <= f["oben"] + 0.05 and x < f["links"] + f["breite"] and x + w > f["links"]:
+            out.append((y, y + h))
+    return out
+
+
+def titel_pruefen(folie):
+    """Warnung (Text), wenn der Titel mehr Zeilen braucht, als Platz ist, sonst None:
+    - oben verankert (Inhaltsfolien): eine weitere Zeile ragt in den Inhalt darunter – die Typen auf „Only title“
+      beginnen direkt unter der ersten Titelzeile. Inhalt = oberste Form unterhalb der ersten Zeile, die den Titel
+      waagrecht überlappt (ohne Fußzeile, Foliennummer, Datum);
+    - unten verankert (Titel- und Kapitelfolie): der Titel wächst über seinen Rahmen nach oben (Logo, Folienrand)."""
+    from .bausteine import text_breite, umbrechen
+    from .formen import alle
+    f = titel_format(folie)
+    if f is None or f["verkleinern"]:
+        return None
+    platz = f["breite"] - f["rand_l"] - f["rand_r"]
+    zeilen = sum(umbrechen(a, platz, f["groesse"], f["fett"], kopf=True)[0] for a in f["absaetze"])
+    if zeilen < 2:
+        return None
+    zh = f["groesse"] * 1.2 * f["zeile"] / 72
+    text = " ".join(f["absaetze"])
+    fasst = int(len(text) * platz / max(text_breite(text, f["groesse"], f["fett"], kopf=True), 0.01))
+    kopf = f"Titel braucht {zeilen} Zeilen ({len(text)} Zeichen, eine Zeile fasst etwa {fasst})"
+    if f["anker"] == "b":
+        oben = f["oben"] + f["hoehe"] - f["rand_u"] - zeilen * zh
+        grenze = max([0.0] + [u for _, u in _ueber(folie, f)])
+        if oben >= grenze - 0.02:
+            return None
+        return (f"{kopf} – er wächst nach oben über {'das Logo' if grenze else 'den Folienrand'} (Text ab {oben:.2f} in, "
+                f"frei ab {grenze:.2f} in). Titel kürzen, Rest in den Untertitel")
+    oben = f["oben"] + (f["rand_o"] if f["anker"] != "ctr" else (f["hoehe"] - zeilen * zh) / 2)
+    unten = oben + zeilen * zh
+    inhalt = None
+    for sh in alle(folie.shapes, gruppen=True):
+        el = sh._element
+        if el is f["form"]._element or el.getparent().tag == qn("p:grpSp") or None in (sh.top, sh.left, sh.width):
+            continue
+        ph = el.find(f".//{qn('p:nvPr')}/{qn('p:ph')}")
+        if ph is not None and ph.get("type") in ("ftr", "sldNum", "dt"):
+            continue
+        y, x, w = sh.top / 914400, sh.left / 914400, sh.width / 914400
+        if y >= oben + zh - 0.02 and x < f["links"] + f["breite"] and x + w > f["links"]:
+            inhalt = y if inhalt is None else min(inhalt, y)
+    if inhalt is None or unten <= inhalt + 0.02:
+        return None
+    return (f"{kopf} – Zeile {zeilen} ragt in den Inhalt darunter (Titel bis {unten:.2f} in, Inhalt ab {inhalt:.2f} in). "
+            "Titel kürzen, Details ins Band oder in den Inhalt")
+
+
 def leere_platzhalter_entfernen(folie, behalten=("ftr", "sldNum")):
     for ph in list(folie.placeholders):
         t = ph._element.find(".//" + qn("p:ph")).get("type")

@@ -16,9 +16,9 @@ from pptx.oxml.ns import qn
 from pptx.util import Pt
 
 from . import vorlage
-from .bausteine import (AMPEL, BAND_H, E, X0, XW, Y0, Y_ENDE, absaetze, ampel, band, bild_einpassen, bild_mass, flaeche,
-                        icon, inhaltsunterkante, kopfleiste, klartext, linie, pfeil, punkt, raute, text, text_hoehe,
-                        textfeld)
+from .bausteine import (AMPEL, BAND_H, E, TOLERANZ, X0, XW, Y0, Y_ENDE, absaetze, ampel, band, bild_einpassen, bild_mass,
+                        flaeche, icon, inhaltsunterkante, kopfleiste, klartext, linie, pfeil, punkt, raute, text,
+                        text_hoehe, textfeld, umbrechen, unterkante, wortbreiten)
 
 TYPEN = {}
 
@@ -438,12 +438,19 @@ def prozess(k, s):
     if any(st.get("punkte") or st.get("ueber") for st in schritte):
         gap = 0.3
         sw = (XW - gap * (n - 1)) / n
+        _spalten_rat(k, sw, gap, [(st.get("ueber"), 9, False, 0.24) for st in schritte] +
+                     [(st.get("titel"), s.get("kopf_groesse", 11.5), True, 0.24) for st in schritte] +
+                     [(a["t"], a.get("groesse", s.get("groesse", 10.5)), a.get("fett", False), 0.57 + 0.17 * a.get("ebene", 0))
+                      for st in schritte for a in absaetze(st.get("punkte"), punkt=True)] +
+                     [(st.get("text"), s.get("groesse", 10.5), False, 0.4) for st in schritte if not st.get("punkte")])
         y += _schrittkarten(k, schritte, y, sw, gap, unten - y if not s.get("karten") else None,
                             g=s.get("groesse", 10.5), gk=s.get("kopf_groesse", 11.5)) + 0.22
     else:
         gap = 0.45
         sw = (XW - gap * (n - 1)) / n
         gt = s.get("groesse", 9.5)
+        _spalten_rat(k, sw, gap, [(st.get("titel"), 11.5, True, 0.12) for st in schritte] +
+                     [(st.get("text"), gt, False, 0.16) for st in schritte])
         th = max(text_hoehe(st.get("text", ""), sw - 0.16, gt, nach=0) for st in schritte) if schritte else 0.3
         sh = max(1.5, 1.0 + th + 0.1)
         for i, st in enumerate(schritte):
@@ -469,6 +476,17 @@ def prozess(k, s):
         y += 0.46 + 0.2
     if s.get("karten"):
         karten_reihe(k, s["karten"], X0, y, XW, unten - y, abstand=0.2, g=10.5, hoehe=s.get("hoehe", "voll"))
+
+
+def _spalten_rat(k, sw, gap, texte):
+    """Rat zur Wortbreiten-Warnung (bausteine.Kontext.wortbreite_melden), wenn ein Wort nicht in die Spaltenbreite sw
+    passt: wie viele Spalten nebeneinander gehen. texte = [(Text, Schriftgröße, fett, Rand + Einzug in der Spalte)]."""
+    noetig = max([b + rand for t, g, fett, rand in texte if t for a in absaetze(t)
+                  for _, b in wortbreiten(a.get("t", ""), g, fett)] or [0])
+    if noetig > sw + TOLERANZ:
+        n = max(1, int((XW + gap) / (noetig + gap)))
+        k.tipp_wortbreite = (f"höchstens {n} Schritte nebeneinander (Spalte {sw:.2f} in, das breiteste Wort braucht "
+                             f"{noetig:.2f} in), auf zwei Folien teilen oder kleinere Schrift (groesse, kopf_groesse)")
 
 
 # Kopf der Schrittkarten je Status: (Füllung, Schrift); ohne Status Dunkelgrün wie im Referenzdeck
@@ -858,18 +876,57 @@ def _rahmen(zelle, farbe, w=0.75):
         tcPr.insert(i, ln)
 
 
+def _zelle_hoehe(wert, breite, g, fett):
+    """Höhe (in), auf die PowerPoint eine Tabellenzelle wachsen lässt: Ränder 0,08 + Zeilen × 1,32 × g (Zeilenabstand
+    1,1; die erste Zeile 0,05 × g weniger) + 3 pt je weiterem Absatz – am Render mit PowerPoint kalibriert (9–12 pt)."""
+    if isinstance(wert, dict) and "ampel" in wert:
+        wert = "● " + str(wert.get("t", ""))
+    abs_ = absaetze(wert if wert is not None else "") or [{"t": ""}]
+    zeilen = sum(umbrechen(a.get("t", ""), breite - 0.16 - (0.17 * (1 + a.get("ebene", 0)) if a.get("punkt") else 0),
+                           a.get("groesse", g), a.get("fett", fett))[0] for a in abs_)
+    return 0.08 + (1.32 * zeilen - 0.05) * g / 72 + 3 / 72 * (len(abs_) - 1)
+
+
 @folientyp("tabelle")
 def tabelle(k, s):
-    """Echte PowerPoint-Tabelle: kopf, zeilen, breiten (relativ), groesse; Zelle {"ampel": "G", "t": "…"} möglich."""
+    """Echte PowerPoint-Tabelle: kopf, zeilen, breiten (relativ), groesse; Zelle {"ampel": "G", "t": "…"} möglich.
+    Zeilenhöhen nach Inhalt: Ohne groesse wird die Schrift bis 9 pt kleiner, bis alle Zeilen über Band, Quelle bzw.
+    Fußzeile passen; sonst eine Warnung mit Bedarf und Platz."""
     kopf, zeilen = s.get("kopf", []), s.get("zeilen", [])
     n_sp = max([len(kopf)] + [len(z) for z in zeilen]) if (kopf or zeilen) else 1
     unten = inhaltsunterkante(s)
     y = Y0 - 0.2
+    platz = unten - y
     n_z = len(zeilen) + (1 if kopf else 0)
-    g = s.get("groesse") or (12 if n_z <= 6 else 11 if n_z <= 9 else 10 if n_z <= 12 else 9)
     br = s.get("breiten") or [1] * n_sp
     gesamt = sum(br)
-    tbl_shape = k.folie.shapes.add_table(n_z, n_sp, E(X0), E(y), E(XW), E(min(unten - y, 0.4 * n_z)))
+    spalten = [XW * b / gesamt for b in br]
+    alle = ([kopf] if kopf else []) + zeilen
+    erste_fett = s.get("erste_spalte_fett", True)
+
+    def bedarf(g):
+        return [max(_zelle_hoehe(z[j] if j < len(z) else "", spalten[j], g, (bool(kopf) and i == 0) or (j == 0 and erste_fett))
+                    for j in range(min(n_sp, len(spalten)))) for i, z in enumerate(alle)]
+
+    fest = s.get("groesse")
+    g = fest or (12 if n_z <= 6 else 11 if n_z <= 9 else 10 if n_z <= 12 else 9)
+    hs = bedarf(g)
+    while not fest and sum(hs) > platz and g > 9:
+        g -= 0.5
+        hs = bedarf(g)
+    ziel = min(0.6, platz / max(1, n_z))  # Luft wie bisher, höchstens 0,6 in je Zeile
+    rh = [max(h, ziel) for h in hs]
+    if sum(rh) > platz:  # einzelne hohe Zeilen: übrigen Platz gleichmäßig verteilen
+        rh = [h + max(0.0, platz - sum(hs)) / max(1, n_z) for h in hs]
+    if sum(hs) > platz + 0.02:
+        bis, unter = (("zum Band", "unter dem Band") if s.get("band") else
+                      ("zur Quellenzeile", "auf der Quellenzeile") if s.get("quelle") else ("zur Fußzeile", "auf der Fußzeile"))
+        passt = [x / 2 for x in range(int(g * 2) - 1, 17, -1) if sum(bedarf(x / 2)) <= platz] if fest else []
+        rat = (f"groesse {passt[0]:g} (statt {g:g}) passt" if passt else
+               "Zeilen kürzen oder zusammenfassen, Spalten breiter (breiten) oder auf zwei Folien teilen")
+        k.warn(f"Tabelle: {n_z} Zeilen brauchen bei {g:g} pt ca. {sum(hs):.2f} in, Platz bis {bis} {platz:.2f} in – "
+               f"die letzten Zeilen lägen {unter}. Abhilfe: {rat}")
+    tbl_shape = k.folie.shapes.add_table(n_z, n_sp, E(X0), E(y), E(XW), E(sum(rh) if rh else 0.4))
     tbl = tbl_shape.table
     tblPr = tbl._tbl.tblPr
     tblPr.set("bandRow", "0")
@@ -877,13 +934,11 @@ def tabelle(k, s):
     sid = tblPr.find(qn("a:tableStyleId"))
     if sid is not None:
         sid.text = "{2D5ABB26-0587-4C30-8999-92F81FD0307C}"  # „Kein Stil, kein Raster“
-    for j, b in enumerate(br):
-        tbl.columns[j].width = E(XW * b / gesamt)
-    zh = max(0.36, min(0.6, (unten - y) / max(1, n_z)))
-    for r in tbl.rows:
-        r.height = E(zh)
-    alle = ([kopf] if kopf else []) + zeilen
-    hfarbe = k.c("DG")
+    for j, b in enumerate(spalten):
+        tbl.columns[j].width = E(b)
+    for r, h in zip(tbl.rows, rh):
+        r.height = E(h)
+    from pptx.enum.text import MSO_ANCHOR
     for i, z in enumerate(alle):
         ist_kopf = bool(kopf) and i == 0
         for j in range(n_sp):
@@ -893,19 +948,18 @@ def tabelle(k, s):
             zelle.fill.fore_color.rgb = RGBColor.from_string(k.c("DG") if ist_kopf else (k.c("LG") if (i % 2 == (0 if kopf else 1)) else k.c("WH")))
             zelle.margin_left = zelle.margin_right = E(0.08)
             zelle.margin_top = zelle.margin_bottom = E(0.04)
-            from pptx.enum.text import MSO_ANCHOR
             zelle.vertical_anchor = MSO_ANCHOR.MIDDLE
+            sb = spalten[j] if j < len(spalten) else None
             if isinstance(wert, dict) and "ampel" in wert:
                 t = [{"t": [("● ", {}), (str(wert.get("t", "")), {})]}]
-                text(k, zelle.text_frame, t, groesse=g, rand=(0.08, 0.04, 0.08, 0.04))
+                text(k, zelle.text_frame, t, groesse=g, rand=(0.08, 0.04, 0.08, 0.04), breite=sb)
                 zelle.text_frame.paragraphs[0].runs[0].font.color.rgb = RGBColor.from_string(k.c(AMPEL.get(wert["ampel"], "WG")))
             else:
-                fett = ist_kopf or (j == 0 and s.get("erste_spalte_fett", True))
+                fett = ist_kopf or (j == 0 and erste_fett)
                 text(k, zelle.text_frame, wert if wert is not None else "", groesse=g, fett=fett,
-                     farbe="WH" if ist_kopf else "DG", hervor="AG" if ist_kopf else None, rand=(0.08, 0.04, 0.08, 0.04))
+                     farbe="WH" if ist_kopf else "DG", hervor="AG" if ist_kopf else None, rand=(0.08, 0.04, 0.08, 0.04),
+                     breite=sb)
             _rahmen(zelle, k.c("WG"))
-    if y + 0.4 * n_z > unten:
-        k.warn("Tabelle: viele Zeilen – Höhe in PowerPoint prüfen (Render)")
 
 
 @folientyp("kennzahlen")
@@ -1047,7 +1101,7 @@ def frei(k, s):
         elif f == "karte":
             karte(k, el, el["x"], el["y"], el["w"], el["h"], g=el.get("groesse", 11))
         elif f == "band":
-            band(k, el, y=el.get("y"), h=el.get("h"))
+            band(k, el, y=el.get("y"), h=el.get("h"), unten=unterkante(s))
         elif f == "bild":
             bild_einpassen(k, k.pfad(el.get("datei")), el["x"], el["y"], el["w"], el["h"], ausr=el.get("ausr", "m"))
         else:

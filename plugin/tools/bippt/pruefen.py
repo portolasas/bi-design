@@ -1,4 +1,5 @@
-"""Brand-Prüfung einer PPTX (ohne PowerPoint): Farben, Schriften, Kontrast, Überlauf, Ränder, Textmenge, Vorlage.
+"""Brand-Prüfung einer PPTX (ohne PowerPoint): Farben, Schriften, Kontrast, Überlauf, Titelzeilen, Ränder, Textmenge,
+Vorlage.
 
 Stufen: FEHLER (muss weg) · WARNUNG (prüfen) · HINWEIS. Ausgabe endet mit „ERGEBNIS: OK“ oder „ERGEBNIS: n Fehler“.
 Farben nach dem BI-Master v2.1 (How-to slides, Folie 6): nur Theme Colors und Custom Colors, keine Abstufungen darunter
@@ -119,6 +120,13 @@ def pruefen(pfad, profil=None, theme_farben_erlauben=True, woerter=170):
         hat_titel = sl.shapes.title is not None and sl.shapes.title.has_text_frame and sl.shapes.title.text_frame.text.strip()
         if not hat_titel and sl.slide_layout.name not in ("Title slide (bright)", "Title slide (dark)", "Empty"):
             b("HINWEIS", nr, "keine Titelzeile (Navigation/Barrierefreiheit)")
+        if hat_titel:
+            try:
+                zu_lang = vorlage.titel_pruefen(sl)
+            except (AttributeError, KeyError, ValueError, TypeError):  # fremde Decks: Prüfung nie abbrechen
+                zu_lang = None
+            if zu_lang:
+                b("WARNUNG", nr, zu_lang)
         grund = _hintergrund(sl)
         unbekannt = []
         formen = list(alle(sl.shapes, unbekannt))

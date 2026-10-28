@@ -26,7 +26,7 @@ from pptx.oxml.ns import qn
 
 from . import beschreiben, konfig, vorlage
 from .aendern import _absatz_setzen, aendern, ersetzen, platzhalter_zeilen
-from .bausteine import Kontext, band
+from .bausteine import Kontext, band, unterkante
 from .folien import TYPEN, frei
 from .marke import Marke
 
@@ -132,6 +132,17 @@ def _vor_dem_bau(ziel, basis, doc, erzwingen):
     return bau
 
 
+def _messen(k):
+    """Nach dem Bau einer Folie: Titel, der in den Inhalt umbricht, und Wörter, die breiter als ihr Textfeld sind."""
+    try:
+        w = vorlage.titel_pruefen(k.folie)
+    except (AttributeError, KeyError, ValueError, TypeError):  # fremde Basisfolien: Bau nie abbrechen
+        w = None
+    if w:
+        k.warn(w)
+    k.wortbreite_melden()
+
+
 def bauen(spec_pfad, ausgabe=None, still=False, erzwingen=False):
     spec_pfad = Path(spec_pfad)
     spec = json.loads(spec_pfad.read_text(encoding="utf-8"))
@@ -175,7 +186,8 @@ def bauen(spec_pfad, ausgabe=None, still=False, erzwingen=False):
             k.ordner = ordner
             k.dunkel = any(sl.slide_layout.name in vorlage.LAYOUTS[kurz] for kurz in vorlage.DUNKLE_LAYOUTS)
             if fs.get("ersetzen"):
-                fehlt = [a for a in fs["ersetzen"] if a not in ersetzen(sl, fs["ersetzen"])]
+                gefunden = ersetzen(sl, fs["ersetzen"])  # genau einmal je Folie (sonst doppelt ersetzt)
+                fehlt = [a for a in fs["ersetzen"] if a not in gefunden]
                 if fehlt:
                     warnungen.append(f"Folie {nr} (Basis {i + 1}): {len(fehlt)} von {len(fs['ersetzen'])} Ersetzungen "
                                      "nicht gefunden: " + "; ".join(f"„{a[:40]}“" for a in fehlt))
@@ -197,6 +209,8 @@ def bauen(spec_pfad, ausgabe=None, still=False, erzwingen=False):
                     warnungen.append(f"Folie {nr} (Basis {i + 1}): {n} Nicht-Markenfarben angeglichen – im Render prüfen")
             if fuss and fs.get("fusszeile", True):
                 _fusszeile_basis(sl, vermerk if sl.slide_layout.name.startswith("Title slide") else fuss)
+            if any(fs.get(x) for x in ("ersetzen", "platzhalter", "titel", "aendern", "elemente")):
+                _messen(k)
         else:
             typ = fs.get("typ", "text")
             if typ not in TYPEN:
@@ -215,7 +229,7 @@ def bauen(spec_pfad, ausgabe=None, still=False, erzwingen=False):
                 sl.shapes.title.text = re.sub(r"\*\*|==", "", titel)
             fn(k, fs)
             if fs.get("band") and typ not in ("titel", "kapitel", "kernaussage"):
-                band(k, fs["band"])
+                band(k, fs["band"], unten=unterkante(fs))
             if fs.get("quelle"):
                 if not vorlage.quelle(sl, fs["quelle"]):
                     warnungen.append(f"Folie {nr}: Layout ohne Quellenzeile")
@@ -223,6 +237,7 @@ def bauen(spec_pfad, ausgabe=None, still=False, erzwingen=False):
             # Titelfolien: nur der Vertraulichkeitsvermerk (How-to slides, BI-Master v2.1)
             text_fuss = (vermerk or None) if typ == "titel" else fuss
             vorlage.fusszeile(sl, text_fuss if fs.get("fusszeile", True) else None, nummer=typ != "titel")
+            _messen(k)
         if fs.get("notizen"):
             sl.notes_slide.notes_text_frame.text = fs["notizen"]
         if fs.get("ab_hier_ausblenden"):

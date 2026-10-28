@@ -21,7 +21,7 @@ Projektteam-Update nach Referenzdeck: [../beispiele/projektteam.spec.json](../be
 ## Felder jeder neuen Folie
 `typ`, `titel`, `band` (`"Text"` fett oder `{"label": "…:", "text": "…", "stil": "dunkel|akzent|hell"}`, höchstens zwei Zeilen;
 `dunkel` = Position/Entscheidung, `akzent` = Gesamtaussage der Statusfolie, `hell` = Kernänderung, kritischer Pfad, Fazit),
-`quelle` (Quellenzeile unten), `notizen`, `beschreibung` (nur in der Folienbeschreibung: Gestaltung, die Typ und Felder nicht zeigen),
+`quelle` (Quellenzeile unten; Inhalt und Band enden dann darüber), `notizen`, `beschreibung` (nur in der Folienbeschreibung: Gestaltung, die Typ und Felder nicht zeigen),
 `ausblenden`, `ab_hier_ausblenden` (z. B. am Backup-Kapitel), `dunkel` (dunkle Layoutvariante, wo vorhanden),
 `layout` (Layout-Kurzname erzwingen), `fusszeile: false`.
 
@@ -33,7 +33,10 @@ Ampelwerte: G, Y, R, N und YR (Gelb–Rot: Verzug, Eskalation erwartet; halb gel
 
 ## Basisfolien (Modus V)
 `{"basis": 7, "ausblenden": true, "ersetzen": {"alter Text": "neuer Text"}, "platzhalter": {"1": ["Zeile 1", "Zeile 2"]}, "titel": "…"}`
-`ersetzen` findet Text auch über Läufe hinweg; Läufe außerhalb des Treffers behalten ihr Format. Basisfolien behalten
+`ersetzen` findet Text auch über Läufe hinweg; Läufe außerhalb des Treffers behalten ihr Format. Alle Einträge wirken in
+einem Durchgang von links nach rechts (bei gleicher Stelle gewinnt der längere Suchtext): Eingesetzter Text wird nicht noch
+einmal ersetzt, auch wenn er einen Suchtext enthält (`"GBS": "GBS United"`). `bauen` warnt nur für Einträge, die auf der
+Folie wirklich fehlen. Basisfolien behalten
 ihre Sichtbarkeit; `"ausblenden": true|false` ändert sie. `beschreibung` wie bei neuen Folien. `ausgabe` ist immer eine
 neue Datei, nie die Basis selbst (sonst wendet jeder Bau `ersetzen` und `aendern` erneut an; bippt bricht ab).
 
@@ -92,7 +95,7 @@ Damit meldet `bauen` die Zeile `ÄNDERUNGEN` und bricht ab, wenn das Deck nach d
 | `karten` | Only title | `kopf`, `karten` [{`titel`, `ampel` \| `akzent`+`icon`, `stil` leiste/akzent/ohne, `hell`, `hervor`, Blöcke}], `hoehe` inhalt (Standard) / voll | 2–4 Bereiche nebeneinander, Varianten |
 | `timeline` | Only title | `skala` woche/monat/quartal (auto: ≤ 190 Tage Wochen, ≤ 18 Monate Monate, sonst Quartale), `von`, `bis`, `heute`, `zeilen` [{`titel`, `elemente`}], `marker`, `schatten`, `legende`, `fakten` \| `boxen` | Gantt/Roadmap |
 | `massnahmen` | Only title | `zeilen` [{`wann`, `was`, `details`, `tag`}], bis ca. 8 Zeilen | Nächste Schritte |
-| `tabelle` | Only title | `kopf`, `zeilen`, `breiten`, `groesse`, `erste_spalte_fett`; Zelle `{"ampel": "G", "t": "…"}` | echte, editierbare Tabelle |
+| `tabelle` | Only title | `kopf`, `zeilen`, `breiten`, `groesse`, `erste_spalte_fett`; Zelle `{"ampel": "G", "t": "…"}`; Zeilenhöhe nach Inhalt, ohne `groesse` Schrift automatisch (12 → 9 pt) | echte, editierbare Tabelle |
 | `kennzahlen` | Only title | `kacheln` [{`wert`, `label`, `text`, `ampel`, `icon`, `bild`}], `spalten`; `bild` füllt den Rest der Kachel unter dem Text | KPIs |
 | `diagramm` | Only title | `art` saeulen/gestapelt/balken/linie/torte, `kategorien`, `reihen` [{name, werte}], `werte_anzeigen`, `fazit` {titel, punkte, icon} | echtes Diagramm (editierbar) |
 | `fluss` | Only title | `spalten` [{`titel`, `boxen` [{`titel`, `text`, `klein`, `stil` hell/weiss/dunkel/akzent}]}]; eine Box spannt über alle Zeilen | Datenfluss, Systemlandschaft, Zielbild |
@@ -100,6 +103,23 @@ Damit meldet `bauen` die Zeile `ÄNDERUNGEN` und bricht ab, wenn das Deck nach d
 | `kernaussage` | One content dark | `titel` (Aussage), `text` | Botschaft / Entscheidung |
 | `abschluss` | One content dark Outro | `titel` | „Vielen Dank“ |
 | `frei` | Only title | `elemente` [{`form`: flaeche/text/linie/icon/punkt/pfeil/karte/band/bild, x, y, w, h …}] in Zoll; `band` mit `label`, `text`, `stil`, `y`, `h`; `bild` mit `datei` (eingepasst, `ausr` l/m/r) | Sonderfälle ohne Code |
+
+## Messen beim Bau
+`bippt bauen` schätzt Textbreiten mit den Zeichenbreiten von Boehringer Forward (je Wort und Zeile etwa ±2 %) und bricht
+um wie PowerPoint: an Leerzeichen, nach Bindestrich und weichem Trennstrich, vor und nach Gedankenstrich, nicht nach
+Schrägstrich. Daraus folgen Warnungen statt stiller Fehler im Render:
+- **Titel:** Typen auf „Only title“ beginnen direkt unter der ersten Titelzeile. Braucht der Titel zwei Zeilen (25 pt,
+  ab etwa 68–72 Zeichen), warnt `bauen` (und `pruefen`): „Titel braucht 2 Zeilen … ragt in den Inhalt“. bippt rückt den
+  Inhalt nicht nach unten – der Titel ist eine Aussage in einer Zeile, Details gehören ins Band oder in den Inhalt.
+  Auf „One content“ (`text`, `agenda`) ist Platz für zwei Zeilen; Titel- und Kapitelfolien warnen, wenn der Titel nach
+  oben über Logo oder Folienrand wächst.
+- **Wortbreite:** Ist ein Wort breiter als sein Textfeld (Karte, Schrittkarte, Tabellenzelle, Box), trennt PowerPoint es
+  mitten im Wort. `bauen` nennt die Wörter je Folie; bei `prozess` dazu, wie viele Schritte nebeneinander passen.
+  Abhilfe: kürzen, mit Bindestrich trennen (`Projekt-Workshop`), weniger Spalten oder kleinere Schrift.
+- **Tabelle:** Zeilenhöhe aus Zeilenumbruch, Schriftgröße und Spaltenbreite. Ohne `groesse` wird die Schrift bis 9 pt
+  kleiner, bis alles über Band, Quelle bzw. Fußzeile passt; sonst warnt `bauen` mit Bedarf und Platz in Zoll (bei
+  fester `groesse` mit der Größe, die passen würde).
+- **Quelle:** Mit `quelle` enden Inhalt und Band über der Quellenzeile (sie wächst bei langem Text nach oben).
 
 ## Karten: Hervorhebung und Höhe
 `"hervor": true` – Kopfleiste in Accent Green mit dunkelgrüner Schrift (z. B. empfohlene Variante, Zielbild, Argumente).
@@ -110,6 +130,8 @@ hoch wie die vollste; `"voll"`: bis zur Unterkante (Vergleich nebeneinander, Sta
 `{"ueber": "KW 41", "titel": "Workshop", "punkte": [...], "status": "fertig|aktiv|plan|offen|klaerung|extern|kritisch"}` –
 Kopf in Statusfarbe (ohne Status Dark Green), Überzeile klein (Termin, KW, Bedingung), darunter Punkte; Pfeile zwischen
 den Köpfen. `kritisch` = Red mit dunkelgrüner Schrift (Eskalation). Ohne `karten` strecken sie sich bis zur Unterkante.
+Mit vielen Schritten werden die Spalten schmal (8 Schritte: 1,27 in) – lange Wörter wie „Projektworkshop“ passen dann
+nicht mehr; `bauen` warnt und nennt die passende Zahl Schritte (meist höchstens 6).
 
 ## Blöcke in Karten (`inhalt` oder Kurzfelder)
 `{"punkte": [...]}` · `{"text": "..."}` · `{"phasen": {"namen": [...], "stand": [2,1,0]}}` ·

@@ -91,7 +91,8 @@ Liegt der Arbeitsordner in einem Git-Repo (`git rev-parse --show-toplevel` gelin
 
 ## 4. Bauen – Prüfen – Sehen (max. 3 Runden)
 ```
-bippt bauen <Name>.spec.json          → ERGEBNIS: OK | Warnungen (Überlauf, Icons, Timeline-Beschriftung);
+bippt bauen <Name>.spec.json          → ERGEBNIS: OK | Warnungen (Überlauf, Titel zweizeilig, Wort zu breit,
+                                        Tabelle zu hoch, Icons, Timeline-Beschriftung);
                                         BESCHRIEBEN <Name>.md, ÄNDERUNGEN je Folie seit dem letzten Bau
 bippt pruefen <Name>.pptx --woerter N → ERGEBNIS: OK (keine FEHLER; N nach Publikum)
 bippt rendern <Name>.pptx [--alle]    → kontaktbogen.png ansehen, nur auffällige Folien einzeln (folie_NN.png)

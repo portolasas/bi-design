@@ -85,6 +85,8 @@ Einstellungen je Rechner: `~/.bi-design/config.json` (`asset_root`, `vorlage`, `
 - Neuer Folientyp: `plugin/tools/bippt/folien.py` (`@folientyp`), Doku in `plugin/skills/bi-ppt/reference/folientypen.md`, Beispiel in `plugin/skills/bi-ppt/beispiele/beispiel.spec.json`.
 - Folienbeschreibung und Baustand: `plugin/tools/bippt/beschreiben.py`. Neuer Folientyp: auch Inhalt (`INHALT`) und
   Gestaltung (`_art`) dort ergänzen.
+- Textmaße: `text_breite` und `umbrechen` in `plugin/tools/bippt/bausteine.py` (Zeichenbreiten von Boehringer Forward,
+  Umbruch wie PowerPoint); `text(…, breite=w)` meldet zu breite Wörter, `vorlage.titel_pruefen` zu lange Titel.
 - Formen einer Folie immer über `formen.alle()` durchgehen (`plugin/tools/bippt/formen.py`): Fremde Decks enthalten Formen,
   bei denen python-pptx abbricht. Änderungen an bestehenden Folien gehören nach `plugin/tools/bippt/aendern.py`.
 - Neue Marke: Profil in `plugin/skills/bi-designer/marken/<profil>/` und eigene Vorlage (`bippt vorlage <deck> -o …`).
