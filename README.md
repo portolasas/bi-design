@@ -6,7 +6,7 @@ Verbindlich ist der **BI-Master v2.1** (How-to slides): nur seine Designfarben u
 
 - **Skill `bi-designer`** – Marke für alles Visuelle: Farben (Tokens, Rollen, erlaubte Kontrastpaare), Schriften, Logo- und Symbolvarianten, 895 Icons, Rezepte für Power Apps, Power BI, PowerPoint/Word/Excel, Diagramme, Web, HTML-Mail, Teams-Karten. ppp nutzt ihn für Power-Apps-Theme, Prototypen und Power-BI-Theme.
 - **Agent und Skill `bi-ppt`** – PowerPoint im BI-Master v2.1: aus Transkripten, Projektaufträgen, Notizen oder Excel ein neues Deck bauen, eine neue Version eines bestehenden Decks erzeugen (z. B. Projektteam-Update → Steering-Update), fremde Decks ins BI-Design umwandeln, Brand-Regeln prüfen und zur Sichtprüfung rendern.
-- **Generator `bippt`** (Python, python-pptx) – baut die Folien aus einer Spezifikation (JSON) mit Folientypen wie Status, Vergleich, Prozess, Timeline/Gantt, Maßnahmen, Kennzahlen, Diagramm, Tabelle. Änderungen später = Spec ändern und neu bauen; bestehende Folien ändert `aendern` (Bild tauschen, Absätze, Läufe, Formen verschieben).
+- **Generator `bippt`** (Python, python-pptx) – baut die Folien aus einer Spezifikation (JSON) mit Folientypen wie Status, Vergleich, Prozess, Timeline/Gantt, Maßnahmen, Kennzahlen, Diagramm, Tabelle. Änderungen später = Spec ändern und neu bauen; bestehende Folien ändert `aendern` (Bild tauschen, Absätze, Läufe, Formen verschieben). Zu jedem Deck schreibt `bippt bauen` die Folienbeschreibung `<Name>.md` mit Baustand je Folie.
 
 ## Voraussetzungen
 - VS Code mit GitHub Copilot und Agent Plugins, oder Claude Code; Zugriff auf dieses private Repo (Git-Anmeldung des Rechners).
@@ -46,7 +46,9 @@ Mit dem Agenten **bi-ppt**, zum Beispiel:
 - „Bring `Lieferantenpraesentation.pptx` ins BI-Design.“
 - „Prüfe `Entwurf.pptx` gegen die Brand-Regeln.“
 
-Der Agent liest die Quellen, stellt eine gebündelte Rückfragerunde (Publikum, Datum, Ampeln, Widersprüche), schreibt `<Name>.spec.json` neben die Ausgabe, baut, prüft und rendert. Die Spec bleibt liegen; Änderungen später über sie.
+Der Agent liest die Quellen, stellt eine gebündelte Rückfragerunde (Publikum, Datum, Ampeln, Widersprüche), schreibt `<Name>.spec.json` neben die Ausgabe, baut, prüft und rendert. Neben der PPTX liegen danach die Spec und die **Folienbeschreibung** `<Name>.md`: je Folie Typ, Gestaltung, Kernaussage, Inhalt und Notizen, damit andere Agenten und Sitzungen das Deck lesen können, ohne die PPTX auszulesen. Eine vorhandene Vorlage (z. B. von ppp) wird über `dokument` in der Spec zur Folienbeschreibung; ihr Text bleibt, bippt hängt seinen Abschnitt an.
+
+Spätere Änderungen („Ändere auf Folie 4 den Termin“) liest der Agent aus der Folienbeschreibung und ändert nur die betroffenen Folien; `bippt bauen` meldet in `ÄNDERUNGEN`, welche Folien sich geändert haben. Wurde das Deck nach dem Bau in PowerPoint bearbeitet, bricht `bippt bauen` ab, statt die Handänderungen zu überschreiben; der Agent übernimmt das Deck dann als Basis und ändert nur die betroffenen Folien.
 
 Für andere Medien (Word, Excel, Diagramme, Power BI, Web, Mail) genügt im normalen Chat „im BI-Design“; dann lädt der Agent den Skill `bi-designer`.
 
@@ -79,6 +81,8 @@ Einstellungen je Rechner: `~/.bi-design/config.json` (`asset_root`, `vorlage`, `
 - Tests: `python3 -I tests/test_plugin.py` und `python3 tests/test_bippt.py` (Python mit den Paketen aus `plugin/tools/requirements.txt`).
 - Jede Änderung, die nach `main` geht, erhöht die Version in beiden Manifesten und bekommt einen Eintrag in `plugin/CHANGELOG.md`; nur so holen VS Code und Claude Code die neue Fassung. `test_plugin.py` prüft den Gleichstand.
 - Neuer Folientyp: `plugin/tools/bippt/folien.py` (`@folientyp`), Doku in `plugin/skills/bi-ppt/reference/folientypen.md`, Beispiel in `plugin/skills/bi-ppt/beispiele/beispiel.spec.json`.
+- Folienbeschreibung und Baustand: `plugin/tools/bippt/beschreiben.py`. Neuer Folientyp: auch Inhalt (`INHALT`) und
+  Gestaltung (`_art`) dort ergänzen.
 - Formen einer Folie immer über `formen.alle()` durchgehen (`plugin/tools/bippt/formen.py`): Fremde Decks enthalten Formen,
   bei denen python-pptx abbricht. Änderungen an bestehenden Folien gehören nach `plugin/tools/bippt/aendern.py`.
 - Neue Marke: Profil in `plugin/skills/bi-designer/marken/<profil>/` und eigene Vorlage (`bippt vorlage <deck> -o …`).

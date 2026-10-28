@@ -80,20 +80,24 @@ def _form(sh, pt, pos):
     return f
 
 
-def analyse(pfad, formen=False):
+def analyse(pfad, formen=False, folien=None):
+    """folien: nur diese Nummern (ab 1) lesen, z. B. die zu ändernden Folien."""
     prs = vorlage.oeffnen(pfad)
     return {
         "datei": str(pfad),
         "format": f"{Emu(prs.slide_width).inches:.2f} x {Emu(prs.slide_height).inches:.2f} in",
         "bi_master": vorlage.ist_bi_master(prs),
         "layouts": [l.name for l in prs.slide_layouts],
-        "folien": [folie_lesen(s, i, formen) for i, s in enumerate(prs.slides, 1)],
+        "anzahl": len(prs.slides),
+        "folien": [folie_lesen(s, i, formen) for i, s in enumerate(prs.slides, 1) if not folien or i in folien],
     }
 
 
 def als_markdown(a, notizen=True):
+    gelesen = "" if len(a["folien"]) == a.get("anzahl", len(a["folien"])) else f", gelesen: {len(a['folien'])}"
     z = [f"# {Path(a['datei']).name}", f"Format {a['format']} · BI-Master: {'ja' if a['bi_master'] else 'NEIN'} · "
-         f"{len(a['folien'])} Folien ({sum(1 for f in a['folien'] if f['ausgeblendet'])} ausgeblendet)", ""]
+         f"{a.get('anzahl', len(a['folien']))} Folien{gelesen} "
+         f"({sum(1 for f in a['folien'] if f['ausgeblendet'])} ausgeblendet)", ""]
     for f in a["folien"]:
         z.append(f"## {f['nr']}. {f['titel'] or '(ohne Titel)'}  [{f['layout']}]{' (ausgeblendet)' if f['ausgeblendet'] else ''}")
         for t in f["texte"]:

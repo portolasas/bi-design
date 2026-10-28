@@ -13,12 +13,15 @@ Projektteam-Update nach Referenzdeck: [../beispiele/projektteam.spec.json](../be
 | `vorlage` | andere Vorlage (Standard: BI-Master v2.1) |
 | `basis` | bestehende PPTX (Modus V) – dann ist sie Vorlage und Folienquelle |
 | `marke` | bi-designer-Profil (Standard boehringer-ingelheim) |
+| `zweck` | Anlass, Publikum, Datum in einem Satz – Kopf der Folienbeschreibung |
+| `quellen` | Dateien, aus denen der Inhalt stammt – Kopf der Folienbeschreibung |
+| `dokument` | Folienbeschreibung (`.md`, relativ zur Spec), nur für eine vorhandene Vorlage (z. B. von ppp); Standard `<ausgabe>.md` |
 | `folien` | Liste der Folien in Reihenfolge |
 
 ## Felder jeder neuen Folie
 `typ`, `titel`, `band` (`"Text"` fett oder `{"label": "…:", "text": "…", "stil": "dunkel|akzent|hell"}`, höchstens zwei Zeilen;
 `dunkel` = Position/Entscheidung, `akzent` = Gesamtaussage der Statusfolie, `hell` = Kernänderung, kritischer Pfad, Fazit),
-`quelle` (Quellenzeile unten), `notizen`,
+`quelle` (Quellenzeile unten), `notizen`, `beschreibung` (nur in der Folienbeschreibung: Gestaltung, die Typ und Felder nicht zeigen),
 `ausblenden`, `ab_hier_ausblenden` (z. B. am Backup-Kapitel), `dunkel` (dunkle Layoutvariante, wo vorhanden),
 `layout` (Layout-Kurzname erzwingen), `fusszeile: false`.
 
@@ -30,7 +33,9 @@ Ampelwerte: G, Y, R, N und YR (Gelb–Rot: Verzug, Eskalation erwartet; halb gel
 
 ## Basisfolien (Modus V)
 `{"basis": 7, "ausblenden": true, "ersetzen": {"alter Text": "neuer Text"}, "platzhalter": {"1": ["Zeile 1", "Zeile 2"]}, "titel": "…"}`
-`ersetzen` findet Text auch über Läufe hinweg; Läufe außerhalb des Treffers behalten ihr Format.
+`ersetzen` findet Text auch über Läufe hinweg; Läufe außerhalb des Treffers behalten ihr Format. Basisfolien behalten
+ihre Sichtbarkeit; `"ausblenden": true|false` ändert sie. `beschreibung` wie bei neuen Folien. `ausgabe` ist immer eine
+neue Datei, nie die Basis selbst (sonst wendet jeder Bau `ersetzen` und `aendern` erneut an; bippt bricht ab).
 
 **Einzelne Formen ändern** – `"aendern": [{…}, …]`, Reihenfolge wie angegeben; Namen, ids und Läufe aus
 `bippt analyse <basis.pptx> --formen`. Ansprechen: `"form": "Name"` (bei doppeltem Namen `"nr": 2`), `"id": 12` oder
@@ -64,6 +69,15 @@ mehrdeutig, warnt `bippt bauen` und lässt sie aus.
 `"farben_angleichen": true` (je Folie) bzw. `"basis_farben_angleichen": true` (Kopf) setzt Nicht-Markenfarben und Abstufungen
 von Designfarben alter Folien auf die nächste Markenfarbe – sinnvoll, wenn `bippt pruefen` „Farben außerhalb der Marke“
 oder „Abstufungen“ in Basisfolien meldet. Danach im Render prüfen.
+
+## Folienbeschreibung und Baustand
+`bippt bauen` schreibt neben die PPTX `<ausgabe>.md` (oder in `dokument`): je Folie Typ, Gestaltung, Kernaussage, Inhalt
+und Notizen – neue Folien aus der Spec, unveränderte Basisfolien aus der Folienbeschreibung der Basis, sonst aus dem Deck.
+bippt pflegt nur den Abschnitt zwischen `<!-- bippt:folienbeschreibung … -->` und `<!-- /bippt:folienbeschreibung -->`.
+Die Startmarke trägt je Folie einen Fingerabdruck (`bau=`, `stand=`; Text, Lage, Bilder, Tabellen, Notizen, Sichtbarkeit).
+Damit meldet `bauen` die Zeile `ÄNDERUNGEN` und bricht ab, wenn das Deck nach dem letzten Bau geändert wurde
+(`--erzwingen` überschreibt). Reines Öffnen und Speichern in PowerPoint ändert den Fingerabdruck nicht.
+`bippt beschreiben <pptx>` beschreibt ein Deck ohne Spec oder nach Handänderungen; der Baustand bleibt.
 
 ## Typen
 | typ | Layout | Felder | Einsatz |

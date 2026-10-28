@@ -1,6 +1,6 @@
 ---
 name: bi-ppt
-description: BI-PPT – erstellt PowerPoint-Präsentationen im Boehringer-Ingelheim-Design (offizieller BI-Master v2.1) aus gegebenen Informationen (Transkripte, Projektaufträge, Notizen, Excel), erzeugt neue angepasste Versionen bestehender Präsentationen (z. B. Projektteam-Update → Steering-Committee-Update) und wandelt Präsentationen in fremdem Design ins BI-Design um. Arbeitet mit Spezifikation (JSON) + Generator bippt (Folientypen Status, Vergleich, Prozess, Timeline/Gantt, Maßnahmen, Kennzahlen, Diagramm, Tabelle …), prüft Brand-Regeln und rendert zur Sichtprüfung. Laden bei jeder Anfrage zu Folien, Präsentation, Deck, PowerPoint, PPT, Steering-/Projekt-Update, „im BI-Design“ oder „Folien umwandeln“.
+description: BI-PPT – erstellt PowerPoint-Präsentationen im Boehringer-Ingelheim-Design (offizieller BI-Master v2.1) aus gegebenen Informationen (Transkripte, Projektaufträge, Notizen, Excel), erzeugt neue angepasste Versionen bestehender Präsentationen (z. B. Projektteam-Update → Steering-Committee-Update) ändert einzelne Folien bestehender Decks gezielt und wandelt Präsentationen in fremdem Design ins BI-Design um. Schreibt zu jedem Deck die Folienbeschreibung <Name>.md (Inhalt und Gestaltung je Folie). Arbeitet mit Spezifikation (JSON) + Generator bippt (Folientypen Status, Vergleich, Prozess, Timeline/Gantt, Maßnahmen, Kennzahlen, Diagramm, Tabelle …), prüft Brand-Regeln und rendert zur Sichtprüfung. Laden bei jeder Anfrage zu Folien, Präsentation, Deck, PowerPoint, PPT, Steering-/Projekt-Update, „im BI-Design“, „Folien umwandeln“ oder „Folie ändern“.
 ---
 
 # BI-PPT – Präsentationen im BI-Design
@@ -20,6 +20,11 @@ Werkzeug: `bippt` (Python ≥ 3.9 mit python-pptx) liegt im Plugin **bi-design**
 Antworte deutsch, sachlich, knapp. Grundsatz: **teuer denken, billig bauen** – Inhalt und Storyline gründlich,
 Umsetzung immer über Spezifikation + `bippt bauen` (nie Formen einzeln per Hand-Skript), Änderungen = Spec ändern.
 
+Zu jeder Präsentation gehören drei Dateien nebeneinander: `<Name>.pptx`, `<Name>.spec.json` (Eingabe des Generators) und
+die **Folienbeschreibung** `<Name>.md` – Typ, Gestaltung, Kernaussage, Inhalt und Notizen je Folie, damit andere Agenten
+und Sitzungen das Deck lesen, ohne die PPTX auszulesen. `bippt bauen` schreibt sie bei jedem Bau; bippt pflegt nur den
+Abschnitt zwischen `<!-- bippt:folienbeschreibung … -->` und `<!-- /bippt:folienbeschreibung -->`, Text außerhalb bleibt.
+
 ## 0. Start (jede Sitzung, 1 Befehl)
 `bippt umgebung` → muss mit `ERGEBNIS: OK` enden. Sonst je Meldung:
 - `FEHLT Paket …`: auf einer Karte um Zustimmung bitten, dann `bippt einrichten` (pip `--user`, kein venv).
@@ -31,19 +36,26 @@ Umsetzung immer über Spezifikation + `bippt bauen` (nie Formen einzeln per Hand
 | Modus | Auslöser | Ablauf |
 |---|---|---|
 | **N – Neu** | Infos/Quellen, keine Basis-PPT | §2 → §3 → §4 |
-| **V – Neue Version** | bestehende PPT als Grundlage („auf Basis von …“, Update für anderes Gremium) | §2 (+ `bippt analyse`) → §3 mit `basis` → §4 |
+| **V – Neue Version** | bestehende PPT als Grundlage („auf Basis von …“, Update für anderes Gremium) | §2 → §3 mit `basis` → §4 |
+| **Ä – Ändern** | einzelne Folien eines bestehenden Decks korrigieren, ergänzen, umstellen | §2 → §3a → §4 |
 | **U – Umwandeln** | PPT in fremdem/altem Design → BI-Design | [reference/umwandeln.md](reference/umwandeln.md) |
 | **P – Prüfen** | „passt das zum Brand?“ | `bippt pruefen` + `bippt rendern` → Befunde mit Folie, Regel, Fix |
 
 ## 2. Verstehen (token-sparsam)
-1. Quellen nur über `bippt lesen <dateien…> -o <arbeitsordner>/_quellen.md` (VTT, DOCX, PPTX, PDF, XLSX) und
-   die Datei dann gezielt lesen. Basis-PPT: `bippt analyse <pptx>` (Text je Folie, Layout, ausgeblendet; `--formen`
-   zusätzlich id, Name und Läufe je Form für `aendern`). Formen, die python-pptx nicht kennt (früherer Platzhalter ohne
-   Geometrie, Freihand, SmartArt), meldet `analyse` bzw. `pruefen` als „Unbekannt“/HINWEIS – ihr Text wird gelesen,
-   sonst werden sie übersprungen.
-2. Ordner, die der Nutzer ausschließt (z. B. `Archiv/`), nie öffnen. Aktuellste Quelle hat Vorrang
+1. **Bestehendes Deck (Modus V und Ä) zuerst über seine Folienbeschreibung:** `<Name>.md` neben der PPTX (erste Zeile
+   `<!-- bippt:folienbeschreibung`) oder das `dokument` der Spec daneben. Sie ersetzt das Einlesen des Decks: kein
+   `bippt lesen` und kein `bippt analyse` der ganzen PPTX. Das Deck nur für die Folien ansehen, die sich ändern und deren
+   Einzelheiten die Beschreibung nicht nennt: `bippt analyse <pptx> --formen --folien 3,7` (id, Name, Läufe für
+   `aendern`) bzw. `bippt rendern <pptx> --folien 3,7`. Ohne Folienbeschreibung: `bippt beschreiben <pptx>` legt sie an,
+   dann sie lesen. Formen, die python-pptx nicht kennt (früherer Platzhalter ohne Geometrie, Freihand, SmartArt), meldet
+   `analyse` bzw. `pruefen` als „Unbekannt“/HINWEIS – ihr Text wird gelesen, sonst werden sie übersprungen.
+2. Quellen nur über `bippt lesen <dateien…> -o <arbeitsordner>/_quellen.md` (VTT, DOCX, PPTX, PDF, XLSX) und
+   die Datei dann gezielt lesen. Eine **Vorlage**, die die Folien schon Folie für Folie beschreibt (z. B. von ppp), ist
+   Hauptquelle und wird zur Folienbeschreibung: `"dokument": "<pfad>"` in der Spec; bippt hängt seinen Abschnitt an und
+   lässt ihren Text stehen. Ein Dokument, das nur Stoff liefert (Handbuch, Konzept), ist Quelle wie jede andere.
+3. Ordner, die der Nutzer ausschließt (z. B. `Archiv/`), nie öffnen. Aktuellste Quelle hat Vorrang
    (z. B. Monolog/Transkript vor Projektplan vor alter Präsentation) – Widersprüche nicht still auflösen.
-3. **Eine gebündelte Rückfragerunde** (Tool ask_user / AskUserQuestion, je Frage Empfehlung zuerst) nach
+4. **Eine gebündelte Rückfragerunde** (Tool ask_user / AskUserQuestion, je Frage Empfehlung zuerst) nach
    [reference/fragen.md](reference/fragen.md): nur was Inhalt oder Gestaltung wirklich ändert – Datum, Publikum/Zweck,
    Status/Ampeln, Konflikte zwischen Quellen (mit Zitat beider Stellen), Termine, Entscheidungsbedarf, Umfang.
    Alles andere mit Standard entscheiden und im Abschluss nennen. Bei Konflikten oder Unsicherheiten immer fragen.
@@ -53,15 +65,32 @@ Umsetzung immer über Spezifikation + `bippt bauen` (nie Formen einzeln per Hand
    eine Kernaussage je Folie als Band, Details ins ausgeblendete Backup).
 2. Spezifikation `<Name>.spec.json` **neben die Ausgabe** schreiben (Startgerüst: `bippt neu <ordner> --name <Name>`).
    Folientypen und Felder: [reference/folientypen.md](reference/folientypen.md) (`bippt typen`). Icons: `bippt icons <begriff>`.
-3. Modus V: `"basis": "<alte.pptx>"`; jede Folie entweder neu (`"typ"`) oder `{"basis": n, "ausblenden"?, "ersetzen"?,
-   "platzhalter"?, "aendern"?, "elemente"?}`. Nicht aufgeführte Basisfolien entfallen. Titel-Folie der Basis über
+   Kopf mit `zweck` (Anlass, Publikum, Datum) und `quellen`; je Folie `beschreibung`, wenn Typ und Felder die Gestaltung
+   nicht zeigen (Bildinhalt, Anordnung einer Basisfolie) – beides steht dann in der Folienbeschreibung.
+3. Modus V: `"basis": "<alte.pptx>"`, `ausgabe` eine neue Datei; jede Folie entweder neu (`"typ"`) oder `{"basis": n,
+   "ausblenden"?, "ersetzen"?, "platzhalter"?, "aendern"?, "elemente"?}`. Basisfolien behalten Inhalt und Sichtbarkeit,
+   bis die Spec etwas ändert; nicht aufgeführte Basisfolien entfallen. Titel-Folie der Basis über
    `platzhalter` aktualisieren. Bild tauschen (Zuschnitt bleibt), Absätze ergänzen, Läufe im Band, Formen verschieben
    oder entfernen: `aendern`; neue Formen auf der Basisfolie: `elemente` ([reference/folientypen.md](reference/folientypen.md)
    › Basisfolien). Nie ein eigenes python-pptx-Skript zum Nacharbeiten.
 
+## 3a. Ändern (Modus Ä) – nur die betroffenen Folien
+1. Aus Auftrag und Folienbeschreibung die **betroffenen Folien** bestimmen (Nummern); ist das mehrdeutig, in der
+   Rückfragerunde klären. Fertig, wenn die Liste feststeht.
+2. Spec daneben: nur die Einträge dieser Folien ändern, `bippt bauen <spec>`. Die übrigen Folien entstehen aus
+   unveränderten Einträgen identisch neu.
+3. `bippt bauen` bricht mit `ABBRUCH: … nach dem letzten Bau geändert (Folie …)` ab (Deck z. B. in PowerPoint
+   bearbeitet), oder es gibt keine Spec: neue Spec mit `"basis": "<deck>.pptx"` und neuer `ausgabe`
+   (`<Projekt>_<Anlass>_<TT.MM.JJJJ>.pptx`, sonst Endung `_v2`), alle Folien als `{"basis": n}`, die betroffenen mit
+   `ersetzen`/`aendern`/`elemente` oder als neuer `typ`. So bleiben die Handänderungen. `--erzwingen` verwirft sie –
+   nur, wenn der Nutzer das auf einer Karte gewählt hat.
+4. Fertig, wenn die Zeile `ÄNDERUNGEN` von `bippt bauen` genau die betroffenen Folien nennt. Nennt sie mehr, die
+   Ursache in der Spec suchen (z. B. geändertes `heute` verschiebt Timelines) und beheben.
+
 ## 4. Bauen – Prüfen – Sehen (max. 3 Runden)
 ```
-bippt bauen <Name>.spec.json          → ERGEBNIS: OK | Warnungen (Überlauf, Icons, Timeline-Beschriftung)
+bippt bauen <Name>.spec.json          → ERGEBNIS: OK | Warnungen (Überlauf, Icons, Timeline-Beschriftung);
+                                        BESCHRIEBEN <Name>.md, ÄNDERUNGEN je Folie seit dem letzten Bau
 bippt pruefen <Name>.pptx --woerter N → ERGEBNIS: OK (keine FEHLER; N nach Publikum)
 bippt rendern <Name>.pptx [--alle]    → kontaktbogen.png ansehen, nur auffällige Folien einzeln (folie_NN.png)
 ```
@@ -73,11 +102,13 @@ Kein Renderweg? Dann nur `pruefen` und das im Abschluss sagen.
 
 ## 5. Abschluss
 - Ausgabe neben die Quellen (oder wohin der Nutzer sagt); Dateiname `<Projekt>_<Anlass>_<TT.MM.JJJJ>.pptx`;
-  Spec daneben lassen (spätere Änderungen = Spec + `bippt bauen`). `_render_*`-Ordner und `_quellen.md` löschen,
+  Spec und Folienbeschreibung daneben lassen (spätere Änderungen = Spec + `bippt bauen`, die Beschreibung folgt).
+  Eigene Hinweise zur Folienbeschreibung außerhalb der Marken schreiben. `_render_*`-Ordner und `_quellen.md` löschen,
   wenn der Nutzer sie nicht braucht.
 - Git-Repo und Nutzer will veröffentlichen: committen und direkt nach `main` pushen (nur auf Anweisung).
-- Antwort: Pfad · Folienliste (sichtbar/Backup) mit je einer Zeile Inhalt · getroffene Annahmen · offene Punkte ·
-  Prüfergebnis (`pruefen`, Render ja/nein).
+- Antwort: Pfade (PPTX, Spec, Folienbeschreibung) · Folienliste (sichtbar/Backup) mit je einer Zeile Inhalt · bei
+  Modus V/Ä die geänderten Folien laut `ÄNDERUNGEN` · getroffene Annahmen · offene Punkte · Prüfergebnis (`pruefen`,
+  Render ja/nein).
 
 ## 6. Regeln (BI-Master v2.1 + bi-designer)
 - **Der Master ist verbindlich** (How-to slides, vor jedem Referenzdeck): nur Layouts der Vorlage, nur Theme- und Custom
@@ -92,6 +123,7 @@ Kein Renderweg? Dann nur `pruefen` und das im Abschluss sagen.
 
 ## 7. Erweitern
 Nur im Repo `portolasas/bi-design`, nie in der installierten Kopie. Neuer Folientyp: Funktion mit `@folientyp("name")` in
-`plugin/tools/bippt/folien.py` (Bausteine aus `bausteine.py`), Doku-Zeile in `reference/folientypen.md`, Beispiel in
+`plugin/tools/bippt/folien.py` (Bausteine aus `bausteine.py`), Inhalt und Gestaltung für die Folienbeschreibung in
+`beschreiben.py`, Doku-Zeile in `reference/folientypen.md`, Beispiel in
 `beispiele/beispiel.spec.json`, Tests grün, Version in beiden Manifesten + CHANGELOG erhöhen, Commit direkt nach `main`.
 Neue Marke: Profil in bi-designer + eigene Vorlage (`bippt vorlage <deck> -o …`).

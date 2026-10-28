@@ -1,5 +1,26 @@
 # Changelog
 
+## 2.3.0 – 2026-10-28
+Anforderung des Nutzers: Zu jeder Präsentation gehört ein Dokument, das den Inhalt jeder Folie beschreibt, damit andere
+Agenten und Sitzungen das Deck lesen, ohne die PPTX auszulesen; beim Überarbeiten ändert bi-ppt nur, was sich wirklich
+ändert, statt die ganze Präsentation neu zu bauen.
+- Folienbeschreibung: `bippt bauen` schreibt neben die PPTX `<ausgabe>.md` mit Typ, Gestaltung (Layout, Aufbau, Band,
+  Icons, Bilder), Kernaussage, Inhalt (Ampeln, Termine, Tabellen, Diagrammdaten) und Notizen je Folie. Neue Folien aus der
+  Spec, unveränderte Basisfolien aus der Folienbeschreibung der Basis, sonst aus dem Deck. Neue Felder: `zweck`,
+  `quellen`, `dokument` (Kopf), `beschreibung` (je Folie).
+- Vorlage: `"dokument": "<pfad>.md"` macht eine vorhandene Beschreibung (z. B. von ppp) zur Folienbeschreibung; ihr Text
+  bleibt, bippt pflegt nur seinen Abschnitt zwischen den Marken.
+- Baustand: Fingerabdruck je Folie in der Folienbeschreibung. `bippt bauen` meldet `ÄNDERUNGEN` (welche Folien sich
+  gegenüber dem letzten Bau geändert haben) und bricht ab, wenn das Deck nach dem Bau geändert wurde (z. B. in
+  PowerPoint) oder ohne Baustand schon existiert; `--erzwingen` überschreibt. Öffnen und Speichern in PowerPoint lässt den
+  Fingerabdruck gleich (geprüft mit PowerPoint für Mac).
+- Basisfolien behalten ihre Sichtbarkeit (bisher wurden ausgeblendete Basisfolien ohne `ausblenden` wieder eingeblendet);
+  `"ausblenden": false` blendet ein. `basis` gleich `ausgabe` bricht ab.
+- Neu: `bippt beschreiben <pptx>` (Deck ohne Spec oder nach Handänderungen), `bippt analyse --folien 3,7`.
+- Skill und Agenten: Modus Ä (einzelne Folien ändern, §3a); bestehende Decks zuerst über die Folienbeschreibung lesen, das
+  Deck nur für einzelne Folien; Abschluss nennt Folienbeschreibung und geänderte Folien.
+- Tests: Folienbeschreibung, Baustand, Handänderung, Basis-Modus auf ein geändertes Deck, Vorlage, `--folien`.
+
 ## 2.2.0 – 2026-10-27
 Befunde aus brrp (26./27.10.2026): `bippt` brach an einer fremden Präsentation ab, und bi-ppt musste bestehende Folien mit
 einem eigenen python-pptx-Skript nacharbeiten.

@@ -79,18 +79,19 @@ Entscheidungsbedarf nur, wenn wirklich nötig (`kernaussage` oder Band) → `kap
 - Karten in Inhaltshöhe (`karten`), volle Höhe nur, wenn Karten nebeneinander verglichen werden (`"hoehe": "voll"`).
 
 ## Neue Version einer bestehenden Präsentation (Modus V)
-1. `bippt analyse alt.pptx` → Folienliste mit Nummern.
+1. Folienbeschreibung `alt.md` lesen → Folienliste mit Nummern, Inhalt und Gestaltung (ohne sie: `bippt beschreiben alt.pptx`).
 2. Je Folie entscheiden: behalten (ggf. `ersetzen`), ausblenden (Backup), entfernen, oder durch neuen Typ ersetzen.
 3. Veraltete Aussagen in behaltenen Folien über `ersetzen` korrigieren (exakter Textausschnitt aus `analyse`; die
    Formatierung außerhalb des Treffers bleibt). `bippt bauen` warnt, wenn eine Ersetzung nicht gefunden wurde.
 4. Mehr als Text tauschen (Bild im Bildplatzhalter, Absätze ergänzen, Läufe im Band, Formen verschieben, entfernen):
-   `bippt analyse alt.pptx --formen` nennt id, Name und Läufe je Form; dann `aendern` und `elemente` an der Basisfolie
+   `bippt analyse alt.pptx --formen --folien n` nennt id, Name und Läufe je Form der betroffenen Folien; dann `aendern` und `elemente` an der Basisfolie
    ([folientypen.md](folientypen.md) › Basisfolien). Kein eigenes python-pptx-Skript.
 5. Titelfolie: `{"basis": 1, "platzhalter": {"1": ["Neuer Anlass", "Name | Datum"]}}`.
 6. Basisfolien mit Abstufungen oder fremden Farben: `farben_angleichen` und im Render prüfen.
 
 ## Effizienz
-- Quellen einmal lesen (`bippt lesen -o _quellen.md`), danach nur gezielt nachschlagen.
+- Quellen einmal lesen (`bippt lesen -o _quellen.md`), danach nur gezielt nachschlagen. Bestehende Decks über ihre
+  Folienbeschreibung, einzelne Folien mit `--folien`.
 - Erst komplette Spec, dann bauen – nicht Folie für Folie rendern.
 - Render: Kontaktbogen (80 dpi) reicht für die Übersicht; Einzelfolien nur bei Auffälligkeiten (`--folien 3,6 --dpi 110`).
 - Korrekturschleifen ≤ 3; was danach offen ist, im Abschluss nennen.

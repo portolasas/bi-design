@@ -2,6 +2,8 @@
   "ausgabe": "Beispiel_Projektteam-Update.pptx",
   "fusszeile": "Projekt Beispiel | Projektteam-Update",
   "heute": "2026-09-24",
+  "zweck": "Projektteam-Update am 24.09.2026 – Muster nach dem Referenzdeck",
+  "quellen": ["Transkript.vtt", "Projektauftrag.docx"],
   "folien": [
     {"typ": "titel", "titel": "Projekt Beispiel", "untertitel": ["Projektteam-Update", "Vorname Name | 24.09.2026"]},
     {"typ": "agenda", "punkte": ["Strang A – Datenzugriff: Freigabe des Zugriffswegs als kritischer Pfad", "Strang B – Schnittstelle", "Strang C – QM-Daten", "Timelines", "Nächste Schritte und Termine", "Änderungen seit dem letzten Update"]},

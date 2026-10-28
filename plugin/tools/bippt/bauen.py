@@ -7,6 +7,8 @@ Spezifikation (Auszug, vollständig in reference/folientypen.md):
   "basis":   "Altes_Deck.pptx",                   optional; dann ist das alte Deck Vorlage UND Folienquelle
   "fusszeile": "Projekt | Anlass | 07.10.2026",
   "heute": "2026-10-07",
+  "zweck": "…", "quellen": ["…"],                 optional; Kopf der Folienbeschreibung
+  "dokument": "Konzept.md",                       optional; vorhandene Vorlage, sonst <ausgabe>.md (beschreiben.py)
   "folien": [ {"typ": "titel", …}, {"basis": 7, "ausblenden": true, "ersetzen": {"alt": "neu"}}, … ]
 }
 Folien aus der Basis, die nicht in "folien" stehen, werden entfernt. Basisfolien ändern: ersetzen, platzhalter, titel,
@@ -22,7 +24,7 @@ from lxml import etree
 from pptx.opc.constants import RELATIONSHIP_TYPE as RT
 from pptx.oxml.ns import qn
 
-from . import konfig, vorlage
+from . import beschreiben, konfig, vorlage
 from .aendern import _absatz_setzen, aendern, ersetzen, platzhalter_zeilen
 from .bausteine import Kontext, band
 from .folien import TYPEN, frei
@@ -107,13 +109,40 @@ def _pfad(basisordner, p):
     return q if q.is_absolute() else (basisordner / q)
 
 
-def bauen(spec_pfad, ausgabe=None, still=False):
+def _vor_dem_bau(ziel, basis, doc, erzwingen):
+    """Nie die eigene Basis und nie ein Deck überschreiben, das nach dem letzten Bau geändert wurde (z. B. in PowerPoint)."""
+    if basis is not None and basis.resolve() == ziel.resolve():
+        raise SystemExit(f"ABBRUCH: basis und ausgabe sind dieselbe Datei ({ziel.name}) – jeder weitere Bau wendet ersetzen "
+                         "und aendern erneut an. ausgabe als neue Datei angeben (z. B. neues Datum im Namen).")
+    if erzwingen or not ziel.is_file():
+        return None
+    bau = beschreiben.baustand(doc)
+    rat = (f"Änderungen behalten (Empfehlung): neue Spec mit \"basis\": \"{ziel.name}\", alle Folien als {{\"basis\": n}}, "
+           "nur die zu ändernden anpassen, ausgabe als neue Datei. Verwerfen nur nach Rückfrage beim Nutzer: "
+           "bippt bauen <spec> --erzwingen.")
+    if bau is None:
+        raise SystemExit(f"ABBRUCH: {ziel.name} gibt es schon, aber ohne Baustand in {doc.name} (vor bi-design 2.3 oder "
+                         f"nicht mit dieser Spec gebaut) – ein Neubau überschriebe Änderungen, die nicht in der Spec stehen. "
+                         + rat)
+    hand = beschreiben.nachtraeglich(ziel, bau)
+    if hand:
+        raise SystemExit(f"ABBRUCH: {ziel.name} wurde nach dem letzten Bau geändert (Folie {', '.join(map(str, hand))}) – "
+                         f"ein Neubau aus der Spec überschriebe das. Jetzigen Stand beschreiben: bippt beschreiben "
+                         f"{ziel.name}. " + rat)
+    return bau
+
+
+def bauen(spec_pfad, ausgabe=None, still=False, erzwingen=False):
     spec_pfad = Path(spec_pfad)
     spec = json.loads(spec_pfad.read_text(encoding="utf-8"))
     ordner = spec_pfad.parent
     warnungen = []
     m = Marke(spec.get("marke"))
     basis = _pfad(ordner, spec.get("basis"))
+    ziel = Path(ausgabe) if ausgabe else _pfad(ordner, spec.get("ausgabe") or spec_pfad.with_suffix(".pptx").name)
+    doc, w_doc = beschreiben.ziel_fuer(spec, spec_pfad, ziel)
+    warnungen += [w_doc] if w_doc else []
+    bau_alt = _vor_dem_bau(ziel, basis, doc, erzwingen)
     quelle = basis or _pfad(ordner, spec.get("vorlage")) or konfig.vorlage_pfad()
     if quelle is None:
         warnungen.append("Keine BI-Vorlage gefunden – Notbetrieb ohne Master/Logo. "
@@ -200,6 +229,8 @@ def bauen(spec_pfad, ausgabe=None, still=False):
             ausblenden_ab = True
         if fs.get("ausblenden") or ausblenden_ab:
             sl._element.set("show", "0")
+        elif "basis" in fs and "ausblenden" not in fs:
+            pass  # Basisfolie behält ihren Zustand (sichtbar/ausgeblendet)
         elif sl._element.get("show") is not None:
             del sl._element.attrib["show"]
         reihenfolge.append(sl)
@@ -213,12 +244,21 @@ def bauen(spec_pfad, ausgabe=None, still=False):
             prs.part.drop_rel(e.rId)
     for e in neu:
         lst.append(e)
-    ziel = Path(ausgabe) if ausgabe else _pfad(ordner, spec.get("ausgabe") or spec_pfad.with_suffix(".pptx").name)
     ziel.parent.mkdir(parents=True, exist_ok=True)
     prs.save(str(ziel))
+    # Folienbeschreibung mit Baustand – aus der gespeicherten Datei, wie bei der Prüfung vor dem nächsten Bau
+    meldung, bau = beschreiben.schreiben(vorlage.oeffnen(ziel), ziel, doc, spec, spec_pfad, gebaut=True,
+                                         weitere=[basis.with_suffix(".md")] if basis else [])
     if not still:
         sichtbar = sum(1 for s in reihenfolge if s._element.get("show") != "0")
         print(f"GEBAUT: {ziel} – {len(reihenfolge)} Folien ({sichtbar} sichtbar)")
+        print(meldung)
+        if bau_alt is None:
+            print("ÄNDERUNGEN: erster Bau dieser Datei")
+        else:
+            geaendert, gleich, weg = beschreiben.aenderungen(bau_alt, bau)
+            print(f"ÄNDERUNGEN: {'Folie ' + ', '.join(map(str, geaendert)) if geaendert else 'keine Folie'} geändert oder "
+                  f"neu · {gleich} unverändert" + (f" · {weg} entfallen" if weg else ""))
         for w in warnungen:
             print(f"  WARNUNG {w}")
         print(f"ERGEBNIS: {'OK' if not warnungen else str(len(warnungen)) + ' Warnung(en)'}")

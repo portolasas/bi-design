@@ -2,6 +2,8 @@
   "ausgabe": "Beispiel_Steering-Update.pptx",
   "fusszeile": "Projekt Beispiel | Steering-Committee-Update",
   "heute": "2026-10-07",
+  "zweck": "Steering-Committee-Update am 07.10.2026 – Muster mit allen Folientypen",
+  "quellen": ["Transkript.vtt", "Projektauftrag.docx"],
   "folien": [
     {"typ": "titel", "titel": "Projekt Beispiel", "untertitel": ["Steering-Committee-Update", "Vorname Name | 07.10.2026"]},
     {"typ": "status", "titel": "Status auf einen Blick – Zugriffsweg geklärt, Eskalation nicht nötig",

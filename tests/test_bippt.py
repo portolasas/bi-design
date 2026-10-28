@@ -278,5 +278,84 @@ with tempfile.TemporaryDirectory() as td:
     fall("ersetzen über Läufe: Format außerhalb des Treffers bleibt", [(r.text, bool(r.font.bold)) for r in p.runs]
          == [("Stand ", False), ("01.01.2027", True), (" fertig", False)], str([(r.text, r.font.bold) for r in p.runs]))
 
+    print("Folienbeschreibung und Baustand")
+    from bippt import beschreiben
+
+    def abbruch(spec_, **kw):
+        try:
+            bauen.bauen(spec_, still=True, **kw)
+        except SystemExit as e:
+            return str(e)
+        return ""
+
+    md = zp.with_suffix(".md")
+    text = md.read_text(encoding="utf-8")
+    bau1 = beschreiben.baustand(md)
+    fall("Beschreibung neben dem Deck, alle Folientitel", md.is_file() and text.startswith(beschreiben.START)
+         and text.rstrip().endswith(beschreiben.ENDE)
+         and all(f"Folie {i}: {sl.shapes.title.text_frame.text}" in text for i, sl in enumerate(pp.slides, 1)))
+    fall("Beschreibung: Inhalt aus der Spec (Ampel, Termine, Gestaltung)", "Ampel Gelb–Rot" in text
+         and "| KW 40 | IT-Termin |" in text and "Gestaltung: Layout „Only title“ · 3 Strangkarten" in text
+         and "Folie 12: Rollen im Projektteam\nTyp `tabelle` · Backup (ausgeblendet)" in text, text[:400])
+    fall("Baustand je Folie, ausgeblendet mit ~", bau1 and len(bau1) == 12 and bau1[-1].endswith("~")
+         and not bau1[0].endswith("~"), str(bau1))
+    bauen.bauen(pspec, still=True)
+    fall("Neubau ohne Änderung: gleicher Baustand", beschreiben.baustand(md) == bau1)
+    sp = json.loads(pspec.read_text(encoding="utf-8"))
+    sp["folien"][7]["zeilen"][1]["wann"] = "KW 41"
+    pspec.write_text(json.dumps(sp, ensure_ascii=False), encoding="utf-8")
+    bauen.bauen(pspec, still=True)
+    bau2 = beschreiben.baustand(md)
+    fall("Spec-Änderung an Folie 8: nur Folie 8 anders", beschreiben.aenderungen(bau1, bau2) == ([8], 11, 0),
+         str(beschreiben.aenderungen(bau1, bau2)))
+    hand = Presentation(str(zp))
+    hand.slides[2].shapes.title.text_frame.text = "Von Hand geändert"
+    hand.save(str(zp))
+    fehlt = abbruch(pspec)
+    fall("Handänderung: Neubau bricht ab und nennt die Folie", "nach dem letzten Bau geändert (Folie 3)" in fehlt, fehlt)
+    beschreiben.beschreiben(zp)
+    fall("beschreiben <pptx>: Baustand bleibt, Folie 3 aus dem Deck, Rest übernommen",
+         beschreiben.baustand(md) == bau2 and "Folie 3: Von Hand geändert" in md.read_text(encoding="utf-8")
+         and "| KW 41 | IT-Termin |" in md.read_text(encoding="utf-8"))
+    fall("Handänderung: weiter Abbruch nach beschreiben", "Folie 3" in abbruch(pspec))
+
+    print("Basis-Modus auf das von Hand geänderte Deck")
+    v3 = {"basis": zp.name, "ausgabe": "v3.pptx", "fusszeile": "V3", "folien": [{"basis": n} for n in range(1, 13)]}
+    v3["folien"][7] = {"basis": 8, "ersetzen": {"Mitte 2027": "Ende 2027"}, "beschreibung": "Letzter Termin verschoben"}
+    (td / "v3.spec.json").write_text(json.dumps(v3, ensure_ascii=False), encoding="utf-8")
+    z3, w3 = bauen.bauen(td / "v3.spec.json", still=True)
+    p3 = Presentation(str(z3))
+    t3 = z3.with_suffix(".md").read_text(encoding="utf-8")
+    fall("Basis: Folien behalten ihren Zustand (Backup ausgeblendet)",
+         [i for i, s_ in enumerate(p3.slides, 1) if s_._element.get("show") == "0"] == [10, 11, 12] and not w3, str(w3))
+    fall("Basis: Handänderung bleibt", p3.slides[2].shapes.title.text_frame.text == "Von Hand geändert")
+    fall("Basis: unveränderte Folie übernimmt ihre Beschreibung",
+         "Basisfolie 12 · Typ `tabelle` · Backup (ausgeblendet)" in t3 and "unverändert aus der Basis" in t3, t3[-600:])
+    fall("Basis: geänderte Folie aus dem Deck mit Beschreibung",
+         "beim Bau geändert: 1 Ersetzung\nBeschreibung: Letzter Termin verschoben" in t3
+         and "- Ende 2027 | Schnittstelle validiert" in t3, t3[t3.find("Folie 8:"):][:500])
+    bauen.bauen(td / "v3.spec.json", still=True)
+    fall("Basis-Spec erneut gebaut: gleicher Baustand", beschreiben.baustand(z3.with_suffix(".md"))
+         == beschreiben.fingerabdruecke(p3))
+    v3["ausgabe"] = zp.name
+    (td / "selbst.spec.json").write_text(json.dumps(v3, ensure_ascii=False), encoding="utf-8")
+    fall("Basis = Ausgabe bricht ab", "dieselbe Datei" in abbruch(td / "selbst.spec.json"))
+    zp.with_suffix(".md").unlink()
+    fall("Deck ohne Baustand: Abbruch, --erzwingen baut", "ohne Baustand" in abbruch(pspec)
+         and not abbruch(pspec, erzwingen=True) and beschreiben.baustand(md))
+
+    print("Vorlage als dokument (z. B. von ppp)")
+    (td / "Entwurf.md").write_text("# Entwurf aus ppp\n\nFolie 1: Titel\n", encoding="utf-8")
+    sp.update({"ausgabe": "mit_vorlage.pptx", "dokument": "Entwurf.md", "zweck": "Test", "quellen": ["Entwurf.md"]})
+    (td / "vorlage.spec.json").write_text(json.dumps(sp, ensure_ascii=False), encoding="utf-8")
+    bauen.bauen(td / "vorlage.spec.json", still=True)
+    bauen.bauen(td / "vorlage.spec.json", still=True)
+    tv = (td / "Entwurf.md").read_text(encoding="utf-8")
+    fall("Vorlage bleibt, Abschnitt einmal angehängt", tv.startswith("# Entwurf aus ppp\n\nFolie 1: Titel\n\n<!-- bippt")
+         and tv.count(beschreiben.START) == 1 and "\n### Folie 3: " in tv and "Zweck: Test" in tv
+         and not (td / "mit_vorlage.md").exists(), tv[:300])
+    fall("analyse --folien liest nur diese Folien", [f["nr"] for f in analyse.analyse(zp, folien=[2, 5])["folien"]]
+         == [2, 5])
+
 print("ALLE FÄLLE BESTANDEN" if not fehler else f"FEHLGESCHLAGEN: {', '.join(fehler)}")
 sys.exit(1 if fehler else 0)
