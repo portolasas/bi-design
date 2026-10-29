@@ -460,5 +460,88 @@ with tempfile.TemporaryDirectory() as td:
     fall("pruefen meldet ein Textfeld mit Breite 0 als FEHLER", any(b_[0] == "FEHLER" and b_[1] == 10 and "0.00 in breit"
                                                                     in b_[2] for b_ in pruefen.pruefen(td / "schmal.pptx")))
 
+print("Bild und Text, Bilder prüfen")
+with tempfile.TemporaryDirectory() as td:
+    td = Path(td)
+    from PIL import Image  # noqa: E402
+    Image.new("RGB", (400, 120), (8, 49, 42)).save(td / "Boehringer_Logo_RGB_Dark_Green.png")
+    lang = "Ein Punkt mit so viel Text, dass er in der schmalen Textspalte neben dem Bild mehrere Zeilen braucht"
+    (td / "bild.spec.json").write_text(json.dumps({"ausgabe": "bild.pptx", "folien": [
+        {"typ": "bild_text", "titel": "Bild und Text mit Band", "bild": "Boehringer_Logo_RGB_Dark_Green.png",
+         "punkte": [lang] * 4, "band": {"label": "Fazit:", "text": "Bild und Text enden über dem Band."}}]},
+        ensure_ascii=False), encoding="utf-8")
+    zb, wb = bauen.bauen(td / "bild.spec.json", still=True)
+    sl_ = Presentation(str(zb)).slides[0]
+    kb = [sh for sh in sl_.shapes if sh.name == "Kernaussage"][0]
+    pic = [sh for sh in sl_.shapes if sh.shape_type == 13 or (sh.is_placeholder and sh.placeholder_format.idx == 10)][0]
+    tx = [sh for sh in sl_.placeholders if sh.placeholder_format.idx == 1][0]
+    fall("bild_text mit Band: Bild und Text enden über dem Band",
+         (pic.top + pic.height) <= kb.top + 4572 and (tx.top + tx.height) <= kb.top + 4572 and tx.width > 914400,
+         f"Bild {(pic.top + pic.height) / 914400:.2f}, Text {(tx.top + tx.height) / 914400:.2f}, Band {kb.top / 914400:.2f}")
+    fall("Warnung: BI-Logo als Bild", any("BI-Logo" in w for w in wb), "; ".join(wb))
+    fall("Warnung: Bild unscharf (dpi)", any("dpi im sichtbaren Ausschnitt" in w for w in wb), "; ".join(wb))
+    fall("Warnung: Text läuft über den Platzhalter", any("Text braucht etwa" in w and "läuft unten über" in w
+                                                         for w in wb), "; ".join(wb))
+
+print("Folienbibliothek")
+from bippt import bibliothek  # noqa: E402
+from pptx.opc.constants import RELATIONSHIP_TYPE as RT  # noqa: E402
+BIB = PLUGIN / "vorlagen" / "BI_Slide_Library.pptx"
+fall("Bibliothek im Plugin", konfig.bibliothek_pfad({"bibliothek": ""}) == BIB)
+with tempfile.TemporaryDirectory() as td:
+    td = Path(td)
+    Image.new("RGB", (2400, 1600), (0, 228, 124)).save(td / "foto.jpg")
+    spalte = {"10": "Gebäude", "9": ["Neubau mit vier Etagen", "Bezug ab 03/2027"], "17": "Technik", "16": ["Probenlogistik"],
+              "24": "Menschen", "23": ["120 Arbeitsplätze"]}
+    (td / "bib.spec.json").write_text(json.dumps({"ausgabe": "bib.pptx", "fusszeile": "Probe | Bibliothek", "folien": [
+        {"bib": 25, "titel": "Drei Bausteine", "texte": spalte},
+        {"bib": 25, "titel": "Dieselbe Folie noch einmal", "texte": dict(spalte, **{"23": ["Viel zu lang " * 60]})},
+        {"bib": 62, "titel": "Bild und Text", "texte": {"2": ["Offene Labore"]}, "bilder": {"11": "foto.jpg"}},
+        {"bib": 119, "titel": "Kosten", "daten": {"16": {"titel": "Kosten in Mio. €", "kategorien": ["2025", "2026"],
+                                                         "reihen": [{"name": "Bau", "werte": [10, 20]}]}}},
+        {"bib": 2, "titel": "Inhalt mit Sprüngen"},
+        {"bib": 114, "titel": "Zahlen je Werk", "tabellen": {"17": [["Werk", "2025"], ["Ingelheim", "1"], ["Biberach", "2"],
+                                                                     ["Wien", "3"], ["Summe", "6"]]}},
+        {"bib": 93, "titel": "Zeitplan mit Blindtext"}]}, ensure_ascii=False), encoding="utf-8")
+    zl, wl = bauen.bauen(td / "bib.spec.json", still=True)
+    pl = Presentation(str(zl))
+
+    def form_(sl, sid):
+        return next((sh for sh in sl.shapes if sh.shape_id == sid), None)
+
+    tab_ = next(sh for sh in pl.slides[5].shapes if getattr(sh, "has_table", False))
+    fall("tabellen: Zeilen und Spalten nach Angabe, Breite bleibt",
+         [[c.text for c in r.cells] for r in tab_.table.rows][-1] == ["Summe", "6"] and len(tab_.table.rows) == 5
+         and abs(sum(c.width for c in tab_.table.columns) - tab_.width) < 9144)
+    fall("Bibliotheksfolien kopiert, auch dieselbe zweimal", len(pl.slides) == 7
+         and [s_.slide_layout.name for s_ in pl.slides][:3] == ["Only title", "Only title", "Content with image portrait (1)"])
+    fall("texte füllen die Formen nach id", form_(pl.slides[0], 10).text_frame.text == "Gebäude"
+         and form_(pl.slides[1], 10).text_frame.text == "Gebäude" and pl.slides[0].shapes.title.text_frame.text == "Drei Bausteine")
+    bild_ = form_(pl.slides[2], 11)
+    fall("bilder: Foto im Bildplatzhalter", bild_ is not None and bild_.image.size == (2400, 1600))
+    ch = form_(pl.slides[3], 16).chart
+    fall("daten: Diagramm mit neuen Werten und Titel", list(ch.plots[0].categories) == ["2025", "2026"]
+         and list(ch.series[0].values) == [10, 20] and ch.chart_title.text_frame.text == "Kosten in Mio. €")
+    fall("Sprünge zu anderen Bibliotheksfolien entfernt", not any(r.reltype == RT.SLIDE for s_ in pl.slides
+                                                                 for r in s_.part.rels.values()))
+    fall("Notizen der Bibliothek kommen nicht mit", not any(s_.has_notes_slide for s_ in pl.slides))
+    fuss_ = [sh for sh in pl.slides[0].placeholders if sh.placeholder_format.type is not None
+             and "FOOTER" in str(sh.placeholder_format.type)]
+    fall("Fußzeile mit Präsentationstitel", fuss_ and "Probe | Bibliothek" in fuss_[0].text_frame.text)
+    fall("Warnung: Text zu lang für seine Form", any(w.startswith("Folie 2:") and "Text braucht etwa" in w for w in wl),
+         "; ".join(wl))
+    fall("Warnung: Blindtext übrig", any(w.startswith("Folie 7:") and "Blindtext" in w for w in wl)
+         and not any(w.startswith("Folie 1:") for w in wl), "; ".join(wl))
+    import zipfile  # noqa: E402
+    namen = zipfile.ZipFile(zl).namelist()
+    fall("Paket ohne doppelte Teile", len(namen) == len(set(namen)))
+    fall("pruefen ohne FEHLER", not [b_ for b_ in pruefen.pruefen(zl, woerter=300) if b_[0] == "FEHLER"])
+    md_ = (td / "bib.md").read_text(encoding="utf-8")
+    fall("Folienbeschreibung nennt Bibliotheksfolie und Inhalt spaltenweise",
+         "Bibliotheksfolie 25" in md_ and "- Gebäude\n- Neubau mit vier Etagen" in md_)
+    kat = bibliothek.katalog(BIB, [25])
+    fall("katalog nennt ids, Platz und Beispieltext", "## 25: Text box: Three columns" in kat
+         and "id 10 · Text" in kat and "Platz ~" in kat and "„Header box“" in kat)
+
 print("ALLE FÄLLE BESTANDEN" if not fehler else f"FEHLGESCHLAGEN: {', '.join(fehler)}")
 sys.exit(1 if fehler else 0)

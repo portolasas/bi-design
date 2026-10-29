@@ -17,6 +17,7 @@ from pptx.util import Pt
 
 from . import vorlage
 from .bausteine import (AMPEL, BAND_H, E, TOLERANZ, X0, XW, Y0, Y_ENDE, absaetze, ampel, band, bild_einpassen, bild_mass,
+                        bild_pruefen,
                         flaeche, icon, inhaltsunterkante, kopfleiste, klartext, linie, pfeil, punkt, raute, text,
                         text_hoehe, textfeld, umbrechen, unterkante, wortbreiten)
 
@@ -28,6 +29,41 @@ def folientyp(name, layout="nur_titel"):
         TYPEN[name] = (fn, layout)
         return fn
     return deko
+
+
+# Aufzählung im Inhaltsplatzhalter des BI-Masters, am Render gemessen (PowerPoint, 16 pt): Zeilenabstand 1,68 × Größe,
+# Absatzabstand 0,09 in, Rand links mit Aufzählungszeichen 0,25 in, rechts 0,1 in. Ebenen 1–4 16 pt, ab Ebene 5 12 pt.
+PH_ZEILE, PH_ABSATZ, PH_RAND = 1.68, 0.09, 0.35
+
+
+def _ph_unterkante(ph, unten):
+    """Platzhalter unten bis `unten` (in) kürzen, nie verlängern. Lage und Breite mitschreiben: Der Platzhalter erbt sie
+    vom Layout, und nur height zu setzen legt <a:xfrm> mit Breite 0 und ohne Lage an (Text ein Buchstabe breit, bis 2.4.0)."""
+    if ph is None:
+        return
+    links, oben, breite, hoehe = ph.left, ph.top, ph.width, ph.height
+    neu = unten - oben / 914400
+    if neu >= hoehe / 914400:
+        return
+    ph.left, ph.top, ph.width = links, oben, breite
+    ph.height = E(max(neu, 0.3))
+
+
+def _ph_ueberlauf(k, ph, punkte):
+    """Warnung, wenn die Aufzählung über die Unterkante des Platzhalters läuft (Maße PH_*)."""
+    if ph is None or not punkte or not ph.width or not ph.height:
+        return
+    breite = ph.width / 914400 - PH_RAND
+    bedarf = 0.1 - PH_ABSATZ
+    for a in absaetze(punkte):
+        ebene = int(a.get("ebene", 0))
+        g = 12 if ebene >= 4 else 16
+        zeilen = umbrechen(re.sub(r"\*\*|==", "", str(a["t"])), breite - 0.25 * ebene, g)[0]
+        bedarf += zeilen * g * PH_ZEILE / 72 + PH_ABSATZ
+    platz = ph.height / 914400
+    if bedarf > platz + 0.05:
+        k.warn(f"Text braucht etwa {bedarf:.1f} in, Platz {platz:.1f} in – er läuft unten über (in PowerPoint unter "
+               "Band bzw. Fußzeile); kürzen, weniger Punkte oder auf zwei Folien")
 
 
 def _ph_text(ph, spec):
@@ -70,11 +106,8 @@ def text_folie(k, s):
         textfeld(k, X0, Y0, XW, inhaltsunterkante(s) - Y0, s.get("punkte", []), punkt=True, groesse=16)
         return
     if s.get("band"):
-        # Lage erbt der Platzhalter vom Layout. Nur height zu setzen legt <a:xfrm> mit Breite 0 und ohne Lage an
-        # (Text einen Buchstaben breit) – darum alle vier Werte schreiben.
-        links, oben, breite = ph.left, ph.top, ph.width
-        ph.left, ph.top, ph.width = links, oben, breite
-        ph.height = E(inhaltsunterkante(s) - oben / 914400)
+        _ph_unterkante(ph, inhaltsunterkante(s))
+    _ph_ueberlauf(k, ph, s.get("punkte", []))
     tf = ph.text_frame
     erste = True
     for a in absaetze(s.get("punkte", [])):
@@ -1001,18 +1034,28 @@ def kennzahlen(k, s):
 @folientyp("bild_text", layout="inhalt_bild")
 def bild_text(k, s):
     """Bild im Bildplatzhalter + punkte im Textplatzhalter (bild = Pfad)."""
+    # Mit Band oder Quelle enden Bild und Text darüber; das Layout reicht sonst bis 6,5 in (unter das Band)
+    unten = inhaltsunterkante(s) if s.get("band") or s.get("quelle") else None
     ph = vorlage.platzhalter(k.folie, idx=10)
+    tx = vorlage.platzhalter(k.folie, idx=1)
+    if unten is not None:
+        _ph_unterkante(ph, unten)  # vor insert_picture: der Zuschnitt richtet sich nach dem Rahmen
+        _ph_unterkante(tx, unten)
     bild = k.pfad(s.get("bild"))
     if bild and bild.is_file():
         if ph is not None:
-            ph.insert_picture(str(bild))
+            lage = ph.left, ph.top, ph.width, ph.height
+            pic = ph.insert_picture(str(bild))
+            if unten is not None:  # das neue p:pic erbt sonst wieder die Lage aus dem Layout
+                pic.left, pic.top, pic.width, pic.height = lage
+            bild_pruefen(k, bild, pic)
         else:
-            k.folie.shapes.add_picture(str(bild), E(X0 + XW * 0.38), E(Y0), width=E(XW * 0.62))
+            bild_pruefen(k, bild, k.folie.shapes.add_picture(str(bild), E(X0 + XW * 0.38), E(Y0), width=E(XW * 0.62)))
     else:
         k.warn(f"Bild fehlt: {s.get('bild')}")
-    tx = vorlage.platzhalter(k.folie, idx=1)
     if tx is not None:
         _ph_text(tx, [klartext(a) for a in absaetze(s.get("punkte", []))] or [""])
+        _ph_ueberlauf(k, tx, s.get("punkte", []))
     elif s.get("punkte"):
         textfeld(k, X0, Y0, XW * 0.35, 4.5, s["punkte"], punkt=True, groesse=14)
 

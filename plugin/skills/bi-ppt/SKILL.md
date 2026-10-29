@@ -15,6 +15,9 @@ Werkzeug: `bippt` (Python ≥ 3.9 mit python-pptx) liegt im Plugin **bi-design**
 - Marke (Farben, Icons): Skill **bi-designer** im selben Plugin (`marken/<profil>/tokens.json`, `icons.txt`); Custom
   Colors des BI-Masters (Gray 1–8, Signal Red/Yellow/Green) liest bippt aus der Vorlage. Nie Farben frei erfinden.
 - Vorlage: `<plugin>/vorlagen/BI_Vorlage_16x9.pptx` (BI-Master v2.1); eigene über `bippt konfig --setze vorlage=<pfad>`.
+- Folienbibliothek: `<plugin>/vorlagen/BI_Slide_Library.pptx` (offizielle BI Slide Library, 184 gestaltete Folien,
+  gleicher Master) – Übersicht und Ablauf in [reference/bibliothek.md](reference/bibliothek.md), Formen je Folie mit
+  `bippt katalog --folien n`.
 - Einstellungen je Rechner: `~/.bi-design/config.json` (`bippt konfig`), u. a. `asset_root` (Logos, Icons).
 
 Antworte deutsch, sachlich, knapp. Grundsatz: **teuer denken, billig bauen** – Inhalt und Storyline gründlich,
@@ -65,11 +68,15 @@ Liegt der Arbeitsordner in einem Git-Repo (`git rev-parse --show-toplevel` gelin
 ## 3. Storyline und Spezifikation
 1. Storyline nach [reference/arbeitsweise.md](reference/arbeitsweise.md) (Publikum → Folienzahl, Aktionstitel,
    eine Kernaussage je Folie als Band, Details ins ausgeblendete Backup).
-2. Spezifikation `<Name>.spec.json` **neben die Ausgabe** schreiben (Startgerüst: `bippt neu <ordner> --name <Name>`).
+2. Je Folie die Form wählen: Gestaltetes (Agenda, Kapitel, Bereiche mit Kopf oder Icon, Fakten, Zitat, Bild und Text,
+   Phasen, Team, Abschluss) aus der **Folienbibliothek** (`{"bib": n, …}`, [reference/bibliothek.md](reference/bibliothek.md)),
+   Daten mit wechselnder Menge (Status mit Ampeln, alt → neu, Termine, Maßnahmen, Tabelle) mit einem **Folientyp**.
+   Für jede Bibliotheksfolie `bippt katalog --folien n` lesen und jeden Blindtext füllen oder entfernen.
+3. Spezifikation `<Name>.spec.json` **neben die Ausgabe** schreiben (Startgerüst: `bippt neu <ordner> --name <Name>`).
    Folientypen und Felder: [reference/folientypen.md](reference/folientypen.md) (`bippt typen`). Icons: `bippt icons <begriff>`.
    Kopf mit `zweck` (Anlass, Publikum, Datum) und `quellen`; je Folie `beschreibung`, wenn Typ und Felder die Gestaltung
    nicht zeigen (Bildinhalt, Anordnung einer Basisfolie) – beides steht dann in der Folienbeschreibung.
-3. Modus V: `"basis": "<alte.pptx>"`, `ausgabe` eine neue Datei; jede Folie entweder neu (`"typ"`) oder `{"basis": n,
+4. Modus V: `"basis": "<alte.pptx>"`, `ausgabe` eine neue Datei; jede Folie entweder neu (`"typ"`) oder `{"basis": n,
    "ausblenden"?, "ersetzen"?, "platzhalter"?, "aendern"?, "elemente"?}`. Basisfolien behalten Inhalt und Sichtbarkeit,
    bis die Spec etwas ändert; nicht aufgeführte Basisfolien entfallen. Titel-Folie der Basis über
    `platzhalter` aktualisieren. Bild tauschen (Zuschnitt bleibt), Absätze ergänzen, Läufe im Band, Formen verschieben
@@ -92,7 +99,8 @@ Liegt der Arbeitsordner in einem Git-Repo (`git rev-parse --show-toplevel` gelin
 ## 4. Bauen – Prüfen – Sehen (max. 3 Runden)
 ```
 bippt bauen <Name>.spec.json          → ERGEBNIS: OK | Warnungen (Überlauf, Titel zweizeilig, Wort zu breit,
-                                        Tabelle zu hoch, Icons, Timeline-Beschriftung);
+                                        Tabelle zu hoch, Icons, Timeline-Beschriftung, Bild unscharf oder BI-Logo,
+                                        Text zu lang für seine Form, Blindtext der Bibliothek);
                                         BESCHRIEBEN <Name>.md, ÄNDERUNGEN je Folie seit dem letzten Bau
 bippt pruefen <Name>.pptx --woerter N → ERGEBNIS: OK (keine FEHLER; N nach Publikum)
 bippt rendern <Name>.pptx [--alle]    → kontaktbogen.png ansehen, nur auffällige Folien einzeln (folie_NN.png)

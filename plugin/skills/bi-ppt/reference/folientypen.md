@@ -13,6 +13,7 @@ Projektteam-Update nach Referenzdeck: [../beispiele/projektteam.spec.json](../be
 | `vorlage` | andere Vorlage (Standard: BI-Master v2.1) |
 | `basis` | bestehende PPTX (Modus V) – dann ist sie Vorlage und Folienquelle |
 | `marke` | bi-designer-Profil (Standard boehringer-ingelheim) |
+| `bibliothek` | andere Folienbibliothek für `bib` (Standard: BI Slide Library aus dem Plugin) |
 | `zweck` | Anlass, Publikum, Datum in einem Satz – Kopf der Folienbeschreibung |
 | `quellen` | Dateien, aus denen der Inhalt stammt – Kopf der Folienbeschreibung |
 | `dokument` | Folienbeschreibung (`.md`, relativ zur Spec), nur für eine vorhandene Vorlage (z. B. von ppp); Standard `<ausgabe>.md` |
@@ -30,6 +31,12 @@ Text überall: `"… **fett** … ==hervorgehoben== …"`, Liste = mehrere Absä
 Farben als Kürzel: DG, AG, WH, LG, WG, YEL, MYEL, LRED, RED, MRED, DRED, LBLU, BLU, MBLU, DBLU, LVIO, VIO, MVIO, DVIO,
 SGRN, SYEL, SRED, G1…G8 – oder Token-Namen aus bi-designer. Keine Abstufungen (Master: nicht CD-konform).
 Ampelwerte: G, Y, R, N und YR (Gelb–Rot: Verzug, Eskalation erwartet; halb gelb, halb rot).
+
+## Bibliotheksfolien (`bib`)
+`{"bib": 25, "titel": "…", "texte": {"id": "…" | ["Absatz", …]}, "bilder": {"id": "foto.jpg"}, "daten": {"id": {"kategorien",
+"reihen", "titel"}}, "tabellen": {"id": [[…], …]}, "entfernen": [id]}` kopiert Folie n der Folienbibliothek (Kopf
+`bibliothek`, Standard aus dem Plugin) und füllt sie; danach wirken `ersetzen`, `platzhalter`, `aendern`, `elemente` wie
+bei Basisfolien. ids: `bippt katalog --folien n`. Übersicht, Regeln und Ablauf: [bibliothek.md](bibliothek.md).
 
 ## Basisfolien (Modus V)
 `{"basis": 7, "ausblenden": true, "ersetzen": {"alter Text": "neuer Text"}, "platzhalter": {"1": ["Zeile 1", "Zeile 2"]}, "titel": "…"}`

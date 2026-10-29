@@ -368,7 +368,19 @@ def _gestaltung_deck(f, fs=None):
         teile.append("Band unten")
     if "basis" in (fs or {}):
         teile.append(_basis_aenderung(fs))
+    elif "bib" in (fs or {}):
+        teile.append(_bib_fuellung(fs))
     return " · ".join(teile)
+
+
+def _bib_fuellung(fs):
+    gefuellt = [x for x in (_anz(len(fs["texte"]), "Text", "Texte") if fs.get("texte") else "",
+                            _anz(len(fs["bilder"]), "Bild", "Bilder") if fs.get("bilder") else "",
+                            "Diagrammdaten" if fs.get("daten") else "", "Tabelle" if fs.get("tabellen") else "",
+                            _anz(len(fs["entfernen"]), "Form", "Formen") + " entfernt" if fs.get("entfernen") else "",
+                            _anz(len(fs["aendern"]), "Form", "Formen") + " geändert" if fs.get("aendern") else "",
+                            _anz(len(fs["elemente"]), "Form", "Formen") + " ergänzt" if fs.get("elemente") else "") if x]
+    return f"aus der Folienbibliothek (Folie {fs['bib']})" + (", gefüllt: " + ", ".join(gefuellt) if gefuellt else "")
 
 
 def _basis_aenderung(fs):
@@ -420,6 +432,20 @@ def _aus_deck(z, f):
         z.append(f"- Bild „{b['form']}“")
     for u in f["unbekannt"]:
         z.append(f"- (nicht gelesen: {meldung(Unbekannt(**u))})")
+
+
+def _spaltenweise(f):
+    """Texte einer Bibliotheksfolie spaltenweise lesen (links nach rechts, je Spalte von oben nach unten); Formen mit
+    einem Absatz ohne Einrückung – die Bibliothek setzt Kopfboxen auf Ebene 5."""
+    def lage(t):
+        pos = t.get("pos") or [0, 0, 0, 0]
+        return round((pos[0] or 0) * 2) / 2, pos[1] or 0
+    texte = []
+    for t in sorted(f["texte"], key=lage):
+        if len(t["absaetze"]) == 1:
+            t = dict(t, absaetze=[dict(t["absaetze"][0], ebene=0)])
+        texte.append(t)
+    return dict(f, texte=texte)
 
 
 def _kernaussage_deck(f):
@@ -522,10 +548,13 @@ def _rel(pfad, ordner):
 def _uebernehmen(zeilen, fs, f, sichtbar):
     """Beschreibung einer unveränderten Folie aus einem früheren Stand übernehmen; Kopfzeile und Herkunft neu."""
     typ = next((t for t in zeilen[0].split(" · ") if t.startswith("Typ ")), "") if zeilen else ""
-    out = [" · ".join(x for x in (f"Basisfolie {fs['basis']}" if "basis" in fs else "", typ, sichtbar) if x)]
+    herkunft = f"Basisfolie {fs['basis']}" if "basis" in fs else f"Bibliotheksfolie {fs['bib']}" if "bib" in fs else ""
+    out = [" · ".join(x for x in (herkunft, typ, sichtbar) if x)]
     for zl in zeilen[1:]:
         if zl.startswith("Gestaltung: ") and "basis" in fs:
             zl = re.sub(r" · (unverändert aus der Basis|beim Bau geändert: .*)$", "", zl) + " · " + _basis_aenderung(fs)
+        elif zl.startswith("Gestaltung: ") and "bib" in fs:
+            zl = re.sub(r" · aus der Folienbibliothek .*$", "", zl) + " · " + _bib_fuellung(fs)
         elif zl.startswith("Beschreibung: ") and fs.get("beschreibung"):
             continue
         out.append(zl)
@@ -562,14 +591,15 @@ def abschnitt(prs, pptx, ziel, spec=None, spec_pfad=None, bau=None, ebene=1, alt
     if spec.get("basis"):
         z.append(f"Basis: `{_name(spec['basis'])}` (unveränderte Basisfolien aus deren Folienbeschreibung, sonst aus dem Deck)")
     for f, fs, fp in zip(gelesen, folien, stand):
-        neu = bool(fs) and "basis" not in fs
+        neu = bool(fs) and "basis" not in fs and "bib" not in fs
         fs = fs or {}
         sichtbar = "Backup (ausgeblendet)" if f["ausgeblendet"] else "sichtbar"
         z += ["", f"{h}# Folie {f['nr']}: {f['titel'] or _klar(fs.get('titel')) or '(ohne Titel)'}"]
         if not neu and alt.get(_ohne(fp)):
             z += _uebernehmen(alt[_ohne(fp)], fs, f, sichtbar)
             continue
-        art = f"Basisfolie {fs['basis']}" if "basis" in fs else (f"Typ `{fs.get('typ', 'text')}`" if neu else "")
+        art = (f"Basisfolie {fs['basis']}" if "basis" in fs else f"Bibliotheksfolie {fs['bib']}" if "bib" in fs
+               else f"Typ `{fs.get('typ', 'text')}`" if neu else "")
         z.append(" · ".join(x for x in (art, sichtbar) if x))
         z.append(f"Gestaltung: {_gestaltung_spec(fs, f) if neu else _gestaltung_deck(f, fs)}")
         if fs.get("beschreibung"):
@@ -584,7 +614,7 @@ def abschnitt(prs, pptx, ziel, spec=None, spec_pfad=None, bau=None, ebene=1, alt
             if fs.get("quelle"):
                 z.append(f"Quelle: {_klar(fs['quelle'])}")
         else:
-            _aus_deck(z, f)
+            _aus_deck(z, _spaltenweise(f) if "bib" in fs else f)
         if len(z) == n and z[-1] == "":
             z.pop()
         if f["notizen"]:

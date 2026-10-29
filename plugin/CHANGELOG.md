@@ -1,5 +1,26 @@
 # Changelog
 
+## 2.5.0 – 2026-10-29
+Folienbibliothek und Befunde aus der Erprobung im Copilot Agent Builder (Laborneubau-Deck, 29.10.2026). Der Nutzer fand
+die Decks zu schematisch und unzuverlässig gerendert und hat die offizielle BI Slide Library bereitgestellt.
+- **Folienbibliothek:** `vorlagen/BI_Slide_Library.pptx` (Slide Library 3.3, 184 Folien, gleicher Master). Spec-Folien
+  `{"bib": n, "titel", "texte": {id: …}, "bilder": {id: …}, "daten": {id: {kategorien, reihen, titel}}, "tabellen":
+  {id: [[…]]}, "entfernen": [id]}` kopieren Folie n samt Bildern, Diagrammen, OLE-Objekten und Tags ins Deck – auch
+  mehrfach – und füllen sie; danach wirken `ersetzen`, `aendern`, `elemente` wie bei Basisfolien. Sprünge zu anderen
+  Bibliotheksfolien, Notizen und Bedienhinweise neben der Folie kommen nicht mit; die Fußzeile wird gesetzt.
+- `bippt katalog [--folien n]`: je Form id, Art, Lage, Schrift, Platz (Zeilen × Zeichen) und Beispieltext.
+- `bauen` warnt bei Bibliotheksfolien, wenn ein Text mehr Platz braucht, als seine Form hat (Absatzformat wie
+  PowerPoint aufgelöst), und wenn Blindtext übrig ist („Lorem ipsum“, „20XX“, „Header box“, „Diagram title“).
+- Folienbeschreibung: „Bibliotheksfolie n“, Inhalt spaltenweise gelesen.
+- Referenz `reference/bibliothek.md`: wann Bibliothek, wann Generator; Übersicht aller Folien; Regeln zu Blindtext,
+  Icons, Bildern und Farbvarianten. Skill §3 und Arbeitsweise: gestaltete Folie vor generierter.
+- Fehler: `bild_text` mit Band oder Quelle – Bild und Text liefen unter das Band. Beide enden jetzt darüber; das
+  eingesetzte Bild behält den gekürzten Rahmen.
+- Warnungen: Aufzählung in `text` und `bild_text` läuft über den Platzhalter (Maße des Masters, am Render gemessen);
+  BI-Logo oder -Symbol als Bild (kommt aus dem Master); Bild unter 100 dpi im sichtbaren Ausschnitt.
+- Tests: Bild und Text mit Band, die drei Warnungen, Bibliothek (Kopie doppelt, Texte, Bild, Diagramm, Tabelle,
+  Sprünge, Notizen, Fußzeile, Platz, Blindtext, Katalog).
+
 ## 2.4.1 – 2026-10-29
 Befund aus der ersten Erprobung im Copilot Agent Builder (Steering-Deck aus einem Projektauftrag, 29.10.2026).
 - Fehler: Typ `text` mit `band` setzte nur die Höhe des Inhaltsplatzhalters. Weil der Platzhalter seine Lage vom Layout

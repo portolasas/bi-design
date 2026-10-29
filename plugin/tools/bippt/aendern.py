@@ -22,7 +22,7 @@ from pathlib import Path
 from pptx.oxml.ns import qn
 from pptx.text.text import _Paragraph, _Run
 
-from .bausteine import E, _laeufe
+from .bausteine import E, _laeufe, bild_pruefen
 from .formen import alle, finden
 
 MARKIERT = re.compile(r"\*\*.+?\*\*|==.+?==")
@@ -310,7 +310,9 @@ def _anwenden(k, sh, op, ordner):
         sh.left, sh.top, sh.width, sh.height = lage
     if op.get("bild"):
         q = Path(op["bild"]).expanduser()
-        sh = bild_tauschen(k.folie, sh, q if q.is_absolute() else Path(ordner) / q, op.get("ausschnitt"))
+        q = q if q.is_absolute() else Path(ordner) / q
+        sh = bild_tauschen(k.folie, sh, q, op.get("ausschnitt"))
+        bild_pruefen(k, q, sh)
     absatz = "absatz" in op or op.get("text") is not None or op.get("laeufe") is not None
     if absatz or op.get("absaetze") is not None or op.get("anhaengen"):
         if not sh.has_text_frame:

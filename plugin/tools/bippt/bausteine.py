@@ -384,6 +384,27 @@ def bild_mass(pfad):
         return None
 
 
+# BI-Logo und -Symbol kommen aus dem Master; als Bild eingesetzt erscheinen sie doppelt und meist beschnitten
+BI_LOGO = re.compile(r"(?i)boehringer.*(logo|symbol)|(^|[_\- ])bi[_\- ]?(logo|symbol)")
+
+
+def bild_pruefen(k, pfad, form=None):
+    """Warnungen zu einem eingesetzten Bild: BI-Logo oder -Symbol als Bild und zu geringe Auflösung im sichtbaren
+    Ausschnitt (unter 100 dpi wirkt es in PowerPoint unscharf)."""
+    name = Path(str(pfad)).name
+    if BI_LOGO.search(name):
+        k.warn(f"Bild {name} ist das BI-Logo bzw. -Symbol – es kommt aus dem Master und gehört nicht als Bild auf die "
+               "Folie (bi-designer › Logo); ein Foto oder eine Grafik nehmen")
+    try:
+        px = form.image.size[0] * (1 - (form.crop_left or 0) - (form.crop_right or 0))
+        breite = form.width / 914400
+    except (AttributeError, ValueError, TypeError, ZeroDivisionError):
+        return
+    if breite > 0.5 and px / breite < 100:
+        k.warn(f"Bild {name}: {px / breite:.0f} dpi im sichtbaren Ausschnitt ({px:.0f} px auf {breite:.1f} in) – "
+               f"unscharf; Bild mit mindestens {breite * 150:.0f} px Breite nehmen")
+
+
 def bild_einpassen(k, pfad, x, y, w, h, ausr="m"):
     """Bild in den Kasten x, y, w, h einpassen (Seitenverhältnis bleibt, ausr l/m/r, senkrecht mittig)."""
     mass = bild_mass(pfad) if pfad else None
@@ -396,7 +417,9 @@ def bild_einpassen(k, pfad, x, y, w, h, ausr="m"):
     bw = min(w, h * mass[0] / mass[1])
     bh = bw * mass[1] / mass[0]
     bx = {"l": x, "r": x + w - bw}.get(ausr, x + (w - bw) / 2)
-    return k.folie.shapes.add_picture(str(pfad), E(bx), E(y + (h - bh) / 2), E(bw), E(bh))
+    pic = k.folie.shapes.add_picture(str(pfad), E(bx), E(y + (h - bh) / 2), E(bw), E(bh))
+    bild_pruefen(k, pfad, pic)
+    return pic
 
 
 # Ampel = Signalfarben des BI-Masters v2.1 (Custom Colors „Signal Green/Yellow/Red“); YR = Gelb–Rot

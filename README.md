@@ -6,7 +6,7 @@ Verbindlich ist der **BI-Master v2.1** (How-to slides): nur seine Designfarben u
 
 - **Skill `bi-designer`** – Marke für alles Visuelle: Farben (Tokens, Rollen, erlaubte Kontrastpaare), Schriften, Logo- und Symbolvarianten, 895 Icons, Rezepte für Power Apps, Power BI, PowerPoint/Word/Excel, Diagramme, Web, HTML-Mail, Teams-Karten. ppp nutzt ihn für Power-Apps-Theme, Prototypen und Power-BI-Theme.
 - **Agent und Skill `bi-ppt`** – PowerPoint im BI-Master v2.1: aus Transkripten, Projektaufträgen, Notizen oder Excel ein neues Deck bauen, eine neue Version eines bestehenden Decks erzeugen (z. B. Projektteam-Update → Steering-Update), fremde Decks ins BI-Design umwandeln, Brand-Regeln prüfen und zur Sichtprüfung rendern.
-- **Generator `bippt`** (Python, python-pptx) – baut die Folien aus einer Spezifikation (JSON) mit Folientypen wie Status, Vergleich, Prozess, Timeline/Gantt, Maßnahmen, Kennzahlen, Diagramm, Tabelle. Änderungen später = Spec ändern und neu bauen; bestehende Folien ändert `aendern` (Bild tauschen, Absätze, Läufe, Formen verschieben). Zu jedem Deck schreibt `bippt bauen` die Folienbeschreibung `<Name>.md` mit Baustand je Folie.
+- **Generator `bippt`** (Python, python-pptx) – baut die Folien aus einer Spezifikation (JSON) mit Folientypen wie Status, Vergleich, Prozess, Timeline/Gantt, Maßnahmen, Kennzahlen, Diagramm, Tabelle – und kopiert gestaltete Folien aus der offiziellen **BI Slide Library** (184 Folien) ins Deck und füllt sie (`{"bib": n, …}`, `bippt katalog`). Änderungen später = Spec ändern und neu bauen; bestehende Folien ändert `aendern` (Bild tauschen, Absätze, Läufe, Formen verschieben). Zu jedem Deck schreibt `bippt bauen` die Folienbeschreibung `<Name>.md` mit Baustand je Folie.
 
 ## Voraussetzungen
 - VS Code mit GitHub Copilot und Agent Plugins, oder Claude Code; Zugriff auf dieses private Repo (Git-Anmeldung des Rechners).
@@ -78,6 +78,7 @@ Was sich geändert hat: [plugin/CHANGELOG.md](plugin/CHANGELOG.md).
 | `plugin/skills/bi-ppt/` | Arbeitsweise, Rückfragen, Folientypen, Umwandeln, Beispiel-Spec |
 | `plugin/tools/` | Generator `bippt` und `requirements.txt` |
 | `plugin/vorlagen/BI_Vorlage_16x9.pptx` | Arbeitsvorlage aus dem BI-Master v2.1 (ohne Folien, ohne doppelte Layouts) |
+| `plugin/vorlagen/BI_Slide_Library.pptx` | offizielle BI Slide Library 3.3 (September 2026), Quelle der Bibliotheksfolien; Übersicht in `plugin/skills/bi-ppt/reference/bibliothek.md` |
 | `vorlagen/How-to slides.pptx` | Original des BI-Masters, Quelle für `bippt vorlage`; wird nicht installiert |
 | Repo `portolasas/Agents`, Ordner `bi-ppt` | Agent bi-ppt für den Microsoft 365 Copilot Agent Builder; sein Bauskript packt Generator, Vorlage und Marke aus `plugin/` in Skill-Pakete |
 | `tests/` | `test_plugin.py` (Aufbau, Version, Aufräumen; nur Standardbibliothek), `test_bippt.py` (Generator) |

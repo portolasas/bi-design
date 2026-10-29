@@ -71,8 +71,11 @@ Entscheidungsbedarf nur, wenn wirklich nötig (`kernaussage` oder Band) → `kap
 - **Nicht überladen:** ≤ 5 Punkte je Karte, ≤ 2 Zeilen je Punkt; Wortgrenze je Publikum (oben); Rest ins Backup.
 
 ## Gestaltung
-- **Grafik vor Text:** Abläufe → `prozess`, Termine → `timeline`, alt/neu → `vergleich`, Zahlen → `kennzahlen`/`diagramm`,
-  Systeme und Datenwege → `fluss`.
+- **Gestaltete Folie vor generierter:** Agenda, Kapitel, Bereiche mit Kopf oder Icon, Fakten, Zitate, Bild und Text,
+  Phasen, Team und Abschluss aus der Folienbibliothek ([bibliothek.md](bibliothek.md)); generiert wird, was Daten mit
+  wechselnder Menge zeigt.
+- **Grafik vor Text:** Abläufe → `prozess` oder Bibliothek 77–86, Termine → `timeline`, alt/neu → `vergleich`, Zahlen →
+  `kennzahlen`/`diagramm` oder Bibliothek 39–44, 69–70, 87–91, Systeme und Datenwege → `fluss`.
 - **Eine Kernaussage je Folie** als `band`: `dunkel` (Position, Entscheidung), `akzent` (Gesamtaussage der Statusfolie),
   `hell` (Kernänderung, kritischer Pfad, Fazit, Sonderfall).
 - **Hervorheben** nur über Fläche Accent Green mit dunkelgrüner Schrift (`hervor`), nie Akzentgrün als Schrift, Linie oder

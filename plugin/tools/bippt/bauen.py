@@ -9,10 +9,13 @@ Spezifikation (Auszug, vollständig in reference/folientypen.md):
   "heute": "2026-10-07",
   "zweck": "…", "quellen": ["…"],                 optional; Kopf der Folienbeschreibung
   "dokument": "Konzept.md",                       optional; vorhandene Vorlage, sonst <ausgabe>.md (beschreiben.py)
-  "folien": [ {"typ": "titel", …}, {"basis": 7, "ausblenden": true, "ersetzen": {"alt": "neu"}}, … ]
+  "bibliothek": "…/BI_Slide_Library.pptx",        optional; Standard aus den Einstellungen bzw. dem Plugin
+  "folien": [ {"typ": "titel", …}, {"basis": 7, "ausblenden": true, "ersetzen": {"alt": "neu"}},
+              {"bib": 25, "texte": {"5": "…"}}, … ]
 }
 Folien aus der Basis, die nicht in "folien" stehen, werden entfernt. Basisfolien ändern: ersetzen, platzhalter, titel,
-aendern (einzelne Formen, siehe aendern.py), elemente (neue Formen wie im Typ frei).
+aendern (einzelne Formen, siehe aendern.py), elemente (neue Formen wie im Typ frei). Bibliotheksfolien (bib) werden aus
+der Folienbibliothek kopiert und gefüllt (bibliothek.py), danach wie Basisfolien geändert.
 """
 import datetime as dt
 import json
@@ -24,7 +27,7 @@ from lxml import etree
 from pptx.opc.constants import RELATIONSHIP_TYPE as RT
 from pptx.oxml.ns import qn
 
-from . import beschreiben, konfig, vorlage
+from . import beschreiben, bibliothek, konfig, vorlage
 from .aendern import _absatz_setzen, aendern, ersetzen, platzhalter_zeilen
 from .bausteine import Kontext, band, unterkante
 from .folien import TYPEN, frei
@@ -175,42 +178,65 @@ def bauen(spec_pfad, ausgabe=None, still=False, erzwingen=False):
     vermerk = spec.get("vertraulichkeit", cfg.get("vertraulichkeit", "ONLY FOR INTERNAL USE"))
     trenner = "     |     "  # wie im BI-Master v2.1
     fuss = trenner.join(x for x in (spec.get("fusszeile"), vermerk) if x) or None
-    reihenfolge, ausblenden_ab = [], False
+    reihenfolge, ausblenden_ab, bib = [], False, None
+
+    def bestehende_folie(sl, fs, nr, wo, bib_nr=None):
+        """Basis- oder Bibliotheksfolie: füllen (bib) und ändern wie in der Spec, Fußzeile setzen, messen."""
+        k = Kontext(prs, sl, m, schriften, warnungen, nr)
+        k.ordner = ordner
+        k.dunkel = any(sl.slide_layout.name in vorlage.LAYOUTS[kurz] for kurz in vorlage.DUNKLE_LAYOUTS)
+        if fs.get("ersetzen"):
+            gefunden = ersetzen(sl, fs["ersetzen"])  # genau einmal je Folie (sonst doppelt ersetzt)
+            fehlt = [a for a in fs["ersetzen"] if a not in gefunden]
+            if fehlt:
+                warnungen.append(f"Folie {nr} ({wo}): {len(fehlt)} von {len(fs['ersetzen'])} Ersetzungen "
+                                 "nicht gefunden: " + "; ".join(f"„{a[:40]}“" for a in fehlt))
+        for idx, zeilen in (fs.get("platzhalter") or {}).items():
+            ph = vorlage.platzhalter(sl, idx=int(idx))
+            if ph is None:
+                warnungen.append(f"Folie {nr}: Platzhalter {idx} fehlt")
+            else:
+                platzhalter_zeilen(ph, zeilen)
+        if fs.get("titel") and sl.shapes.title is not None:
+            platzhalter_zeilen(sl.shapes.title, fs["titel"])
+        if bib_nr is not None:
+            bibliothek.fuellen(k, fs, ordner)
+        if fs.get("aendern"):
+            aendern(k, fs["aendern"], ordner)
+        if fs.get("elemente"):
+            frei(k, fs)
+        if fs.get("farben_angleichen", spec.get("basis_farben_angleichen")):
+            n = farben_angleichen(sl, m)
+            if n:
+                warnungen.append(f"Folie {nr} ({wo}): {n} Nicht-Markenfarben angeglichen – im Render prüfen")
+        if fuss and fs.get("fusszeile", True):
+            _fusszeile_basis(sl, vermerk if sl.slide_layout.name.startswith("Title slide") else fuss)
+        if bib_nr is not None:
+            rest = bibliothek.blindtext(sl)
+            if rest:
+                k.warn("Blindtext der Bibliothek übrig – füllen (texte) oder entfernen: "
+                       + "; ".join(f"id {i} „{t}“" for i, _, t in rest[:6]) + (" …" if len(rest) > 6 else ""))
+        if bib_nr is not None or any(fs.get(x) for x in ("ersetzen", "platzhalter", "titel", "aendern", "elemente")):
+            _messen(k)
+
     for nr, fs in enumerate(spec.get("folien", []), 1):
         if "basis" in fs:
             i = int(fs["basis"]) - 1
             if not 0 <= i < len(alte):
                 raise SystemExit(f"Folie {nr}: basis {fs['basis']} existiert nicht (Basis hat {len(alte)} Folien)")
             sl = alte[i]
-            k = Kontext(prs, sl, m, schriften, warnungen, nr)
-            k.ordner = ordner
-            k.dunkel = any(sl.slide_layout.name in vorlage.LAYOUTS[kurz] for kurz in vorlage.DUNKLE_LAYOUTS)
-            if fs.get("ersetzen"):
-                gefunden = ersetzen(sl, fs["ersetzen"])  # genau einmal je Folie (sonst doppelt ersetzt)
-                fehlt = [a for a in fs["ersetzen"] if a not in gefunden]
-                if fehlt:
-                    warnungen.append(f"Folie {nr} (Basis {i + 1}): {len(fehlt)} von {len(fs['ersetzen'])} Ersetzungen "
-                                     "nicht gefunden: " + "; ".join(f"„{a[:40]}“" for a in fehlt))
-            for idx, zeilen in (fs.get("platzhalter") or {}).items():
-                ph = vorlage.platzhalter(sl, idx=int(idx))
-                if ph is None:
-                    warnungen.append(f"Folie {nr}: Platzhalter {idx} fehlt")
-                else:
-                    platzhalter_zeilen(ph, zeilen)
-            if fs.get("titel") and sl.shapes.title is not None:
-                platzhalter_zeilen(sl.shapes.title, fs["titel"])
-            if fs.get("aendern"):
-                aendern(k, fs["aendern"], ordner)
-            if fs.get("elemente"):
-                frei(k, fs)
-            if fs.get("farben_angleichen", spec.get("basis_farben_angleichen")):
-                n = farben_angleichen(sl, m)
-                if n:
-                    warnungen.append(f"Folie {nr} (Basis {i + 1}): {n} Nicht-Markenfarben angeglichen – im Render prüfen")
-            if fuss and fs.get("fusszeile", True):
-                _fusszeile_basis(sl, vermerk if sl.slide_layout.name.startswith("Title slide") else fuss)
-            if any(fs.get(x) for x in ("ersetzen", "platzhalter", "titel", "aendern", "elemente")):
-                _messen(k)
+            bestehende_folie(sl, fs, nr, f"Basis {i + 1}")
+        elif "bib" in fs:
+            if bib is None:
+                bp = bibliothek.pfad(spec, ordner)
+                if bp is None or not bp.is_file():
+                    raise SystemExit(f"Folie {nr}: Folienbibliothek nicht gefunden ({bp or 'nicht eingerichtet'}) – "
+                                     "\"bibliothek\" in der Spec oder bippt konfig --setze bibliothek=<pptx>")
+                bib = vorlage.oeffnen(bp)
+            sl, w = bibliothek.kopieren(prs, bib, int(fs["bib"]))
+            if w:
+                warnungen.append(f"Folie {nr}: {w}")
+            bestehende_folie(sl, fs, nr, f"Bibliothek {fs['bib']}", bib_nr=int(fs["bib"]))
         else:
             typ = fs.get("typ", "text")
             if typ not in TYPEN:

@@ -5,6 +5,7 @@ Schlüssel
 - vorlage      Standard-Vorlage (.pptx/.potx im BI-Master); leer = eigene Vorlage aus `bippt vorlage`
                (~/.bi-design/vorlagen/), sonst die des Plugins (vorlagen/), sonst <asset_root>/Vorlagen/
 - vertraulichkeit  Vermerk in der Fußzeile (BI-Master v2.1), Standard „ONLY FOR INTERNAL USE“
+- bibliothek   Folienbibliothek (BI Slide Library, gleicher Master); leer = die des Plugins (vorlagen/)
 - marke        Markenprofil aus bi-designer (Standard boehringer-ingelheim)
 - render_dir   Arbeitsordner für PowerPoint-Export (Mac: einmalig in PowerPoint freigeben)
 
@@ -36,6 +37,7 @@ IST_WIN = os.name == "nt"
 
 _MAC_ASSETS = HEIM / "Library/Mobile Documents/com~apple~CloudDocs/Arbeit/BrandDesign"
 VORLAGE_NAME = "BI_Vorlage_16x9.pptx"
+BIBLIOTHEK_NAME = "BI_Slide_Library.pptx"
 
 
 def _standard():
@@ -97,6 +99,16 @@ def vorlage_pfad(cfg=None):
         if p.is_file():
             return p
     return None
+
+
+def bibliothek_pfad(cfg=None):
+    """Folienbibliothek oder None."""
+    cfg = cfg or laden()
+    if cfg.get("bibliothek"):
+        p = Path(cfg["bibliothek"]).expanduser()
+        return p if p.is_file() else None
+    p = PLUGIN / "vorlagen" / BIBLIOTHEK_NAME
+    return p if p.is_file() else None
 
 
 def rechner():

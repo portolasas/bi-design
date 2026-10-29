@@ -13,6 +13,7 @@ Befehle
   analyse <pptx> [--json] [--formen] [--folien 2,5]   Deck knapp beschreiben; --formen: id, Name, Absätze, Läufe für aendern
   typen                        Folientypen auflisten
   icons <begriff…>             Brand-Icons suchen
+  katalog [pptx] [--folien 25,39] [-o md]   Formen der Folienbibliothek zum Füllen (id, Art, Lage, Platz, Beispieltext)
   bauen <spec.json> [-o pptx] [--erzwingen]   Präsentation bauen, dazu die Folienbeschreibung <ausgabe>.md; bricht ab,
                                wenn das Deck nach dem letzten Bau geändert wurde (--erzwingen: trotzdem überschreiben)
   beschreiben <pptx> [-o md|-] Folienbeschreibung aus dem Deck (ohne Spec, z. B. fremdes oder von Hand geändertes Deck)
@@ -95,6 +96,8 @@ def _umgebung(_):
     vl = konfig.vorlage_pfad(cfg)
     print(f"  {'ok' if vl else 'FEHLT':7} Vorlage {vl or '(Plugin neu installieren oder bippt vorlage <BI-Deck>)'}")
     ok = ok and bool(vl)
+    bib = konfig.bibliothek_pfad(cfg)
+    print(f"  {'ok' if bib else 'WARN':7} Bibliothek {bib or '(fehlt: bippt konfig --setze bibliothek=<Slide Library>)'}")
     from bippt.marke import Marke
     m = Marke()
     print(f"  {'ok' if m.ordner else 'WARN':7} Marke {m.profil} aus {m.ordner or 'Notstand (bi-designer fehlt)'}")
@@ -208,6 +211,21 @@ def _icons(a):
     return 0
 
 
+def _katalog(a):
+    from bippt import bibliothek, konfig
+    pptx = a.pptx or konfig.bibliothek_pfad()
+    if not pptx:
+        print("FEHLT Folienbibliothek: bippt konfig --setze bibliothek=<Slide Library>")
+        return 1
+    txt = bibliothek.katalog(pptx, [int(x) for x in a.folien.split(",")] if a.folien else None)
+    if a.o:
+        Path(a.o).write_text(txt, encoding="utf-8")
+        print(f"{a.o}: {len(txt)} Zeichen")
+    else:
+        print(txt)
+    return 0
+
+
 def _bauen(a):
     from bippt.bauen import bauen
     _, w = bauen(a.spec, a.o, erzwingen=a.erzwingen)
@@ -275,6 +293,8 @@ def main(argv=None):
     p.set_defaults(fn=_analyse)
     sub.add_parser("typen").set_defaults(fn=_typen)
     p = sub.add_parser("icons"); p.add_argument("begriffe", nargs="+"); p.set_defaults(fn=_icons)
+    p = sub.add_parser("katalog"); p.add_argument("pptx", nargs="?"); p.add_argument("--folien"); p.add_argument("-o")
+    p.set_defaults(fn=_katalog)
     p = sub.add_parser("bauen"); p.add_argument("spec"); p.add_argument("-o")
     p.add_argument("--erzwingen", action="store_true", help="auch ein nach dem Bau geändertes Deck überschreiben")
     p.set_defaults(fn=_bauen)
