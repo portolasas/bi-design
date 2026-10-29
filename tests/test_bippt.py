@@ -541,7 +541,7 @@ with tempfile.TemporaryDirectory() as td:
          "Bibliotheksfolie 25" in md_ and "- Gebäude\n- Neubau mit vier Etagen" in md_)
     kat = bibliothek.katalog(BIB, [25])
     fall("katalog nennt ids, Platz und Beispieltext", "## 25: Text box: Three columns" in kat
-         and "id 10 · Text" in kat and "Platz ~" in kat and "„Header box“" in kat)
+         and "id 10 · Text" in kat and "Platz ~" in kat and "„Header box“" in kat and "Absätze: 4× Punkt" in kat)
 
 print("ALLE FÄLLE BESTANDEN" if not fehler else f"FEHLGESCHLAGEN: {', '.join(fehler)}")
 sys.exit(1 if fehler else 0)

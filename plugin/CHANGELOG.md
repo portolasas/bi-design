@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.5.1 – 2026-10-29
+- `bippt katalog` nennt je Textfeld den Aufbau der Absätze („Absätze: fett, Text, 2× Punkt“): Der n-te Absatz von
+  `texte` bekommt das Format des n-ten. Am Musterdeck aus der Bibliothek fiel auf, dass sonst Überschrift, Text und
+  Aufzählung vertauscht werden. `reference/bibliothek.md`: anderes Format mit `{"t": …, "wie": n}`.
+
 ## 2.5.0 – 2026-10-29
 Folienbibliothek und Befunde aus der Erprobung im Copilot Agent Builder (Laborneubau-Deck, 29.10.2026). Der Nutzer fand
 die Decks zu schematisch und unzuverlässig gerendert und hat die offizielle BI Slide Library bereitgestellt.

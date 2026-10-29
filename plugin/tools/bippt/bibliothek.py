@@ -249,6 +249,30 @@ def _ebene(sh, p):
             "vor": abstand("a:spcBef"), "nach": abstand("a:spcAft")}
 
 
+def _absatzarten(sh):
+    """Aufbau eines Textfelds je Absatz: „fett“ (Überschrift), „Text“ oder „Punkt“ (Aufzählung), gleiche zusammengefasst –
+    so weiß, wer texte schreibt, welcher Absatz welches Format bekommt."""
+    arten = []
+    lst = sh.text_frame._txBody.find(qn("a:lstStyle"))
+    for p in sh.text_frame.paragraphs:
+        ppr = p._p.find(qn("a:pPr"))
+        lvl = int(ppr.get("lvl", 0)) if ppr is not None else 0
+        stil = lst.find(qn(f"a:lvl{lvl + 1}pPr")) if lst is not None else None
+        punkt = False
+        for x in (ppr, stil):
+            if x is not None and x.find(qn("a:buNone")) is not None:
+                break
+            if x is not None and x.find(qn("a:buChar")) is not None:
+                punkt = True
+                break
+        art = "Punkt" if punkt else "fett" if p.runs and all(r.font.bold for r in p.runs if r.text.strip()) else "Text"
+        if arten and arten[-1][0] == art:
+            arten[-1][1] += 1
+        else:
+            arten.append([art, 1])
+    return ", ".join(f"{n}× {a}" if n > 1 else a for a, n in arten)
+
+
 def _schrift(sh):
     """Schriftgröße (pt) des ersten Absatzes."""
     ps = sh.text_frame.paragraphs
@@ -355,7 +379,9 @@ def katalog(pptx, folien=None):
     """Markdown: je Folie Titel, Layout und die Formen zum Füllen – id, Art, Lage, Schrift, Platz, Beispieltext."""
     prs = vorlage.oeffnen(pptx)
     z = [f"# Katalog `{Path(pptx).name}` · {len(prs.slides)} Folien",
-         "Je Form: id · Art · Lage x, y, Breite × Höhe (in) · Schrift (pt) · Platz (Zeilen × Zeichen) · Beispieltext. "
+         "Je Form: id · Art · Lage x, y, Breite × Höhe (in) · Schrift (pt) · Platz (Zeilen × Zeichen) · Absätze "
+         "(fett = Überschrift, Text, Punkt = Aufzählung; der n-te Absatz von texte bekommt das Format des n-ten) · "
+         "Beispieltext. "
          "Füllen mit `{\"bib\": n, \"texte\": {\"id\": …}, \"bilder\": {\"id\": …}, \"daten\": {\"id\": …}, "
          "\"tabellen\": {\"id\": [[…]]}, \"entfernen\": [id]}`. OLE-Objekte (think-cell) und Fußzeile nicht anfassen."]
     for nr, sl in enumerate(prs.slides, 1):
@@ -386,8 +412,7 @@ def katalog(pptx, folien=None):
                 zeilen = max(1, int((sh.height / 914400 - 0.1) / (g * 1.2 * e["faktor"] / 72)))
                 zeichen = max(1, int((sh.width / 914400 - 0.3 - e["einzug"]) / (g * 0.55 / 72)))
                 text = re.sub(r"\s+", " ", sh.text_frame.text.strip())
-                n = len(sh.text_frame.paragraphs)
-                teile += [f"{g:g} pt", f"Platz ~{zeilen} × {zeichen}", f"{n} Abs." if n > 1 else "",
+                teile += [f"{g:g} pt", f"Platz ~{zeilen} × {zeichen}", f"Absätze: {_absatzarten(sh)}",
                           f"„{text[:50]}{'…' if len(text) > 50 else ''}“"]
             elif getattr(sh, "has_chart", False):
                 c = sh.chart

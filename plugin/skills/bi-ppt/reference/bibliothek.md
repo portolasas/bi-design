@@ -25,8 +25,10 @@ Grau) neben Weiß und Dunkelgrün – nicht jede Folie in einer anderen Farbe.
    "daten": {"16": {"kategorien": […], "reihen": [{"name": "…", "werte": […]}], "titel": "…"}},
    "tabellen": {"17": [["Kopf", "…"], ["Zelle", "…"]]}, "entfernen": [8]}`, dazu wie bei Basisfolien `ersetzen`,
    `aendern`, `elemente`, `notizen`, `ausblenden`.
-   - `texte`: eine Zeichenkette oder eine Liste von Absätzen; jeder Absatz bekommt das Format des vorhandenen
-     (Aufzählung, fett). `**fett**` wie überall. Mehr Absätze als vorher übernehmen das Format des letzten.
+   - `texte`: eine Zeichenkette oder eine Liste von Absätzen. Der n-te Absatz bekommt das Format des n-ten Absatzes
+     der Bibliothek – der Katalog nennt es („Absätze: fett, Text, 2× Punkt“). Mehr Absätze als vorher übernehmen das
+     Format des letzten; ein anderes Format mit `{"t": "12 Wochen", "wie": 5}` (Format von Absatz 5). `**fett**` wie
+     überall.
    - **Jeden Blindtext ersetzen oder seine Form entfernen** – auch Überschriften wie „Header box“, „Headline“, Zahlen
      wie „20XX“ und gelbe Hinweisetiketten („Excel based chart“, „PowerPoint Master available …“).
    - Icons und Illustrationen der Bibliothek stehen für das Beispiel. Passt eins nicht zum Inhalt: entfernen oder
