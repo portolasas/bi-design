@@ -4,9 +4,11 @@ Quelle: Plugin **bi-design** aus dem privaten Marktplatz `portolasas/bi-design`.
 `bi-ppt` und `bi-designer`, den Generator `bippt` und die Vorlage mit. Einstellungen je Rechner: `~/.bi-design/config.json`.
 
 ## Installieren
-- **VS Code:** in den Benutzereinstellungen (JSON) `"chat.plugins.enabled": true` und
-  `"chat.plugins.marketplaces": [..., "portolasas/bi-design"]`; in der Erweiterungen-Ansicht unter Agent Plugins
-  **bi-design** installieren; „Developer: Reload Window“; Agent **bi-ppt** im Agenten-Menü wählen.
+- **VS Code:** Marktplatz in den Einstellungen eintragen: `chat.plugins.marketplaces` › „Element hinzufügen“ ›
+  `portolasas/bi-design` (oder Customizations › Browse › Configure Marketplaces › Add Marketplace); kein JSON nötig.
+  **bi-design** aus dem Marktplatz installieren (Customizations › Browse oder Erweiterungen-Ansicht unter Agent
+  Plugins); „Developer: Reload Window“; Agent **bi-ppt** im Agenten-Menü wählen. Erscheint es nicht:
+  `chat.plugins.enabled` eingeschaltet? Privates Repo: GitHub-Anmeldung mit Lesezugriff.
 - **Claude Code:** `/plugin marketplace add portolasas/bi-design`, `/plugin install bi-design@bi-design`, neue Sitzung.
   Skill `/bi-design:bi-ppt` im Hauptchat oder Subagent `bi-ppt` für abgegrenzte Bauaufträge.
 - Dann `bippt umgebung`; Pakete mit `bippt einrichten`, alte Kopien mit `bippt aufraeumen --ja`.

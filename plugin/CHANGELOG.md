@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.3.3 – 2026-10-29
+- Installation in VS Code ohne JSON: Marktplatz `portolasas/bi-design` in den Einstellungen eintragen
+  (`chat.plugins.marketplaces` › „Element hinzufügen“) oder unter Customizations › Configure Marketplaces;
+  README und `reference/installation.md` (Nutzer, 29.10.2026; wie ppp 0.4.2).
+
 ## 2.3.2 – 2026-10-28
 Befunde aus brrp (28.10.2026, Deck mit Basisfolien und neuen Folien): falsche Warnungen, doppelte Ersetzungen und
 Überdeckungen, die erst im Render auffielen.

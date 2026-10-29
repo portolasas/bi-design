@@ -18,12 +18,16 @@ Verbindlich ist der **BI-Master v2.1** (How-to slides): nur seine Designfarben u
 ## Kurzanleitung
 
 ### 1. Installieren
-**VS Code.** In den Benutzereinstellungen (JSON) ergänzen:
-```json
-"chat.plugins.enabled": true,
-"chat.plugins.marketplaces": ["portolasas/ppp-plugin", "portolasas/bi-design"]
-```
-In der Erweiterungen-Ansicht unter Agent Plugins **bi-design** installieren, dann „Developer: Reload Window“.
+**VS Code.** Ohne JSON und ohne Installationsskript:
+1. Marktplatz eintragen: Einstellungen öffnen, nach `chat.plugins.marketplaces` suchen, „Element hinzufügen“ und
+   `portolasas/bi-design` eingeben (für ppp `portolasas/ppp-plugin`). Oder in der Agents-Ansicht: Customizations ›
+   Browse › Configure Marketplaces › Add Marketplace. Das Repo ist privat: In VS Code mit einem GitHub-Konto
+   angemeldet sein, das Lesezugriff hat.
+2. **bi-design** aus dem Marktplatz installieren (Customizations › Browse oder Erweiterungen-Ansicht unter Agent
+   Plugins) und die Vertrauensabfrage bestätigen.
+3. „Developer: Reload Window“.
+
+Erscheint das Plugin nicht, prüfen, ob Agent Plugins eingeschaltet sind (`chat.plugins.enabled`).
 
 **Claude Code.** Einmal je Rechner:
 ```
