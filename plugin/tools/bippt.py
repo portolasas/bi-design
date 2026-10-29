@@ -60,7 +60,8 @@ def _aufruf():
 
 def _alte_kopien():
     """Kopien im Benutzerordner, die Agent und Skills des Plugins verdecken."""
-    heim = Path(os.environ.get("BIPPT_BENUTZER") or Path.home())
+    from bippt import konfig
+    heim = Path(os.environ.get("BIPPT_BENUTZER") or konfig.HEIM)
     treffer = []
     for rel, datei, merkmal in ALTE_KOPIEN:
         ziel = heim / rel
@@ -248,6 +249,8 @@ def _neu(a):
     ziel = Path(a.ordner)
     ziel.mkdir(parents=True, exist_ok=True)
     beispiel = TOOL.parent.parent / "skills" / "bi-ppt" / "beispiele" / "beispiel.spec.json"
+    if not beispiel.is_file():  # Skill-Paket für Copilot: beispiele/ neben tools/
+        beispiel = TOOL.parent.parent / "beispiele" / "beispiel.spec.json"
     spec = json.loads(beispiel.read_text(encoding="utf-8"))
     spec["ausgabe"] = f"{a.name}.pptx"
     p = ziel / f"{a.name}.spec.json"

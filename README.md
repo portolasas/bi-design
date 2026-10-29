@@ -79,6 +79,7 @@ Was sich geändert hat: [plugin/CHANGELOG.md](plugin/CHANGELOG.md).
 | `plugin/tools/` | Generator `bippt` und `requirements.txt` |
 | `plugin/vorlagen/BI_Vorlage_16x9.pptx` | Arbeitsvorlage aus dem BI-Master v2.1 (ohne Folien, ohne doppelte Layouts) |
 | `vorlagen/How-to slides.pptx` | Original des BI-Masters, Quelle für `bippt vorlage`; wird nicht installiert |
+| Repo `portolasas/Agents`, Ordner `bi-ppt` | Agent bi-ppt für den Microsoft 365 Copilot Agent Builder; sein Bauskript packt Generator, Vorlage und Marke aus `plugin/` in Skill-Pakete |
 | `tests/` | `test_plugin.py` (Aufbau, Version, Aufräumen; nur Standardbibliothek), `test_bippt.py` (Generator) |
 
 Einstellungen je Rechner: `~/.bi-design/config.json` (`asset_root`, `vorlage`, `vertraulichkeit`, `marke`, `render_dir`).

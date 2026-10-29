@@ -14,23 +14,33 @@ import json
 import os
 import platform
 import sys
+import tempfile
 from pathlib import Path
 
 from . import PLUGIN
 
-HOME = Path(os.environ.get("BIPPT_HOME", Path.home() / ".bi-design"))
+
+def _heim():
+    try:
+        return Path.home()
+    except (KeyError, RuntimeError):  # Sandbox ohne Benutzerordner (Skill-Paket für Copilot)
+        return Path(tempfile.gettempdir())
+
+
+HEIM = _heim()
+HOME = Path(os.environ.get("BIPPT_HOME") or HEIM / ".bi-design")
 DATEI = HOME / "config.json"
-ALT = None if "BIPPT_HOME" in os.environ else Path.home() / ".bi-ppt" / "config.json"
+ALT = None if "BIPPT_HOME" in os.environ else HEIM / ".bi-ppt" / "config.json"
 IST_MAC = sys.platform == "darwin"
 IST_WIN = os.name == "nt"
 
-_MAC_ASSETS = Path.home() / "Library/Mobile Documents/com~apple~CloudDocs/Arbeit/BrandDesign"
+_MAC_ASSETS = HEIM / "Library/Mobile Documents/com~apple~CloudDocs/Arbeit/BrandDesign"
 VORLAGE_NAME = "BI_Vorlage_16x9.pptx"
 
 
 def _standard():
     asset = _MAC_ASSETS if (IST_MAC and _MAC_ASSETS.is_dir()) else None
-    render = (Path.home() / "Documents" / "BI-PPT-Render") if IST_MAC else (HOME / "render")
+    render = (HEIM / "Documents" / "BI-PPT-Render") if IST_MAC else (HOME / "render")
     return {
         "asset_root": str(asset) if asset else "",
         "vorlage": "",
@@ -47,7 +57,7 @@ def _lesen(datei):
         print(f"WARNUNG: {datei} nicht lesbar ({e}) – Standardwerte", file=sys.stderr)
         return {}
     werte.pop("quelle", None)  # Repo-Pfad des alten Installers
-    if werte.get("vorlage") and Path(werte["vorlage"]).parent == Path.home() / ".bi-ppt" / "vorlagen":
+    if werte.get("vorlage") and Path(werte["vorlage"]).parent == HEIM / ".bi-ppt" / "vorlagen":
         werte["vorlage"] = ""  # Kopie des alten Installers; jetzt aus dem Plugin
     return {k: v for k, v in werte.items() if v is not None}
 

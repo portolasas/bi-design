@@ -1,7 +1,8 @@
 """Markenprofil laden – Quelle ist der Skill bi-designer im selben Plugin (marken/<profil>/tokens.json, icons.txt).
 
-Suchreihenfolge: $BIPPT_MARKE_DIR, <plugin>/skills/bi-designer/marken. Fehlt das Profil, greift ein eingebauter
-Notstand mit den Kernfarben (Warnung). Neue Marken = neuer Ordner in bi-designer, hier ist nichts zu ändern.
+Suchreihenfolge: $BIPPT_MARKE_DIR, <plugin>/skills/bi-designer/marken, <plugin>/marken (Skill-Paket für Copilot,
+Repo portolasas/Agents). Fehlt das Profil, greift ein eingebauter Notstand mit den Kernfarben (Warnung). Neue Marken =
+neuer Ordner in bi-designer, hier ist nichts zu ändern.
 """
 import json
 import os
@@ -13,7 +14,7 @@ from . import PLUGIN, konfig
 
 def _suchpfade():
     env = os.environ.get("BIPPT_MARKE_DIR")
-    return ([Path(env)] if env else []) + [PLUGIN / "skills" / "bi-designer" / "marken"]
+    return ([Path(env)] if env else []) + [PLUGIN / "skills" / "bi-designer" / "marken", PLUGIN / "marken"]
 
 
 # Notstand, nur wenn das Profil fehlt (Werte = tokens.json 2026-10)

@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.4.0 – 2026-10-29
+- bippt läuft auch als Skill-Paket für Agenten im Microsoft 365 Copilot Agent Builder (Repo `portolasas/Agents`,
+  Ordner `bi-ppt`; Nutzer, 29.10.2026). Im Paket liegen Markenprofil und Beispiele flach neben `tools/`, weil Agent
+  Builder höchstens drei Ordnerebenen annimmt: bippt sucht das Profil zusätzlich in `<plugin>/marken/`, `bippt neu` das
+  Beispiel in `<plugin>/beispiele/`. Ohne Benutzerordner (Sandbox) nimmt bippt den Temp-Ordner statt abzubrechen.
+
 ## 2.3.3 – 2026-10-29
 - Installation in VS Code ohne JSON: Marktplatz `portolasas/bi-design` in den Einstellungen eintragen
   (`chat.plugins.marketplaces` › „Element hinzufügen“) oder unter Customizations › Configure Marketplaces;
