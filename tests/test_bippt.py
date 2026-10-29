@@ -406,7 +406,9 @@ with tempfile.TemporaryDirectory() as td:
         {"typ": "prozess", "titel": "Quelle, Band, Karten", "quelle": "Quelle: SOP und WI", "band": band_,
          "schritte": [{"titel": "Eingang", "text": "Charge"}, {"titel": "Prüfung", "text": "Checkliste"}],
          "karten": karten2},
-        tab(17, groesse=12, band=band_)]}, ensure_ascii=False), encoding="utf-8")
+        tab(17, groesse=12, band=band_),
+        {"typ": "text", "titel": "Text mit Band und Quelle", "punkte": ["Eins", "Zwei"], "band": band_,
+         "quelle": "Quelle: Projektauftrag"}]}, ensure_ascii=False), encoding="utf-8")
     zm, wm = bauen.bauen(td / "messen.spec.json", still=True)
     pm = Presentation(str(zm))
 
@@ -443,6 +445,20 @@ with tempfile.TemporaryDirectory() as td:
     kb = [sh for sh in pm.slides[7].shapes if sh.name == "Kernaussage"]
     fall("Quelle und Band: Band endet über der Quellenzeile", quelle_ and kb and unterkante_(kb[0]) <= quelle_[0].top / 914400,
          f"{unterkante_(kb[0]) if kb else '-'} / {quelle_[0].top / 914400 if quelle_ else '-'}")
+    ph_ = [sh for sh in pm.slides[9].placeholders if sh.placeholder_format.idx == 1]
+    lay_ = [sh for sh in pm.slides[9].slide_layout.placeholders if sh.placeholder_format.idx == 1]
+    kb = [sh for sh in pm.slides[9].shapes if sh.name == "Kernaussage"]
+    fall("Textfolie mit Band: Inhaltsplatzhalter behält Lage und Breite, endet über dem Band",
+         ph_ and lay_ and kb and ph_[0]._element.spPr.find(qn("a:xfrm")).find(qn("a:off")) is not None
+         and (ph_[0].left, ph_[0].top, ph_[0].width) == (lay_[0].left, lay_[0].top, lay_[0].width)
+         and unterkante_(ph_[0]) <= kb[0].top / 914400 + 0.005,
+         f"{[(sh.left, sh.top, sh.width, sh.height) for sh in ph_]} Layout {[(sh.left, sh.width) for sh in lay_]}")
+    from pptx.util import Inches  # noqa: E402
+    sl_ = pm.slides[9]
+    sl_.shapes.add_textbox(Inches(1), Inches(2), 0, Inches(2)).text_frame.text = "Breite null"
+    pm.save(str(td / "schmal.pptx"))
+    fall("pruefen meldet ein Textfeld mit Breite 0 als FEHLER", any(b_[0] == "FEHLER" and b_[1] == 10 and "0.00 in breit"
+                                                                    in b_[2] for b_ in pruefen.pruefen(td / "schmal.pptx")))
 
 print("ALLE FÄLLE BESTANDEN" if not fehler else f"FEHLGESCHLAGEN: {', '.join(fehler)}")
 sys.exit(1 if fehler else 0)

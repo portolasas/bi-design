@@ -70,7 +70,11 @@ def text_folie(k, s):
         textfeld(k, X0, Y0, XW, inhaltsunterkante(s) - Y0, s.get("punkte", []), punkt=True, groesse=16)
         return
     if s.get("band"):
-        ph.height = E(inhaltsunterkante(s) - vorlage.platzhalter(k.folie, idx=1).top / 914400)
+        # Lage erbt der Platzhalter vom Layout. Nur height zu setzen legt <a:xfrm> mit Breite 0 und ohne Lage an
+        # (Text einen Buchstaben breit) – darum alle vier Werte schreiben.
+        links, oben, breite = ph.left, ph.top, ph.width
+        ph.left, ph.top, ph.width = links, oben, breite
+        ph.height = E(inhaltsunterkante(s) - oben / 914400)
     tf = ph.text_frame
     erste = True
     for a in absaetze(s.get("punkte", [])):

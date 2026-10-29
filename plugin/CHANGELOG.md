@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.4.1 – 2026-10-29
+Befund aus der ersten Erprobung im Copilot Agent Builder (Steering-Deck aus einem Projektauftrag, 29.10.2026).
+- Fehler: Typ `text` mit `band` setzte nur die Höhe des Inhaltsplatzhalters. Weil der Platzhalter seine Lage vom Layout
+  erbt, entstand eine Form mit Breite 0 und ohne Lage – der Text stand in PowerPoint einen Buchstaben je Zeile am
+  linken Rand. Betraf alle Textfolien mit Band seit 1.0.0, in VS Code wie in Copilot. Jetzt schreibt bippt Lage und
+  Breite mit.
+- `pruefen` meldet Textfelder unter 0,3 in Breite als FEHLER. So fällt der Fehler auch ohne Rendern auf (Copilot) und
+  in Decks, die mit älteren Versionen gebaut wurden: dort die Spec neu bauen.
+- Tests: Textfolie mit Band und Quelle, Textfeld mit Breite 0.
+
 ## 2.4.0 – 2026-10-29
 - bippt läuft auch als Skill-Paket für Agenten im Microsoft 365 Copilot Agent Builder (Repo `portolasas/Agents`,
   Ordner `bi-ppt`; Nutzer, 29.10.2026). Im Paket liegen Markenprofil und Beispiele flach neben `tools/`, weil Agent

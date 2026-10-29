@@ -150,6 +150,9 @@ def pruefen(pfad, profil=None, theme_farben_erlauben=True, woerter=170):
                     b("WARNUNG", nr, f"„{sh.name}“ ragt über den Folienrand")
             if not sh.has_text_frame or not sh.text_frame.text.strip():
                 continue
+            if sh.width is not None and Emu(sh.width).inches < 0.3:  # z. B. Breite 0 aus bippt bis 2.4.0
+                b("FEHLER", nr, f"Textfeld „{sh.name}“ ist {Emu(sh.width).inches:.2f} in breit – Text steht einen "
+                                "Buchstaben je Zeile")
             fill = _fuellung(sh) or _untergrund(formen, i_sh) or grund
             gr_max = 0
             for p in sh.text_frame.paragraphs:
