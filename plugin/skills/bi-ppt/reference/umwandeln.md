@@ -13,15 +13,23 @@ Entscheidung des Nutzers (30.10.2026): Das Deck muss nicht in die Layouts des Ma
 Die Erstellen-Funktion von Copilot gestaltet in HTML und übersetzt das in PowerPoint-Formen; das Ergebnis ist oft besser als alles, was
 wir bauen. Darum nehmen wir es als Quelle.
 1. `bippt umwandeln marke fremd.pptx -o ziel.pptx`. Der Bericht nennt die OFFENEN ICONS: Folie, id und der Text daneben.
-2. Je Icon nach der Bedeutung des Textes ein Brand-Icon wählen (`bippt icons <englischer Begriff>`, ein Begriff je Aufruf) und in
-   eine JSON-Datei schreiben: `{"2": {"7": "clock", "10": "office-printer"}}`. Dann erneut mit `--icons icons.json`. Fertig bei
-   „0 nur umgefärbt“. Häkchen und Punkte vor Listen zählen nicht.
+2. Je Schlüssel nach der Bedeutung des Textes ein Brand-Icon wählen (Liste `marken/boehringer-ingelheim/icons.txt`, oder
+   `bippt icons <englischer Begriff>`) und in eine JSON-Datei schreiben: `{"ccf86a": "bar-chart-trend-up", "581412": "people"}`. Gleiche
+   Icons haben denselben Schlüssel. Soll dasselbe Icon auf einer Folie anders sein: `{"2": {"7": "clock"}}`. Dann erneut mit
+   `--icons icons.json`. Fertig bei „0 nur umgefärbt“. Häkchen und Punkte vor Listen zählen nicht.
 3. `bippt pruefen` und `bippt sichten`. Überlappung und Überstand beheben. Leere nur nennen: Die Gestaltung stammt vom Designer.
 4. Inhalt nicht ändern und nicht kürzen. Fotos färbt bippt nicht um; es meldet sie.
 
-Der Befehl tauscht Farben nach ihrer Rolle: dunkle Flächen werden Dark Green, Hervorhebungen Accent Green mit dunklem Text, helle Flächen
-Warm und Light Gray, gedämpfter Text Gray 7. Runde Ecken und Schatten fallen weg. Fußtexte des Designers weichen der Fußzeile des
-Masters, und was in Logo oder Fußzeile ragt, wird in der Höhe eingepasst. Die Titelfolie kommt aus dem Master.
+Was der Befehl macht:
+- **Farben nach Rolle.** Die dunkle Hausfarbe wird Dark Green, die häufigste andere Farbgruppe Accent Green, die übrigen Medium und Dark Blue;
+  helle Flächen Warm und Light Gray, gedämpfter Text Gray 7. Diagramme und Tortengrafiken nehmen die Chart order, damit Kategorien
+  unterscheidbar bleiben. Signalfarben nur, wenn das Deck Rot und Grün hat: Orange ist kein Alarm.
+- **Fotos** bleiben. Fotos und Flächen über die ganze Folienhöhe enden über dem Logo; Fotos werden dafür beschnitten, nicht verzerrt.
+- **Einpassen.** Was in Logo oder Fußzeile ragt, wird in der Höhe eingepasst: Karten werden flacher, ihr Inhalt behält die Größe. Stand- und
+  Quellenzeilen wandern zwischen Logo und Fußzeile.
+- **Weg fallen** Vollbilder, Farbschleier über Fotos, ganz durchsichtige Bilder, Fußtexte und Seitenzahlen des Designers, runde Ecken und Schatten.
+- **Schrift:** 9 pt, wo es ohne neue Zeile geht, und dann für alle gleich großen Texte der Folie.
+- Die Titelfolie kommt aus dem Master. Ein leeres Element bleibt leer: Fehlt schon im Original etwas (eine Karte ohne Bild), im Abschluss nennen.
 
 ## Weg 1 – Neu bauen
 1. `bippt analyse fremd.pptx` (Überblick) und `bippt pruefen fremd.pptx` (Ausgangsbefunde, für den Abschluss).

@@ -5,10 +5,12 @@ Blick unklar); sie ersetzt dort den Kontaktbogen, so weit das geht.
 Gemessen wird je Folie:
 - Überlappung: Textzeilen, die einander überdecken.
 - Überstand: Textzeile, die über den Rand der Folie oder einer gefüllten Form ragt.
+- Wortrest in einer eigenen Zeile und Bilder auf dem Logo.
 - Leere: größte Fläche der Inhaltszone ohne jedes Detail (einfarbige Zellen, auch einfarbig gefüllte Karten).
 Rendert LibreOffice ohne die Boehringer-Schriften, weicht der Umbruch ab: Überlappung und Überstand sind dann nur Hinweise; die
 Leere hängt kaum an der Schrift und zählt weiter.
 """
+import re
 from pathlib import Path
 
 from pptx import Presentation
@@ -21,22 +23,72 @@ ZELLE = 0.25  # Kantenlänge einer Prüfzelle (in)
 KONTRAST = 8  # Graustufen: Zelle mit weniger Spanne gilt als leer
 LEER_FLAECHE = 0.40  # am Render der 184 Folien der Slide Library kalibriert: nur Rahmenfolien (Disclaimer, Outro) liegen darüber
 TOLERANZ = 0.04  # in; Überstand darunter zählt nicht
+LOGO = (0.52, 6.74, 1.88, 7.15)  # Lage des Logos im Master (in)
+RESTWORT = re.compile(r"^[a-zäöüß]{1,3}\.?$")
+KURZWOERTER = {"in", "an", "am", "im", "zu", "und", "der", "die", "das", "des", "den", "dem", "für", "bei", "mit", "von", "vor", "auf", "aus",
+               "um", "ab", "es", "er", "sie", "wir", "ist", "ein", "of", "the", "and", "to", "for", "on", "a", "u.", "z.", "ca."}
 RAHMEN_LAYOUTS = ("title slide", "chapter", "divider", "agenda", "section", "thank", "disclaimer", "outro", "contact", "one content dark")  # hier ist Leere gewollt
 
 
 def _zeilen(seite):
-    """Textzeilen der Seite: (Text, Schriftgröße, Box in Zoll, Tintenkern in Zoll). Der Kern lässt Ober- und Unterlänge weg."""
+    """Textstücke der Seite: (Text, Schriftgröße, Box in Zoll, Tintenkern in Zoll). Der Kern lässt Ober- und Unterlänge weg. Stücke statt
+    Zeilen: MuPDF legt einander überdeckende Texte in eine Zeile, die Überlappung wäre dann unsichtbar."""
     zeilen = []
     for block in seite.get_text("dict")["blocks"]:
         for z in block.get("lines", []):
-            text = "".join(sp["text"] for sp in z["spans"]).strip()
-            if not text:
-                continue
-            x0, y0, x1, y1 = (v / ZOLL for v in z["bbox"])
-            rand = (y1 - y0) * 0.25
-            zeilen.append({"t": text, "g": max(sp["size"] for sp in z["spans"]), "box": (x0, y0, x1, y1),
-                           "kern": (x0, y0 + rand, x1, y1 - rand)})
+            for sp in z["spans"]:
+                text = sp["text"].strip()
+                if not text:
+                    continue
+                x0, y0, x1, y1 = (v / ZOLL for v in sp["bbox"])
+                rand = (y1 - y0) * 0.25
+                zeilen.append({"t": text, "g": sp["size"], "box": (x0, y0, x1, y1), "kern": (x0, y0 + rand, x1, y1 - rand)})
     return zeilen
+
+
+def _wort_getrennt(seite):
+    """Zeile, die nur aus einem Wortrest besteht („n“, „ung“): Das Feld ist zu schmal, PowerPoint trennt mitten im Wort."""
+    funde = []
+    for block in seite.get_text("dict")["blocks"]:
+        zeilen = ["".join(sp["text"] for sp in z["spans"]).strip() for z in block.get("lines", [])]
+        for vor, t in zip(zeilen, zeilen[1:]):
+            if RESTWORT.match(t) and vor and vor[-1].isalpha() and t not in KURZWOERTER:
+                funde.append(f"Wort getrennt: „{_auszug(vor, 20)}“ / „{t}“")
+    return funde
+
+
+def _text_auf_logo(zeilen):
+    for z in zeilen:
+        x0, y0, x1, y1 = z["kern"]
+        if x0 < LOGO[2] and x1 > LOGO[0] and y0 < LOGO[3] and y1 > LOGO[1]:
+            return [f"Text auf dem Logo: „{_auszug(z['t'])}“"]
+    return []
+
+
+def _formen_auf_logo(prs):
+    """Bilder und Flächen über dem Logo, je Folie. Aus der PPTX, nicht aus dem PDF: Dort tragen beschnittene Bilder ihre volle Größe."""
+    funde = {}
+    for nr, folie in enumerate(prs.slides, 1):
+        eigenes_logo = any(sh.shape_type == 13 and sh.left is not None and abs(sh.left / 914400 - LOGO[0]) < 0.1
+                           and abs(sh.top / 914400 - LOGO[1]) < 0.1 and sh.width / 914400 < 1.6 for sh in folie.shapes)
+        if eigenes_logo or "logo" in " ".join(sh.name.lower() for sh in folie.shapes):
+            continue  # Bibliotheksfolien bringen ihr Logo als Bild mit und decken das des Masters bewusst ab
+        for sh in folie.shapes:
+            if sh.left is None or sh.width is None or sh.is_placeholder:
+                continue
+            x0, y0 = sh.left / 914400, sh.top / 914400
+            x1, y1 = x0 + sh.width / 914400, y0 + sh.height / 914400
+            if not (x0 < LOGO[2] and x1 > LOGO[0] and y0 < LOGO[3] and y1 > LOGO[1]):
+                continue
+            bild = sh.shape_type == 13
+            flaeche = getattr(sh, "fill", None) is not None and not sh.has_text_frame or (sh.has_text_frame and not sh.text_frame.text.strip())
+            try:
+                gefuellt = bild or (flaeche and sh.fill.type == 1)
+            except (AttributeError, TypeError, ValueError):
+                gefuellt = bild
+            if gefuellt:
+                funde.setdefault(nr, []).append(f"{'Bild' if bild else 'Fläche'} „{sh.name}“ liegt auf dem Logo")
+    return funde
 
 
 def _auszug(t, n=28):
@@ -144,7 +196,8 @@ def messen(pdf, layouts=None):
             befund = (f"Leere: Eine leere Fläche nimmt {flaeche:.0%} der Inhaltszone ein – mehr Inhalt oder eine "
                       "Bildform aus reference/bibliothek.md")
         ergebnis.append({"nr": nr, "leer": leer, "flaeche": flaeche, "leere": befund,
-                         "text": _ueberlappung(zeilen) + _ueberstand(seite, zeilen)})
+                         "text": _ueberlappung(zeilen) + _ueberstand(seite, zeilen) + _wort_getrennt(seite)
+                         + ([] if rahmen else _text_auf_logo(zeilen))})
     schriften = {f[3].split("+")[-1] for seite in doc for f in seite.get_fonts()}
     doc.close()
     return ergebnis, schriften
@@ -153,9 +206,14 @@ def messen(pdf, layouts=None):
 def sichten(pptx, ausgabe=None, weg=None, folien=None):
     """Rendert das Deck (auch Ausgeblendetes, damit die Nummern stimmen) und meldet die Befunde. Rückgabe: Zahl der Befunde."""
     pptx = Path(pptx)
-    layouts = [s.slide_layout.name for s in Presentation(str(pptx)).slides]
+    prs = Presentation(str(pptx))
+    layouts = [s.slide_layout.name for s in prs.slides]
     pdf, _, _ = rendern(pptx, ausgabe, dpi=80, alle=True, weg=weg, blatt=True)
     ergebnis, schriften = messen(pdf, layouts)
+    auf_logo = _formen_auf_logo(prs)
+    for f in ergebnis:
+        if not any(n in layouts[f["nr"] - 1].lower() for n in RAHMEN_LAYOUTS):
+            f["text"] += auf_logo.get(f["nr"], [])
     marke = any("Boehringer" in s for s in schriften)
     print(f"SICHTUNG {pptx.name}: {len(ergebnis)} Folien · Schrift: "
           + ("Boehringer" if marke else f"Ersatz ({', '.join(sorted(schriften)) or 'keine'}), Umbruch weicht ab"))

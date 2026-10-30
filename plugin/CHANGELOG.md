@@ -1,5 +1,20 @@
 # Changelog
 
+## 2.9.0 – 2026-10-30
+Härtetest von `bippt umwandeln marke` mit einem Deck der Erstellen-Funktion über 27 Folien, mit Fotos, vier Diagrammen und Zeitstrahlen. Er deckte auf,
+dass der erste Wurf nur für einfache Decks taugte. `sichten` hatte die Hälfte der Fehler übersehen.
+- **Farben:** Farbgruppen des Decks statt Einzelregeln; Dark Green, Accent Green, dann eine Variante (Blau). Orange wurde vorher Alarmrot. Signalfarben nur
+  bei echter Ampel. Diagramme in der Chart order der Marke, vorher hatten Kategorien dieselbe Farbe und ein Fehler färbte sie um. Tortengrafiken als Bild ebenso.
+- **Fotos:** Fotos über die Folienhöhe rutschten nach unten, verdeckten das Logo oder verschwanden unter einem undurchsichtig gewordenen Farbschleier. Jetzt werden sie
+  unten beschnitten, Schleier und ganz durchsichtige Bilder fallen weg. Grafik und Foto werden sauber unterschieden.
+- **Einpassen:** Karten werden flacher, ihr Inhalt behält Größe und Abstand. Unten Verankertes rückt geschlossen hoch. Vorher schob sich Text ineinander. Stand- und
+  Quellenzeilen wandern zwischen Logo und Fußzeile, statt den Inhalt zu stauchen; Text auf Chips bleibt beim Chip.
+- **Schrift:** 9 pt nur, wo keine neue Zeile entsteht, und einheitlich je Folie. Vorher Trennungen mitten im Wort.
+- **Icons:** Schlüssel je Form; gleiche Icons muss der Agent nur einmal zuordnen.
+- Titelfolie: Untertitel plus eine Zeile. Seitenzahlen auch als „04“ oder „Folie 15“. Datums-Chip deckt keinen Text mehr ab.
+- **`sichten`:** misst Textstücke statt Zeilen (MuPDF legte überlappende Texte in eine Zeile), findet Wortreste in einer eigenen Zeile sowie Text, Bilder und Flächen auf dem Logo.
+  Slide Library: zwei Fehlalarme bei Überstand auf 184 Folien, keiner bei den neuen Prüfungen.
+
 ## 2.8.0 – 2026-10-30
 Befunde aus zwei Tests im Copilot Agent Builder: Ein Deck ohne Quellen war sichtbar schwach, doch `bauen` und `pruefen` meldeten nichts.
 Ein Deck aus der Erstellen-Funktion von Copilot gefiel dem Nutzer sehr, nur der Umbau in die Marke misslang.

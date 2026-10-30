@@ -732,6 +732,120 @@ with tempfile.TemporaryDirectory() as td:
     fall("Marke: Vollbild entfällt", all(sh.width < Inches(13) for sh in pz.slides[0].shapes if sh.shape_type == 13))
     fall("Marke: pruefen ohne FEHLER", not [b_ for b_ in pruefen.pruefen(ziel) if b_[0] == "FEHLER"])
 
+print("Designer-Deck: Farben, Panels, Karten (Unternehmensdeck, 30.10.2026)")
+pal = designer.Palette(["003366"] * 50 + ["00A8A8"] * 30 + ["FF6B35"] * 10 + ["5B9BD5"] * 8 + ["00875A"] * 5 + ["F5F8FC"], "F5F8FC")
+fall("Palette: Hausfarbe dunkel wird Dark Green, zweite Gruppe Accent Green", pal.flaeche("003366") == designer.DG and pal.flaeche("00A8A8") == designer.AG)
+fall("Palette: Orange ist kein Alarm", pal.flaeche("FF6B35") != "F62B2B" and not pal.ampel)
+fall("Palette: Grün ohne Rot ist keine Statusfarbe", pal.flaeche("00875A") != "1EAD1B")
+fall("Palette: mittlere Töne der Hausfarbe bekommen Blau", pal.flaeche("5B9BD5") == designer.MITTELBLAU and pal.flaeche("2E5F94") == designer.DUNKELBLAU)
+fall("Palette: fast Seitenfarbe bleibt unsichtbar", pal.flaeche("F4F7FB") == designer.SEITE)
+ampel = designer.Palette(["003366"] * 50 + ["E53935"] * 5 + ["2E9E4F"] * 5 + ["F5A623"] * 5, "FFFFFF")
+fall("Palette: echte Ampel bleibt Signalfarbe", ampel.ampel and ampel.flaeche("E53935") == "F62B2B" and ampel.flaeche("2E9E4F") == "1EAD1B")
+einfach = designer.Palette(["003366"] * 50 + ["0073B1"] * 40 + ["1A7F4E"] * 8, "FFFFFF")
+fall("Palette: Trägt keine andere Gruppe das Deck, bekommt die Hausfarbe Accent Green", einfach.flaeche("0073B1") == designer.AG)
+reihe = pal.reihe(["A8D8EA", "5B9BD5", "FF6B35", "00A8A8", "003366"])
+fall("Diagramm: jede Kategorie eine eigene Farbe aus der Chart order", len(set(reihe.values())) == 5 and set(reihe.values()) <= set(designer.CHART_ORDER)
+     and reihe["003366"] == designer.DG and reihe["00A8A8"] == designer.AG, str(reihe))
+lag = designer._inhalt_einpassen([("a", (1, 2.0, 1, 0.3)), ("b", (1, 2.3, 1, 0.3)), ("c", (1, 5.0, 1, 0.3))], 1.9, 3.6, 1.9, 3.2)
+fall("Einpassen: Inhalt oben bleibt, unten Verankertes rückt geschlossen hoch", abs(lag[0][1] - 2.0) < 0.01 and abs(lag[1][1] - 2.3) < 0.01 and abs(lag[2][1] - 4.6) < 0.01, str(lag))
+gleich = designer._inhalt_einpassen([("a", (1, 2.0, 1, 0.3))], 1.9, 3.6, 1.9, 3.2)
+fall("Einpassen: Passt der Inhalt, bleibt sein Abstand zur Oberkante", gleich[0][1] == 2.0)
+
+with tempfile.TemporaryDirectory() as td:
+    td = Path(td)
+    q = Presentation()
+    q.slide_width, q.slide_height = Inches(13.333), Inches(7.5)
+    leer = next(l for l in q.slide_layouts if l.name == "Blank")
+    foto = td / "foto.png"
+    bild = Image.new("RGB", (480, 720))
+    bild.putdata([((x * 7) % 256, (y * 5) % 256, ((x + y) * 3) % 256) for y in range(720) for x in range(480)])
+    bild.save(foto)
+    leerbild = td / "leer.png"
+    Image.new("RGBA", (300, 200), (0, 0, 0, 0)).save(leerbild)
+    glyphe = td / "glyphe.png"
+    g = Image.new("RGBA", (42, 42), (0, 0, 0, 0))
+    g.paste((0, 51, 102, 255), (8, 8, 34, 34))
+    g.save(glyphe)
+    weiss = td / "glyphe_weiss.png"
+    g2 = Image.new("RGBA", (42, 42), (0, 0, 0, 0))
+    g2.paste((255, 255, 255, 255), (8, 8, 34, 34))
+    g2.save(weiss)
+    t1 = q.slides.add_slide(leer)
+    seite(t1, "003366")
+    feld(t1, 0.5, 1.4, 8, 1.8, "Decktitel", 34, "FFFFFF", "Montserrat", True)
+    feld(t1, 0.5, 3.8, 6, 0.3, "Unterzeile", 14, "A8D4F0")
+    feld(t1, 0.7, 7.0, 3, 0.2, "Stand 2025", 8, "FFFFFF")
+    feld(t1, 11, 5.9, 1, 0.5, "2026", 22, "FFFFFF")
+    f2 = q.slides.add_slide(leer)
+    seite(f2, "F5F8FC")
+    feld(f2, 6, 0.3, 6, 0.5, "Foto links", 25, "003366", "Montserrat", True)
+    p_ = f2.shapes.add_picture(str(foto), 0, 0, Inches(5), Inches(7.5))
+    schleier = form(f2, 0, 0, 5, 7.5, "003366", MSO_SHAPE.RECTANGLE)
+    sp_ = schleier.fill._xPr
+    sp_.remove(sp_.find(qn("a:solidFill")))
+    verlauf = etree.fromstring('<a:gradFill xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:gsLst><a:gs pos="0"><a:srgbClr val="003366"><a:alpha val="18000"/></a:srgbClr></a:gs><a:gs pos="100000"><a:srgbClr val="003366"><a:alpha val="0"/></a:srgbClr></a:gs></a:gsLst></a:gradFill>')
+    sp_.insert(2, verlauf)
+    f2.shapes.add_picture(str(leerbild), Inches(6), Inches(1.5), Inches(6), Inches(5.7))
+    feld(f2, 6, 4, 3, 0.2, "Inhalt rechts", 10, "1A2A3A")
+    feld(f2, 6.2, 7.05, 3, 0.2, "Stand: Geschäftsjahr 2025", 8, "667481")
+    feld(f2, 12.5, 6.1, 0.4, 0.2, "02", 8, "667481")
+    f3 = q.slides.add_slide(leer)
+    seite(f3, "F5F8FC")
+    feld(f3, 0.42, 0.3, 6, 0.5, "Icons und Chips", 25, "003366", "Montserrat", True)
+    form(f3, 0.42, 1.5, 3, 5.4, "FFFFFF")
+    feld(f3, 0.6, 1.7, 2.5, 0.2, "Oben in der Karte", 10)
+    feld(f3, 0.6, 6.4, 2.5, 0.2, "Unten in der Karte", 10)
+    form(f3, 4, 1.5, 0.44, 0.44, "003366", MSO_SHAPE.OVAL)
+    f3.shapes.add_picture(str(weiss), Inches(4.1), Inches(1.6), Inches(0.22), Inches(0.22))
+    f3.shapes.add_picture(str(glyphe), Inches(5), Inches(1.6), Inches(0.22), Inches(0.22))
+    chip = form(f3, 6, 1.5, 1, 0.25, "003366", MSO_SHAPE.RECTANGLE)
+    chip.text_frame.text = "1902"
+    feld(f3, 6, 1.65, 3, 0.2, "Text unter dem Chip", 10)
+    chip2 = form(f3, 0.5, 7.0, 2, 0.3, "EAF2FA")
+    feld(f3, 0.7, 7.05, 1.5, 0.2, "Chiptext unten", 8, "1A2A3A")
+    feld(f3, 8, 7.05, 0.1, 0.2, "Folie 3", 8, "667481")
+    q.save(str(td / "d2.pptx"))
+    gruppen = {}
+    ziel, erg = designer.marke(td / "d2.pptx", td / "b2.pptx")
+    pz = Presentation(str(ziel))
+    s2 = pz.slides[1]
+    fotos = [sh for sh in s2.shapes if sh.shape_type == 13]
+    fall("Foto-Panel bleibt, endet über dem Logo, unverzerrt beschnitten", len(fotos) == 1 and abs((fotos[0].top + fotos[0].height) / 914400 - designer.UNTEN) < 0.01
+         and fotos[0].crop_bottom > 0.1 and fotos[0].crop_top == 0, str([(f.top, f.height, f.crop_bottom) for f in fotos]))
+    x2 = etree.tostring(s2._element).decode()
+    fall("Farbschleier über dem Foto und unsichtbares Bild entfallen", "gradFill" not in x2 and "alpha" not in x2)
+    texte = {sh.text_frame.text: sh for sh in s2.shapes if sh.has_text_frame}
+    fall("Seitenzahl „02“ entfällt, auch weit oben", "02" not in texte, str(list(texte)))
+    notiz = texte.get("Stand: Geschäftsjahr 2025")
+    fall("Standzeile wandert zwischen Logo und Fußzeile", notiz is not None and abs(notiz.top / 914400 - designer.NOTIZ_Y) < 0.01 and abs(notiz.left / 914400 - designer.NOTIZ_X) < 0.01)
+    s3 = pz.slides[2]
+    t3 = {sh.text_frame.text: sh for sh in s3.shapes if sh.has_text_frame}
+    fall("Chiptext bleibt beim Chip, „Folie 3“ entfällt", t3["Chiptext unten"].left / 914400 < 1 and "Folie 3" not in t3, str(list(t3)))
+    fall("Text rückt unter den Chip", t3["Text unter dem Chip"].top / 914400 >= 1.74, str(t3["Text unter dem Chip"].top / 914400))
+    karte_oben = t3["Oben in der Karte"].top / 914400
+    fall("Text oben in der Karte behält seinen Abstand", abs(karte_oben - 1.7) < 0.01, str(karte_oben))
+    fall("Text unten in der Karte bleibt in der Karte, Inhalt über dem Logo", t3["Unten in der Karte"].top / 914400 < designer.UNTEN - 0.2, str(t3["Unten in der Karte"].top / 914400))
+    fall("Gleiche Icons haben denselben Schlüssel, auch in anderer Farbe", len(erg["offen"]) == 1 and sum(len(v["folien"]) for v in erg["offen"].values()) == 2, str(erg["offen"]))
+    schluessel = next(iter(erg["offen"]))
+    (td / "i.json").write_text(json.dumps({schluessel: "clock"}), encoding="utf-8")
+    _, erg2 = designer.marke(td / "d2.pptx", td / "b3.pptx", icons=td / "i.json")
+    fall("Icon-Zuordnung über den Schlüssel", (erg2["getauscht"] == 2 and not erg2["offen"]) or not marke_mod.Marke().icon_pfad("clock"), str(erg2))
+    untertitel = pz.slides[0].placeholders[1].text_frame
+    fall("Titelfolie: Untertitel plus eine Zeile, nichts verloren", len(untertitel.paragraphs) == 2 and "2026" in untertitel.text and "Stand 2025" in untertitel.text, untertitel.text)
+
+deck = Path(__file__).resolve().parents[2] / "Agents" / "bi-ppt" / "testergebnisse" / "Unternehmensdeck_Designer_Referenz.pptx"
+if deck.is_file():
+    print("Referenzdeck aus der Erstellen-Funktion von Copilot")
+    with tempfile.TemporaryDirectory() as td:
+        ziel, erg = designer.marke(deck, Path(td) / "r.pptx")
+        bef = pruefen.pruefen(ziel, woerter=400)
+        fall("Referenzdeck: keine FEHLER in pruefen", not [b_ for b_ in bef if b_[0] == "FEHLER"], str([b_ for b_ in bef if b_[0] == "FEHLER"][:3]))
+        fall("Referenzdeck: nichts ragt über den Folienrand", not [b_ for b_ in bef if "ragt über den Folienrand" in b_[2]], str([b_ for b_ in bef if "Folienrand" in b_[2]][:3]))
+        fall("Referenzdeck: vier Fotos bleiben", len(erg["bilder"]) == 4, str(erg["bilder"]))
+        fremd = {"003366", "00A8A8", "FF6B35", "5B9BD5"}
+        reste = fremd & {x.get("val").upper() for s in Presentation(str(ziel)).slides for x in s._element.iter(qn("a:srgbClr"))}
+        fall("Referenzdeck: keine Farbe des Designers übrig", not reste, str(reste))
+
 print("Sichten: Messen am PDF")
 import pymupdf  # noqa: E402
 from bippt import sichten  # noqa: E402
