@@ -45,7 +45,7 @@ class Aufbau(unittest.TestCase):
                 fm = frontmatter(skill / "SKILL.md")
                 self.assertEqual(fm.get("name", "").strip(), skill.name)
                 self.assertTrue(fm.get("description", "").strip())
-        self.assertEqual({p.name for p in (PLUGIN / "skills").iterdir() if p.is_dir()}, {"bi-designer", "bi-ppt"})
+        self.assertEqual({p.name for p in (PLUGIN / "skills").iterdir() if p.is_dir()}, {"bi-designer", "bi-inhalt", "bi-ppt"})
         for agent in (PLUGIN / "com.github.copilot" / "agents" / "bi-ppt.agent.md", PLUGIN / "agents" / "bi-ppt.md"):
             self.assertEqual(frontmatter(agent).get("name", "").strip(), "bi-ppt", agent)
         self.assertTrue((PLUGIN / "vorlagen" / "BI_Vorlage_16x9.pptx").is_file())

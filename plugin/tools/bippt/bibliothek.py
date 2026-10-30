@@ -309,6 +309,100 @@ def _platz(k, sid):
                    "(bippt katalog nennt den Platz)")
 
 
+def _leer(k, sid):
+    """Große Fläche nur halb gefüllt: So wirkt die Folie unfertig (Kopfboxen mit drei kurzen Punkten)."""
+    for sh in finden(k.folie, sid=sid):
+        b = bedarf(sh)
+        if b is None or not sh.height or sh.height < 914400 * 2 or getattr(sh.fill, "type", None) is None:
+            continue
+        if b < sh.height / 914400 * 0.5:
+            k.warn(f"„{sh.name}“ (id {sid}): Fläche nur zu {b / (sh.height / 914400):.0%} gefüllt – eine Folie mit weniger "
+                   "Fläche nehmen (z. B. Fazit-Band 36–38, Fakten 39–44) oder die Form mit aendern h kürzen")
+            return
+
+
+def layouts(pptx):
+    """Markdown: Layouts des Masters mit ihren Feldern für den Typ layout."""
+    z = ["# Layouts des Masters", 'Füllen: `{"typ": "layout", "layout": "<Name>", "titel": "…", "felder": {"idx": …}, '
+         '"bilder": {"idx": "foto.jpg"}}`. Leere Textfelder entfallen; Bildplatzhalter brauchen ein Bild.']
+    for lay in vorlage.oeffnen(pptx).slide_layouts:
+        felder = []
+        for ph in lay.placeholders:
+            art = str(ph.placeholder_format.type).split(".")[-1].split(" ")[0]
+            if art in ("FOOTER", "SLIDE_NUMBER", "DATE", "TITLE", "CENTER_TITLE"):
+                continue
+            name = {"PICTURE": "Bild", "OBJECT": "Inhalt", "BODY": "Text", "SUBTITLE": "Untertitel"}.get(art, art.lower())
+            if ph.placeholder_format.idx == 13:
+                name = "Quelle"
+            felder.append(f"{ph.placeholder_format.idx} {name} {ph.width / 914400:.1f}×{ph.height / 914400:.1f}")
+        z.append(f"- **{lay.name}**: " + (" · ".join(felder) or "nur Titel"))
+    return "\n".join(z) + "\n"
+
+
+# Formfamilien für die Abwechslung im Deck: Folien gleicher Bauart zählen zusammen
+FAMILIEN = [(range(22, 28), "Textspalten mit Kopfbox", True), (range(28, 36), "Texte mit Icons", False),
+            (range(36, 39), "Bereiche mit Fazit-Band", False), (range(39, 45), "nummerierte Fakten", False),
+            (range(45, 46), "Textboxen", True), (range(46, 55), "Zitate", False), (range(56, 61), "Abwägung", False),
+            (range(62, 76), "Bild und Text", False), (range(77, 87), "Phasen", False), (range(87, 93), "Trend", False),
+            (range(93, 98), "Zeitstrahl", False), (range(98, 102), "Projektplan", False),
+            (range(103, 113), "Organisation", False), (range(114, 118), "Tabellen", True),
+            (range(119, 135), "Diagramme", False), (range(136, 152), "Karten", False),
+            (range(153, 164), "Grafiken", False), (range(165, 176), "Grafiken", False)]
+RAHMEN = {"titel", "kapitel", "agenda", "abschluss"}  # zählen nicht als Inhaltsfolien
+RAHMEN_BIB = set(range(1, 22)) | {55, 61, 76, 102, 113, 118, 135, 152, 164, 176, 180, 181, 182, 183, 184}
+TEXT_TYPEN = {"text", "tabelle"}
+
+
+def _form(fs):
+    """(Formname, reine Textfolie?) einer neuen Folie; None für Rahmenfolien, Basisfolien."""
+    if "basis" in fs:
+        return None
+    if "bib" in fs:
+        n = int(fs["bib"])
+        if n in RAHMEN_BIB:
+            return None
+        return next(((f, t) for r, f, t in FAMILIEN if n in r), (f"Bibliothek {n}", False))
+    typ = fs.get("typ", "text")
+    if typ in RAHMEN:
+        return None
+    if typ == "layout":
+        name = str(fs.get("layout", ""))
+        return (f"Layout {name}", not fs.get("bilder") and any(x in name for x in ("content", "Agenda")))
+    return (typ, typ in TEXT_TYPEN)
+
+
+def abwechslung(folien):
+    """Warnungen zur Gestaltung des Decks über alle sichtbaren neuen Folien: dieselbe Bauart hintereinander oder zu oft,
+    zu viele reine Textfolien. Erst ab vier Inhaltsfolien; Backup zählt nicht."""
+    formen, ausblenden, w = [], False, []
+    for nr, fs in enumerate(folien, 1):
+        ausblenden = ausblenden or bool(fs.get("ab_hier_ausblenden"))
+        if ausblenden or fs.get("ausblenden"):
+            continue
+        f = _form(fs)
+        if f:
+            formen.append((nr, f[0], f[1], fs.get("bib")))
+    if len(formen) < 4:
+        return w
+    for a, b in zip(formen, formen[1:]):
+        if a[1] == b[1] and a[1] != "timeline":  # Gesamtüberblick und kritischer Pfad gehören zusammen
+            w.append(f"Abwechslung: Folien {a[0]} und {b[0]} haben dieselbe Bauart ({a[1]}) – eine andere Bildform wählen")
+    zahl, gleiche = {}, {}
+    for _, name, _, bib in formen:
+        zahl[name] = zahl.get(name, 0) + 1
+        if bib:
+            gleiche[bib] = gleiche.get(bib, 0) + 1
+    w += [f"Abwechslung: Bibliotheksfolie {n} steht {c}× im Deck – höchstens einmal, sonst wirkt es eintönig"
+          for n, c in gleiche.items() if c > 1]
+    w += [f"Abwechslung: {c} von {len(formen)} Inhaltsfolien sind „{n}“ – höchstens zwei je Bauart"
+          for n, c in zahl.items() if c > 2]
+    text = sum(1 for x in formen if x[2])
+    if text > len(formen) / 3:
+        w.append(f"Abwechslung: {text} von {len(formen)} Inhaltsfolien sind reine Text- oder Tabellenfolien, höchstens ein "
+                 "Drittel – Aussagen in Bildformen umsetzen (Skill bi-ppt › Aussage → Bildform)")
+    return w
+
+
 def blindtext(folie):
     """Formen mit übrig gebliebenem Blindtext der Bibliothek: [(id, Name, Auszug)]."""
     treffer = []
@@ -353,6 +447,7 @@ def fuellen(k, fs, ordner):
         _tabelle(k, int(sid), zeilen)
     for sid in fs.get("texte") or {}:
         _platz(k, int(sid))
+        _leer(k, int(sid))
 
 
 # ----------------------------------------------------------------- Katalog

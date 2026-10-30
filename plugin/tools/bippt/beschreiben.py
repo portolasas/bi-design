@@ -338,6 +338,8 @@ def _art(s):
         return f"Datenfluss in {_anz(n('spalten'), 'Spalte', 'Spalten')} mit Pfeilen"
     if typ == "frei":
         return f"{_anz(n('elemente'), 'freies Element', 'freie Elemente')} ({', '.join(dict.fromkeys(str(e.get('form')) for e in s.get('elemente', [])))})"
+    if typ == "layout":
+        return f"Layout des Masters mit {_anz(n('felder'), 'Textfeld', 'Textfeldern')}" + (f", {_anz(n('bilder'), 'Bild', 'Bildern')}" if s.get("bilder") else "")
     return {"titel": "Titelfolie", "kapitel": "Kapiteltrenner", "agenda": "Agenda", "text": "Aufzählung im Inhaltsplatzhalter",
             "bild_text": "Bild im Bildplatzhalter, Text daneben", "kernaussage": "dunkle Botschaftsfolie",
             "abschluss": "dunkle Abschlussfolie"}.get(typ, typ)

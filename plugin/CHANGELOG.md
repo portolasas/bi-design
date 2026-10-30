@@ -1,5 +1,18 @@
 # Changelog
 
+## 2.6.0 – 2026-10-30
+Befund aus Erprobung 6 im Copilot Agent Builder (Steering-Deck): Der Agent nahm sechsmal Bibliotheksfolie 25, die Nummer aus
+den Beispielen der Doku; der Nutzer fand das zu textlastig und will den Inhalt erst im Dialog erarbeiten.
+- **Skill `bi-inhalt`:** Inhalt im Dialog in fünf Schritten (Auftrag, Kernbotschaft, Storyline, Folie für Folie, Briefing).
+  bi-ppt baut aus dem abgenommenen Briefing ohne neue Rückfragerunde.
+- **Bildform zuerst:** Tabelle Aussage → Bildform in `reference/bibliothek.md`, Storyboard als Schritt vor der Spec; die
+  Doku nennt keine feste Foliennummer mehr als Beispiel.
+- **`bauen` prüft die Abwechslung** über alle sichtbaren neuen Folien: dieselbe Bauart hintereinander, dieselbe Bibliotheksfolie
+  mehrfach, mehr als zwei Folien je Bauart, mehr als ein Drittel reiner Text oder Tabelle. Dazu Warnung bei großen Flächen,
+  die nur halb gefüllt sind.
+- **Typ `layout`:** echte Platzhalter jedes Master-Layouts (Two/Three contents, Content and margin, Key message, Bild hochkant);
+  `bippt layouts` nennt die Felder.
+
 ## 2.5.1 – 2026-10-29
 - `bippt katalog` nennt je Textfeld den Aufbau der Absätze („Absätze: fett, Text, 2× Punkt“): Der n-te Absatz von
   `texte` bekommt das Format des n-ten. Am Musterdeck aus der Bibliothek fiel auf, dass sonst Überschrift, Text und

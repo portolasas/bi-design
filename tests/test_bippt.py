@@ -531,7 +531,8 @@ with tempfile.TemporaryDirectory() as td:
     fall("Warnung: Text zu lang für seine Form", any(w.startswith("Folie 2:") and "Text braucht etwa" in w for w in wl),
          "; ".join(wl))
     fall("Warnung: Blindtext übrig", any(w.startswith("Folie 7:") and "Blindtext" in w for w in wl)
-         and not any(w.startswith("Folie 1:") for w in wl), "; ".join(wl))
+         and not any(w.startswith("Folie 1:") and "Blindtext" in w for w in wl), "; ".join(wl))
+    fall("Warnung: große Fläche halb leer", any(w.startswith("Folie 1:") and "nur zu" in w for w in wl), "; ".join(wl))
     import zipfile  # noqa: E402
     namen = zipfile.ZipFile(zl).namelist()
     fall("Paket ohne doppelte Teile", len(namen) == len(set(namen)))
@@ -542,6 +543,38 @@ with tempfile.TemporaryDirectory() as td:
     kat = bibliothek.katalog(BIB, [25])
     fall("katalog nennt ids, Platz und Beispieltext", "## 25: Text box: Three columns" in kat
          and "id 10 · Text" in kat and "Platz ~" in kat and "„Header box“" in kat and "Absätze: 4× Punkt" in kat)
+
+print("Abwechslung und Layouts des Masters")
+einerlei = [{"typ": "titel", "titel": "T"}] + [{"bib": 25} for _ in range(4)] + [{"typ": "tabelle"}]
+wa = bibliothek.abwechslung(einerlei)
+fall("Abwechslung: gleiche Folie, gleiche Bauart hintereinander, zu viel Text", any("Folien 2 und 3" in w for w in wa)
+     and any("Bibliotheksfolie 25 steht 4×" in w for w in wa) and any("reine Text" in w for w in wa), "; ".join(wa))
+bunt = [{"typ": "titel"}, {"bib": 10}, {"bib": 36}, {"bib": 39}, {"bib": 81}, {"typ": "status"}, {"bib": 50}, {"bib": 182},
+        {"typ": "kapitel", "ab_hier_ausblenden": True}, {"typ": "tabelle"}, {"typ": "tabelle"}, {"typ": "tabelle"}]
+fall("Abwechslung: bunte Mischung ohne Warnung, Backup zählt nicht", not bibliothek.abwechslung(bunt), "; ".join(bibliothek.abwechslung(bunt)))
+with tempfile.TemporaryDirectory() as td:
+    td = Path(td)
+    Image.new("RGB", (2400, 2700), (8, 49, 42)).save(td / "foto.jpg")
+    (td / "lay.spec.json").write_text(json.dumps({"ausgabe": "lay.pptx", "folien": [
+        {"typ": "layout", "layout": "Three contents", "titel": "Drei Spalten", "band": "Fazit",
+         "felder": {"1": ["Eins", "Zwei"], "16": ["Drei"], "17": ["Vier"]}},
+        {"typ": "layout", "layout": "Two contents", "titel": "Zwei Spalten", "felder": {"1": "Links", "16": "Rechts"}},
+        {"typ": "layout", "layout": "Content with image portrait (1)", "titel": "Bild", "felder": {"1": ["Text"]},
+         "bilder": {"10": "foto.jpg"}},
+        {"typ": "layout", "layout": "Content with image portrait (1)", "titel": "Ohne Bild", "felder": {"9": "x"}}]},
+        ensure_ascii=False), encoding="utf-8")
+    zy, wy = bauen.bauen(td / "lay.spec.json", still=True)
+    py = Presentation(str(zy))
+    f1 = {sh.placeholder_format.idx: sh for sh in py.slides[0].placeholders}
+    fall("Typ layout: echte Platzhalter des Master-Layouts", py.slides[0].slide_layout.name == "Three contents"
+         and f1[16].text_frame.text == "Drei" and f1[17].text_frame.text == "Vier" and f1[17].width > 914400)
+    kb = [sh for sh in py.slides[0].shapes if sh.name == "Kernaussage"]
+    fall("Typ layout: Spalten enden über dem Band", kb and all(f1[i].top + f1[i].height <= kb[0].top + 4572 for i in (1, 16, 17)))
+    fall("Typ layout: Bild im Platzhalter", any(sh.shape_type == 14 and sh.placeholder_format.idx == 10 and sh.image.size == (2400, 2700)
+                                                for sh in py.slides[2].placeholders))
+    fall("Typ layout: Warnung bei falschem Feld und leerem Bild", any("kein Textfeld 9" in w for w in wy)
+         and any(w.startswith("Folie 4:") and "Bildplatzhalter 10 leer" in w for w in wy), "; ".join(wy))
+    fall("layouts nennt die Felder", "**Three contents**: 1 Inhalt 3.9×4.8" in bibliothek.layouts(PLUGIN / "vorlagen" / "BI_Vorlage_16x9.pptx"))
 
 print("ALLE FÄLLE BESTANDEN" if not fehler else f"FEHLGESCHLAGEN: {', '.join(fehler)}")
 sys.exit(1 if fehler else 0)

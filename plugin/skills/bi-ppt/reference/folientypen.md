@@ -33,7 +33,7 @@ SGRN, SYEL, SRED, G1…G8 – oder Token-Namen aus bi-designer. Keine Abstufunge
 Ampelwerte: G, Y, R, N und YR (Gelb–Rot: Verzug, Eskalation erwartet; halb gelb, halb rot).
 
 ## Bibliotheksfolien (`bib`)
-`{"bib": 25, "titel": "…", "texte": {"id": "…" | ["Absatz", …]}, "bilder": {"id": "foto.jpg"}, "daten": {"id": {"kategorien",
+`{"bib": n, "titel": "…", "texte": {"id": "…" | ["Absatz", …]}, "bilder": {"id": "foto.jpg"}, "daten": {"id": {"kategorien",
 "reihen", "titel"}}, "tabellen": {"id": [[…], …]}, "entfernen": [id]}` kopiert Folie n der Folienbibliothek (Kopf
 `bibliothek`, Standard aus dem Plugin) und füllt sie; danach wirken `ersetzen`, `platzhalter`, `aendern`, `elemente` wie
 bei Basisfolien. ids: `bippt katalog --folien n`. Übersicht, Regeln und Ablauf: [bibliothek.md](bibliothek.md).
@@ -109,6 +109,7 @@ Damit meldet `bauen` die Zeile `ÄNDERUNGEN` und bricht ab, wenn das Deck nach d
 | `bild_text` | Content and image | `bild` (Pfad, relativ zur Spec oder zum Arbeitsordner), `punkte` | Bild + Text |
 | `kernaussage` | One content dark | `titel` (Aussage), `text` | Botschaft / Entscheidung |
 | `abschluss` | One content dark Outro | `titel` | „Vielen Dank“ |
+| `layout` | `layout` (Name aus `bippt layouts`) | `felder` {idx: Text \| [Absätze]}, `bilder` {idx: Pfad} | echte Platzhalter eines Master-Layouts: Two/Three contents, Content and margin, Key message, Bild hochkant |
 | `frei` | Only title | `elemente` [{`form`: flaeche/text/linie/icon/punkt/pfeil/karte/band/bild, x, y, w, h …}] in Zoll; `band` mit `label`, `text`, `stil`, `y`, `h`; `bild` mit `datei` (eingepasst, `ausr` l/m/r) | Sonderfälle ohne Code |
 
 ## Messen beim Bau

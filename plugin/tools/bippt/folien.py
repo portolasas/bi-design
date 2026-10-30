@@ -1060,6 +1060,50 @@ def bild_text(k, s):
         textfeld(k, X0, Y0, XW * 0.35, 4.5, s["punkte"], punkt=True, groesse=14)
 
 
+@folientyp("layout")
+def layout_folie(k, s):
+    """Beliebiges Layout des Masters (`layout`: Name aus `bippt layouts`): felder {idx: Text | [Absätze]}, bilder {idx: Pfad}."""
+    k.dunkel = k.dunkel or "dark" in k.folie.slide_layout.name
+    unten = inhaltsunterkante(s) if s.get("band") else None
+    for idx, wert in (s.get("felder") or {}).items():
+        ph = vorlage.platzhalter(k.folie, idx=int(idx))
+        if ph is None or not getattr(ph, "has_text_frame", False):
+            k.warn(f"Layout „{k.folie.slide_layout.name}“ hat kein Textfeld {idx} (bippt layouts)")
+            continue
+        if unten is not None:
+            _ph_unterkante(ph, unten)
+        punkte = wert if isinstance(wert, list) else [wert]
+        erste = True
+        for a in absaetze(punkte):
+            p = ph.text_frame.paragraphs[0] if erste else ph.text_frame.add_paragraph()
+            erste = False
+            p.text = re.sub(r"\*\*|==", "", str(a["t"]))
+            p.level = int(a.get("ebene", 0))
+            if "**" in str(a["t"]):
+                for r in p.runs:
+                    r.font.bold = True
+        if "OBJECT" in str(ph.placeholder_format.type):  # Fließtext des Masters; Key-Message-Felder haben andere Maße
+            _ph_ueberlauf(k, ph, punkte)
+    for idx, datei in (s.get("bilder") or {}).items():
+        ph = vorlage.platzhalter(k.folie, idx=int(idx))
+        bild = k.pfad(datei)
+        if ph is None or not hasattr(ph, "insert_picture"):
+            k.warn(f"Layout „{k.folie.slide_layout.name}“ hat keinen Bildplatzhalter {idx} (bippt layouts)")
+        elif not bild or not bild.is_file():
+            k.warn(f"Bild fehlt: {datei}")
+        else:
+            if unten is not None:
+                _ph_unterkante(ph, unten)
+            lage = ph.left, ph.top, ph.width, ph.height
+            pic = ph.insert_picture(str(bild))
+            if unten is not None:
+                pic.left, pic.top, pic.width, pic.height = lage
+            bild_pruefen(k, bild, pic)
+    frei_bild = [str(ph.placeholder_format.idx) for ph in k.folie.placeholders if hasattr(ph, "insert_picture")]
+    if frei_bild:
+        k.warn(f"Bildplatzhalter {', '.join(frei_bild)} leer – Bild angeben oder ein Layout ohne Bild nehmen")
+
+
 DIAGRAMM = {"saeulen": XL_CHART_TYPE.COLUMN_CLUSTERED, "gestapelt": XL_CHART_TYPE.COLUMN_STACKED,
             "balken": XL_CHART_TYPE.BAR_CLUSTERED, "linie": XL_CHART_TYPE.LINE_MARKERS, "torte": XL_CHART_TYPE.DOUGHNUT}
 LINIEN_AUF_WEISS = ["DG", "DBLU", "DVIO", "DRED", "MRED", "DYEL"]

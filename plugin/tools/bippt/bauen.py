@@ -200,6 +200,8 @@ def bauen(spec_pfad, ausgabe=None, still=False, erzwingen=False):
         if fs.get("titel") and sl.shapes.title is not None:
             platzhalter_zeilen(sl.shapes.title, fs["titel"])
         if bib_nr is not None:
+            if fs.get("titel") and sl.shapes.title is None:
+                k.warn(f"Bibliotheksfolie {bib_nr} hat keine Titelzeile – titel entfällt; Text über texte setzen")
             bibliothek.fuellen(k, fs, ordner)
         if fs.get("aendern"):
             aendern(k, fs["aendern"], ordner)
@@ -275,6 +277,7 @@ def bauen(spec_pfad, ausgabe=None, still=False, erzwingen=False):
         elif sl._element.get("show") is not None:
             del sl._element.attrib["show"]
         reihenfolge.append(sl)
+    warnungen += bibliothek.abwechslung(spec.get("folien", []))
     # Reihenfolge herstellen, nicht verwendete Basisfolien entfernen
     lst = prs.slides._sldIdLst
     nach_part = {id(prs.part.related_part(e.rId)): e for e in lst}

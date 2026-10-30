@@ -13,7 +13,8 @@ Befehle
   analyse <pptx> [--json] [--formen] [--folien 2,5]   Deck knapp beschreiben; --formen: id, Name, Absätze, Läufe für aendern
   typen                        Folientypen auflisten
   icons <begriff…>             Brand-Icons suchen
-  katalog [pptx] [--folien 25,39] [-o md]   Formen der Folienbibliothek zum Füllen (id, Art, Lage, Platz, Beispieltext)
+  katalog [pptx] --folien n,m [-o md]   Formen der Folienbibliothek zum Füllen (id, Art, Lage, Platz, Beispieltext)
+  layouts                      Layouts des Masters mit ihren Feldern (Typ layout)
   bauen <spec.json> [-o pptx] [--erzwingen]   Präsentation bauen, dazu die Folienbeschreibung <ausgabe>.md; bricht ab,
                                wenn das Deck nach dem letzten Bau geändert wurde (--erzwingen: trotzdem überschreiben)
   beschreiben <pptx> [-o md|-] Folienbeschreibung aus dem Deck (ohne Spec, z. B. fremdes oder von Hand geändertes Deck)
@@ -226,6 +227,12 @@ def _katalog(a):
     return 0
 
 
+def _layouts(_):
+    from bippt import bibliothek, konfig
+    print(bibliothek.layouts(konfig.vorlage_pfad()))
+    return 0
+
+
 def _bauen(a):
     from bippt.bauen import bauen
     _, w = bauen(a.spec, a.o, erzwingen=a.erzwingen)
@@ -295,6 +302,7 @@ def main(argv=None):
     p = sub.add_parser("icons"); p.add_argument("begriffe", nargs="+"); p.set_defaults(fn=_icons)
     p = sub.add_parser("katalog"); p.add_argument("pptx", nargs="?"); p.add_argument("--folien"); p.add_argument("-o")
     p.set_defaults(fn=_katalog)
+    sub.add_parser("layouts").set_defaults(fn=_layouts)
     p = sub.add_parser("bauen"); p.add_argument("spec"); p.add_argument("-o")
     p.add_argument("--erzwingen", action="store_true", help="auch ein nach dem Bau geändertes Deck überschreiben")
     p.set_defaults(fn=_bauen)

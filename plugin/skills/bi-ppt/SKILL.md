@@ -40,11 +40,16 @@ Liegt der Arbeitsordner in einem Git-Repo (`git rev-parse --show-toplevel` gelin
 ## 1. Modus erkennen
 | Modus | Auslöser | Ablauf |
 |---|---|---|
-| **N – Neu** | Infos/Quellen, keine Basis-PPT | §2 → §3 → §4 |
+| **I – Inhalt** | neue Präsentation ohne fertigen Inhalt, oder „Inhalt ausarbeiten“ | Skill **bi-inhalt**, danach N mit Briefing |
+| **N – Neu** | Briefing, Infos oder Quellen, keine Basis-PPT | §2 → §3 → §4 |
 | **V – Neue Version** | bestehende PPT als Grundlage („auf Basis von …“, Update für anderes Gremium) | §2 → §3 mit `basis` → §4 |
 | **Ä – Ändern** | einzelne Folien eines bestehenden Decks korrigieren, ergänzen, umstellen | §2 → §3a → §4 |
 | **U – Umwandeln** | PPT in fremdem/altem Design → BI-Design | [reference/umwandeln.md](reference/umwandeln.md) |
 | **P – Prüfen** | „passt das zum Brand?“ | `bippt pruefen` + `bippt rendern` → Befunde mit Folie, Regel, Fix |
+
+Neue Präsentation ohne Briefing und ohne fertige Folienliste: zuerst fragen „Inhalt erst gemeinsam ausarbeiten (Empfehlung) oder
+direkt bauen?“. **Mit Briefing** (`<Name>_Inhalt.md` aus bi-inhalt) ist der Inhalt abgenommen: Titel und Inhalte wörtlich
+übernehmen, Bildform umsetzen, keine neue Rückfragerunde außer zu `Offen:`.
 
 ## 2. Verstehen (token-sparsam)
 1. **Bestehendes Deck (Modus V und Ä) zuerst über seine Folienbeschreibung:** `<Name>.md` neben der PPTX (erste Zeile
@@ -68,10 +73,10 @@ Liegt der Arbeitsordner in einem Git-Repo (`git rev-parse --show-toplevel` gelin
 ## 3. Storyline und Spezifikation
 1. Storyline nach [reference/arbeitsweise.md](reference/arbeitsweise.md) (Publikum → Folienzahl, Aktionstitel,
    eine Kernaussage je Folie als Band, Details ins ausgeblendete Backup).
-2. Je Folie die Form wählen: Gestaltetes (Agenda, Kapitel, Bereiche mit Kopf oder Icon, Fakten, Zitat, Bild und Text,
-   Phasen, Team, Abschluss) aus der **Folienbibliothek** (`{"bib": n, …}`, [reference/bibliothek.md](reference/bibliothek.md)),
-   Daten mit wechselnder Menge (Status mit Ampeln, alt → neu, Termine, Maßnahmen, Tabelle) mit einem **Folientyp**.
-   Für jede Bibliotheksfolie `bippt katalog --folien n` lesen und jeden Blindtext füllen oder entfernen.
+2. **Storyboard** nach [reference/bibliothek.md](reference/bibliothek.md) › Bildform zuerst: je Folie Aussage, Bildform,
+   Quelle (`bib n`, `layout`, `typ`). Fertig, wenn jede Inhaltsfolie eine Bildform hat, keine Bauart zweimal hintereinander
+   steht und höchstens ein Drittel reiner Text oder Tabelle ist. Für jede Bibliotheksfolie `bippt katalog --folien n`
+   lesen und jeden Blindtext füllen oder entfernen.
 3. Spezifikation `<Name>.spec.json` **neben die Ausgabe** schreiben (Startgerüst: `bippt neu <ordner> --name <Name>`).
    Folientypen und Felder: [reference/folientypen.md](reference/folientypen.md) (`bippt typen`). Icons: `bippt icons <begriff>`.
    Kopf mit `zweck` (Anlass, Publikum, Datum) und `quellen`; je Folie `beschreibung`, wenn Typ und Felder die Gestaltung
@@ -100,7 +105,7 @@ Liegt der Arbeitsordner in einem Git-Repo (`git rev-parse --show-toplevel` gelin
 ```
 bippt bauen <Name>.spec.json          → ERGEBNIS: OK | Warnungen (Überlauf, Titel zweizeilig, Wort zu breit,
                                         Tabelle zu hoch, Icons, Timeline-Beschriftung, Bild unscharf oder BI-Logo,
-                                        Text zu lang für seine Form, Blindtext der Bibliothek);
+                                        Text zu lang für seine Form, Fläche halb leer, Blindtext, Abwechslung);
                                         BESCHRIEBEN <Name>.md, ÄNDERUNGEN je Folie seit dem letzten Bau
 bippt pruefen <Name>.pptx --woerter N → ERGEBNIS: OK (keine FEHLER; N nach Publikum)
 bippt rendern <Name>.pptx [--alle]    → kontaktbogen.png ansehen, nur auffällige Folien einzeln (folie_NN.png)

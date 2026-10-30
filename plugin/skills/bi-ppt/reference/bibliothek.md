@@ -3,27 +3,51 @@
 Die offizielle Slide Library (Version 3.3, September 2026, 184 Folien) liegt als `vorlagen/BI_Slide_Library.pptx` im
 Plugin. Sie nutzt denselben Master wie die Vorlage. Ihre Folien sind von Designern gestaltet: Spalten mit Kopfboxen,
 Icons und Fazit, nummerierte Fakten, Zitate mit Illustration, Bild und Text, Prozesse, Timelines, Porträts, Funnel und
-mehr. bippt kopiert sie ins Deck (auch dieselbe Folie mehrfach) und füllt sie.
+mehr. bippt kopiert sie ins Deck und füllt sie.
 
-## Bibliothek oder Generator
-| Inhalt | Nimm |
+## Bildform zuerst
+Frag bei jeder Folie zuerst: **Wie würde eine Designerin diese Aussage zeigen?** Erst dann kommt der Text, und er wird kurz:
+Zahlen groß, Abläufe als Pfeile, Abwägungen gegenüber, Stimmen als Zitat. Die Bibliothek hat dafür fast immer eine Folie.
+
+| Aussage | Bildform und Folien |
 |---|---|
-| Gestaltetes: Agenda, Kapitel, 2–4 Bereiche mit Kopf oder Icon, nummerierte Fakten, Zitat, Bild und Text, Kennzahlen mit Bild, 3–6 Phasen, Trend, Pro/Contra, SWOT, Team, Organigramm, Funnel, Abschluss | **Bibliothek** (`bib`) |
-| Daten mit wechselnder Menge: Status mit Ampeln je Strang, alt → neu, Gantt/Timeline aus Terminen, Maßnahmenliste, Tabelle, Fluss/Systemlandschaft | **Generator** (`typ`: status, vergleich, timeline, massnahmen, tabelle, fluss) |
-| Diagramm | Bibliotheksdiagramm mit `daten` (Säulen, Balken, Linie, Torte, Ring), sonst Typ `diagramm` |
-| Titelfolie | Typ `titel` (Layouts der Vorlage); Bibliothek nur 177–179 für interne Marken mit Wortmarke |
+| Eine Botschaft, Position oder Idee | großes Zitat 49 · Idee mit Glühbirne 160–163 · Layout „Key message and image“ (mit Foto) |
+| Zahlen, Umfang, Potenzial | nummerierte Fakten 39–44 · Trend 87–91 · Bild mit Kennzahlen 69–70 · Prozentringe 134 · Prozentbalken 132 |
+| Problem mit Ursachen und Folge | Bereiche mit Fazit-Band 36–38 · Icons 28 · zwei Texte mit Icon-Band 31–35 |
+| Zielbild, Bausteine eines Ganzen | Waben 155–157 · Schnittmenge 153–154 · Zahnräder 165–167 · vernetzte Geräte 158–159 · Pyramide 106 |
+| Umfang, Abwägung, Vor- und Nachteile | Pro/Contra 57–58 (Wörter ersetzen: „Im Umfang“, „Nicht enthalten“) · SWOT 56 · Balken mit Pro/Contra 131 |
+| alt → neu | Typ `vergleich` |
+| Vorgehen, Phasen | Winkelpfeile 78–79 · Kopfbalken 80–81 · Phasen mit Fazit 84 · Icons mit Randspalte 85–86 · sechs Phasen 77 |
+| Zeit, Meilensteine | Zeitstrahl 93–96 · Wochenplan 97 · Typ `timeline` für echte Terminpläne |
+| Priorisieren, Auswahl | Trichter 171–174 · Wachstum 175 · Kreislauf 92 |
+| Rollen, Team, Personen | Organigramm 103–105 · Porträt 107–112 · Tabelle nur im Backup |
+| Status, Risiken | Typ `status` mit Ampeln · Statusbericht 59 · Tabelle mit Ampeln 116 |
+| Entscheidung, Beschluss, Fazit | Bereiche mit Fazit-Band 36–38 · Management Summary 22 · Typ `kernaussage` |
+| Stimmen, Erfahrungen | Zitat mit Illustration 50–54 · drei Zitate 46–48 |
+| Bild vorhanden | Bild und Text 62–67 · Collage 71–72 · Gerät 73–75 |
+| Zahlenreihen | Diagramme 119–134 mit `daten` · Typ `diagramm` |
+| Mehrere gleichrangige Textblöcke, wenn nichts anderes trägt | Layouts „Two contents“, „Three contents“ (Typ `layout`) · Kopfboxen 23–27 |
 
-Ein Deck mischt beides. Pro Deck höchstens eine Akzentfarbe aus den Farbvarianten (Gelb, Blau, Violett, Pfirsich,
-Grau) neben Weiß und Dunkelgrün – nicht jede Folie in einer anderen Farbe.
+Texte: höchstens 40 Wörter auf einer gestalteten Folie, Punkte höchstens acht Wörter. `bippt bauen` warnt, wenn eine
+Bauart sich wiederholt oder mehr als ein Drittel der Inhaltsfolien reiner Text oder Tabelle ist (das Backup zählt nicht).
+Ein Deck hat neben Weiß und Dunkelgrün höchstens eine Akzentfarbe aus den Varianten (Gelb, Blau, Violett, Pfirsich, Grau).
+
+## Bibliothek, Layout oder Generator
+- **Bibliothek** (`bib`): alles Gestaltete aus der Tabelle oben.
+- **Layout des Masters** (`{"typ": "layout", "layout": "Three contents", "titel": "…", "felder": {"1": […], "16": […], "17": […]}}`):
+  echte Platzhalter des Masters, auch Vollbild und Key Message mit Foto (`"bilder": {"10": "foto.jpg"}`). Felder: `bippt layouts`.
+- **Generator** (`typ`): Daten mit wechselnder Menge – Status mit Ampeln je Strang, alt → neu, Gantt aus Terminen,
+  Maßnahmenliste, lange Tabelle, Fluss.
+- Titelfolie: Typ `titel`; Bibliothek 177–179 nur für interne Marken mit Wortmarke.
 
 ## Ablauf
-1. Storyline wie gewohnt; je Folie aus der Übersicht unten eine Bibliotheksfolie wählen, deren Aufbau zur Aussage
-   passt (Zahl der Bereiche, Bild ja/nein, hell/dunkel). Passt keine, den Generator nehmen.
-2. `bippt katalog --folien 25,39` → je Form id, Art, Lage, Schrift, Platz (Zeilen × Zeichen) und Beispieltext. Die
+1. Storyboard: je Folie Aussage, Bildform und Folie aus der Tabelle oben bzw. der Übersicht unten (Zahl der Bereiche, Bild
+   ja/nein, hell/dunkel). Jede Folie hat eine andere Bauart.
+2. `bippt katalog --folien n,m` für die gewählten Folien → je Form id, Art, Lage, Schrift, Platz (Zeilen × Zeichen) und Beispieltext. Die
    ids gelten für jede Kopie der Folie.
-3. In der Spec: `{"bib": 25, "titel": "…", "texte": {"10": "Gebäude", "9": ["Punkt", "Punkt"]}, "bilder": {"11": "foto.jpg"},
-   "daten": {"16": {"kategorien": […], "reihen": [{"name": "…", "werte": […]}], "titel": "…"}},
-   "tabellen": {"17": [["Kopf", "…"], ["Zelle", "…"]]}, "entfernen": [8]}`, dazu wie bei Basisfolien `ersetzen`,
+3. In der Spec: `{"bib": n, "titel": "…", "texte": {"<id>": "Text", "<id>": ["Absatz", "Absatz"]}, "bilder": {"<id>": "foto.jpg"},
+   "daten": {"<id>": {"kategorien": […], "reihen": [{"name": "…", "werte": […]}], "titel": "…"}},
+   "tabellen": {"<id>": [["Kopf", "…"], ["Zelle", "…"]]}, "entfernen": [<id>]}`, dazu wie bei Basisfolien `ersetzen`,
    `aendern`, `elemente`, `notizen`, `ausblenden`.
    - `texte`: eine Zeichenkette oder eine Liste von Absätzen. Der n-te Absatz bekommt das Format des n-ten Absatzes
      der Bibliothek – der Katalog nennt es („Absätze: fett, Text, 2× Punkt“). Mehr Absätze als vorher übernehmen das
@@ -31,14 +55,17 @@ Grau) neben Weiß und Dunkelgrün – nicht jede Folie in einer anderen Farbe.
      überall.
    - **Jeden Blindtext ersetzen oder seine Form entfernen** – auch Überschriften wie „Header box“, „Headline“, Zahlen
      wie „20XX“ und gelbe Hinweisetiketten („Excel based chart“, „PowerPoint Master available …“).
-   - Icons und Illustrationen der Bibliothek stehen für das Beispiel. Passt eins nicht zum Inhalt: entfernen oder
-     über `bilder` durch ein Brand-Icon bzw. ein angehängtes Bild ersetzen. „Logo (nicht ändern)“ bleibt.
+   - Icons und Illustrationen der Bibliothek stehen für das Beispiel. In 28–35, 85–86 und 93–94 sind es, von links:
+     Diagramm, Hund, Pflanze, Lupe, Euro-Münze (93–94 zusätzlich Tablette); in 36–38 neutrale Winkel. Passt eins nicht
+     zum Inhalt: alle der Reihe entfernen oder über `bilder` durch Brand-Icons bzw. angehängte Bilder ersetzen, nicht
+     einzeln. „Logo (nicht ändern)“ bleibt. Ohne passende Icons die Bauart ohne Icons nehmen (36–38, 39–44, 78–84).
+   - Folien ohne Titelzeile (49–54, 57–58, 65–67, 69, 160–163): Kernaussage über `texte`.
    - `tabellen`: Zeilen mit Kopfzeile; `null` lässt eine Zelle stehen. Mehr Zeilen kopieren die letzte, weniger
      Zeilen oder Spalten fallen weg (die Tabelle behält ihre Breite).
    - Bilder nur mit genug Auflösung (mindestens 150 dpi im Rahmen: Rahmenbreite in Zoll × 150 Pixel). Der
      Bildplatzhalter beschneidet; mit `{"datei": …, "ausschnitt": "oben"}` den Ausschnitt wählen.
-4. `bippt bauen`: Es warnt, wenn ein Text mehr Platz braucht, als seine Form hat, und wenn Blindtext übrig ist.
-   Beides beheben, bevor das Deck rausgeht.
+4. `bippt bauen`: Es warnt bei Text, der nicht in seine Form passt, bei halb leeren Flächen, übrigem Blindtext und zu
+   wenig Abwechslung. Alles beheben, bevor das Deck rausgeht.
 
 Platz: Die Angabe im Katalog ist eine Obergrenze. Für ein ruhiges Bild die Hälfte bis zwei Drittel nutzen –
 Kopfboxen eine Zeile, Spaltentexte 2–4 kurze Punkte, Fakten ein Satz.
