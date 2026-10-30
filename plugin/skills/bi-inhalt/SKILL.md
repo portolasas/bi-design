@@ -33,8 +33,8 @@ Fertig, wenn Reihenfolge und Titel bestätigt sind.
 ## 4. Folie für Folie
 Immer zwei bis drei Folien auf einmal vorschlagen:
 - **Aussage:** der Titel.
-- **Inhalt:** so wenig wie möglich, konkret: wer, was, bis wann, wie viel; meist drei Punkte mit höchstens acht Wörtern.
-- **Bildform:** wie die Aussage sichtbar wird, je Folie eine andere – Fakten mit großen Zahlen, Trend, Phasenpfeile,
+- **Inhalt:** konkrete ganze Aussagen: wer, was, bis wann, wie viel; meist drei Punkte mit höchstens zwölf Wörtern.
+- **Bildform:** wie die Aussage sichtbar wird; gleich gebaute Inhalte bekommen dieselbe Form – Fakten mit großen Zahlen, Trend, Phasenpfeile,
   Zeitstrahl, Bereiche mit Icons, Bereiche mit Fazit-Band, Abwägung (Pro/Contra, im Umfang/nicht im Umfang), Zitat, Bild und
   Text, Waben, Schnittmenge, Trichter, Organigramm, Karte, Status mit Ampeln, Diagramm, Kernbotschaft groß.
   Reine Textspalten und Tabellen nur, wenn nichts anderes trägt, und dann ins Backup, wenn es geht.

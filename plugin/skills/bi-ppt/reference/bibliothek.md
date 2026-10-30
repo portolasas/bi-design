@@ -28,9 +28,14 @@ Zahlen groß, Abläufe als Pfeile, Abwägungen gegenüber, Stimmen als Zitat. Di
 | Zahlenreihen | Diagramme 119–134 mit `daten` · Typ `diagramm` |
 | Mehrere gleichrangige Textblöcke, wenn nichts anderes trägt | Layouts „Two contents“, „Three contents“ (Typ `layout`) · Kopfboxen 23–27 |
 
-Texte: höchstens 40 Wörter auf einer gestalteten Folie, Punkte höchstens acht Wörter. `bippt bauen` warnt, wenn eine
-Bauart sich wiederholt oder mehr als ein Drittel der Inhaltsfolien reiner Text oder Tabelle ist (das Backup zählt nicht).
-Ein Deck hat neben Weiß und Dunkelgrün höchstens eine Akzentfarbe aus den Varianten (Gelb, Blau, Violett, Pfirsich, Grau).
+**Die Form folgt dem Inhalt.** Gleich gebaute Inhalte (parallele Themen, Stränge, Bereiche) bekommen dieselbe Folie; das
+gibt dem Deck einen roten Faden. Eine neue Bauart nur, wenn sich die Art der Aussage ändert. Ein gutes Deck hat etwa drei bis
+fünf Bauarten, die wiederkehren; Vielfalt um ihrer selbst willen wirkt unruhig.
+
+Texte: 20–40 Wörter auf einer gestalteten Folie, in ganzen Aussagen mit Verb; je Punkt höchstens zwölf Wörter. Die Absätze der
+Bibliothek müssen nicht alle gefüllt werden. `bippt bauen` warnt ab drei gleichen Bauarten in Folge, wenn eine Bauart mehr als
+die Hälfte der Inhaltsfolien stellt oder mehr als die Hälfte reiner Text ist (das Backup zählt nicht). Ein Deck hat neben Weiß
+und Dunkelgrün höchstens eine Akzentfarbe aus den Varianten (Gelb, Blau, Violett, Pfirsich, Grau).
 
 ## Bibliothek, Layout oder Generator
 - **Bibliothek** (`bib`): alles Gestaltete aus der Tabelle oben.
@@ -42,7 +47,7 @@ Ein Deck hat neben Weiß und Dunkelgrün höchstens eine Akzentfarbe aus den Var
 
 ## Ablauf
 1. Storyboard: je Folie Aussage, Bildform und Folie aus der Tabelle oben bzw. der Übersicht unten (Zahl der Bereiche, Bild
-   ja/nein, hell/dunkel). Jede Folie hat eine andere Bauart.
+   ja/nein, hell/dunkel). Gleich gebaute Inhalte bekommen dieselbe Folie.
 2. `bippt katalog --folien n,m` für die gewählten Folien → je Form id, Art, Lage, Schrift, Platz (Zeilen × Zeichen) und Beispieltext. Die
    ids gelten für jede Kopie der Folie.
 3. In der Spec: `{"bib": n, "titel": "…", "texte": {"<id>": "Text", "<id>": ["Absatz", "Absatz"]}, "bilder": {"<id>": "foto.jpg"},
@@ -55,17 +60,20 @@ Ein Deck hat neben Weiß und Dunkelgrün höchstens eine Akzentfarbe aus den Var
      überall.
    - **Jeden Blindtext ersetzen oder seine Form entfernen** – auch Überschriften wie „Header box“, „Headline“, Zahlen
      wie „20XX“ und gelbe Hinweisetiketten („Excel based chart“, „PowerPoint Master available …“).
-   - Icons und Illustrationen der Bibliothek stehen für das Beispiel. In 28–35, 85–86 und 93–94 sind es, von links:
-     Diagramm, Hund, Pflanze, Lupe, Euro-Münze (93–94 zusätzlich Tablette); in 36–38 neutrale Winkel. Passt eins nicht
-     zum Inhalt: alle der Reihe entfernen oder über `bilder` durch Brand-Icons bzw. angehängte Bilder ersetzen, nicht
-     einzeln. „Logo (nicht ändern)“ bleibt. Ohne passende Icons die Bauart ohne Icons nehmen (36–38, 39–44, 78–84).
+   - **Icons ersetzen, nicht entfernen.** Die Beispiel-Icons (Diagramm, Hund, Pflanze, Lupe, Euro-Münze, Tablette) gegen
+     passende Brand-Icons tauschen: `"bilder": {"<id>": "icon:calendar"}`; Namen liefert `bippt icons <englischer Begriff>`
+     (895 Icons), die Variante wählt bippt nach dem Untergrund (`icon:calendar:white` erzwingt sie). Winkel in 36–38, Plus und
+     Minus in 57–58 passen fast immer und bleiben.
+   - **Illustrationen bleiben,** wenn sie den Inhalt nicht stören (Reagenzglas, Hände, Glühbirne, Laborkraft): Sie tragen die
+     Folie, ohne sie entsteht ein Loch. Ein Tier nur beim passenden Thema; sonst eine andere Folie wählen. „Logo (nicht
+     ändern)“ bleibt.
    - Folien ohne Titelzeile (49–54, 57–58, 65–67, 69, 160–163): Kernaussage über `texte`.
    - `tabellen`: Zeilen mit Kopfzeile; `null` lässt eine Zelle stehen. Mehr Zeilen kopieren die letzte, weniger
      Zeilen oder Spalten fallen weg (die Tabelle behält ihre Breite).
    - Bilder nur mit genug Auflösung (mindestens 150 dpi im Rahmen: Rahmenbreite in Zoll × 150 Pixel). Der
      Bildplatzhalter beschneidet; mit `{"datei": …, "ausschnitt": "oben"}` den Ausschnitt wählen.
 4. `bippt bauen`: Es warnt bei Text, der nicht in seine Form passt, bei halb leeren Flächen, übrigem Blindtext und zu
-   wenig Abwechslung. Alles beheben, bevor das Deck rausgeht.
+   Eintönigkeit. Alles beheben, bevor das Deck rausgeht.
 
 Platz: Die Angabe im Katalog ist eine Obergrenze. Für ein ruhiges Bild die Hälfte bis zwei Drittel nutzen –
 Kopfboxen eine Zeile, Spaltentexte 2–4 kurze Punkte, Fakten ein Satz.

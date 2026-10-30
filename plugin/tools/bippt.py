@@ -15,6 +15,7 @@ Befehle
   icons <begriff…>             Brand-Icons suchen
   katalog [pptx] --folien n,m [-o md]   Formen der Folienbibliothek zum Füllen (id, Art, Lage, Platz, Beispieltext)
   layouts                      Layouts des Masters mit ihren Feldern (Typ layout)
+  iconpaket <BrandDesign> -o <json>   alle Icons in eine Datei packen (Skill-Paket für Copilot)
   bauen <spec.json> [-o pptx] [--erzwingen]   Präsentation bauen, dazu die Folienbeschreibung <ausgabe>.md; bricht ab,
                                wenn das Deck nach dem letzten Bau geändert wurde (--erzwingen: trotzdem überschreiben)
   beschreiben <pptx> [-o md|-] Folienbeschreibung aus dem Deck (ohne Spec, z. B. fremdes oder von Hand geändertes Deck)
@@ -104,6 +105,9 @@ def _umgebung(_):
     print(f"  {'ok' if m.ordner else 'WARN':7} Marke {m.profil} aus {m.ordner or 'Notstand (bi-designer fehlt)'}")
     ar = konfig.asset_root(cfg)
     n_ic = len(list((ar / 'Icons_darkgreen').glob('*.png'))) if ar and (ar / 'Icons_darkgreen').is_dir() else 0
+    if not n_ic:
+        from bippt.marke import ICON_PAKET, icons_im_paket
+        n_ic, ar = icons_im_paket(), ICON_PAKET if ICON_PAKET.is_file() else ar
     print(f"  {'ok' if n_ic else 'WARN':7} Icons {n_ic} in {ar or '(asset_root nicht gesetzt: bippt konfig --setze asset_root=<BrandDesign>)'}")
     from bippt.rendern import wege
     w = wege()
@@ -233,6 +237,12 @@ def _layouts(_):
     return 0
 
 
+def _iconpaket(a):
+    from bippt.marke import icon_paket_bauen
+    print(f"ICONPAKET: {a.o} – {icon_paket_bauen(a.ordner, a.o)} Icons")
+    return 0
+
+
 def _bauen(a):
     from bippt.bauen import bauen
     _, w = bauen(a.spec, a.o, erzwingen=a.erzwingen)
@@ -303,6 +313,7 @@ def main(argv=None):
     p = sub.add_parser("katalog"); p.add_argument("pptx", nargs="?"); p.add_argument("--folien"); p.add_argument("-o")
     p.set_defaults(fn=_katalog)
     sub.add_parser("layouts").set_defaults(fn=_layouts)
+    p = sub.add_parser("iconpaket"); p.add_argument("ordner"); p.add_argument("-o", required=True); p.set_defaults(fn=_iconpaket)
     p = sub.add_parser("bauen"); p.add_argument("spec"); p.add_argument("-o")
     p.add_argument("--erzwingen", action="store_true", help="auch ein nach dem Bau geändertes Deck überschreiben")
     p.set_defaults(fn=_bauen)

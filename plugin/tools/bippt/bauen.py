@@ -278,6 +278,7 @@ def bauen(spec_pfad, ausgabe=None, still=False, erzwingen=False):
             del sl._element.attrib["show"]
         reihenfolge.append(sl)
     warnungen += bibliothek.abwechslung(spec.get("folien", []))
+    warnungen += bibliothek.schreibweise(spec.get("folien", []))
     # Reihenfolge herstellen, nicht verwendete Basisfolien entfernen
     lst = prs.slides._sldIdLst
     nach_part = {id(prs.part.related_part(e.rId)): e for e in lst}

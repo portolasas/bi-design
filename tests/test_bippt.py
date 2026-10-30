@@ -547,11 +547,17 @@ with tempfile.TemporaryDirectory() as td:
 print("Abwechslung und Layouts des Masters")
 einerlei = [{"typ": "titel", "titel": "T"}] + [{"bib": 25} for _ in range(4)] + [{"typ": "tabelle"}]
 wa = bibliothek.abwechslung(einerlei)
-fall("Abwechslung: gleiche Folie, gleiche Bauart hintereinander, zu viel Text", any("Folien 2 und 3" in w for w in wa)
-     and any("Bibliotheksfolie 25 steht 4×" in w for w in wa) and any("reine Text" in w for w in wa), "; ".join(wa))
+fall("Eintönig: drei gleiche Bauarten in Folge, mehr als die Hälfte, zu viel Text", any("Folien 2–4" in w for w in wa)
+     and any("4 von 5" in w and "mehr als die Hälfte" in w for w in wa) and any("Textlastig" in w for w in wa), "; ".join(wa))
+wieder = [{"typ": "titel"}, {"bib": 36}, {"bib": 36}, {"bib": 39}, {"bib": 81}, {"bib": 36}, {"typ": "status"}, {"bib": 81}]
+fall("Wiederholen ist erlaubt: gleiche Folie zweimal in Folge und mehrfach ohne Warnung",
+     not bibliothek.abwechslung(wieder), "; ".join(bibliothek.abwechslung(wieder)))
+fall("Umlaute: Umschrift erkannt, normale Wörter nicht", bibliothek.schreibweise([{"titel": "Einfuehrung und Pruefung", "texte": {
+    "1": ["aktuell manuell neue Steuerung Quelle Frequenz Prozesse"]}}]) == [
+        "Umlaute: „Einfuehrung“, „Pruefung“ – echte Umlaute schreiben (ä, ö, ü); Eigennamen bleiben wie in der Quelle"], str(bibliothek.schreibweise([{"titel": "Einfuehrung"}])))
 bunt = [{"typ": "titel"}, {"bib": 10}, {"bib": 36}, {"bib": 39}, {"bib": 81}, {"typ": "status"}, {"bib": 50}, {"bib": 182},
         {"typ": "kapitel", "ab_hier_ausblenden": True}, {"typ": "tabelle"}, {"typ": "tabelle"}, {"typ": "tabelle"}]
-fall("Abwechslung: bunte Mischung ohne Warnung, Backup zählt nicht", not bibliothek.abwechslung(bunt), "; ".join(bibliothek.abwechslung(bunt)))
+fall("Bunte Mischung ohne Warnung, Backup zählt nicht", not bibliothek.abwechslung(bunt), "; ".join(bibliothek.abwechslung(bunt)))
 with tempfile.TemporaryDirectory() as td:
     td = Path(td)
     Image.new("RGB", (2400, 2700), (8, 49, 42)).save(td / "foto.jpg")
@@ -575,6 +581,35 @@ with tempfile.TemporaryDirectory() as td:
     fall("Typ layout: Warnung bei falschem Feld und leerem Bild", any("kein Textfeld 9" in w for w in wy)
          and any(w.startswith("Folie 4:") and "Bildplatzhalter 10 leer" in w for w in wy), "; ".join(wy))
     fall("layouts nennt die Felder", "**Three contents**: 1 Inhalt 3.9×4.8" in bibliothek.layouts(PLUGIN / "vorlagen" / "BI_Vorlage_16x9.pptx"))
+
+print("Icons")
+from bippt import marke as marke_mod  # noqa: E402
+with tempfile.TemporaryDirectory() as td:
+    td = Path(td)
+    for v, f in (("darkgreen", (8, 49, 42, 255)), ("white", (255, 255, 255, 255))):
+        (td / f"Icons_{v}").mkdir()
+        bild = Image.new("RGBA", (64, 64), (0, 0, 0, 0))
+        bild.paste(f, (10, 10, 50, 50))
+        bild.save(td / f"Icons_{v}" / "probe-icon.png")
+    paket = td / "bi_icons.json"
+    fall("iconpaket zählt die Icons", marke_mod.icon_paket_bauen(td, paket, groesse=32) == 1)
+    alt_paket, marke_mod.ICON_PAKET = marke_mod.ICON_PAKET, paket
+    marke_mod._PAKET.clear()
+    weiss = marke_mod._aus_paket("probe-icon", "white")
+    fall("Icon aus dem Paket in der Variantenfarbe", weiss is not None and Image.open(weiss).convert("RGBA").getpixel((16, 16)) == (255, 255, 255, 255))
+    fall("Unbekanntes Icon: None", marke_mod._aus_paket("gibt-es-nicht", "white") is None)
+    (td / "ic.spec.json").write_text(json.dumps({"ausgabe": "ic.pptx", "folien": [
+        {"bib": 36, "titel": "Icon auf dunklem Band", "bilder": {"19": "icon:probe-icon", "23": "icon:gibt-es-nicht"},
+         "texte": {"17": ["Eins", "Ein Satz mit genügend Wörtern für die Prüfung"], "16": ["Zwei", "Noch ein ganzer Satz mit Inhalt für die Folie"]}},
+        {"bib": 81, "titel": "Zerhackt", "texte": {"18": ["Kopf", "Tool", "Programmieren", "Test"]}}]}, ensure_ascii=False), encoding="utf-8")
+    zi, wi = bauen.bauen(td / "ic.spec.json", still=True)
+    ic = next(sh for sh in Presentation(str(zi)).slides[0].shapes if sh.shape_id == 19)
+    px = Image.open(__import__("io").BytesIO(ic.image.blob)).convert("RGBA").getpixel((16, 16))
+    fall("bilder icon: auf dunklem Band die weiße Variante", px[:3] == (255, 255, 255), str(px))
+    fall("Warnung: unbekanntes Icon", any("„gibt-es-nicht“ nicht gefunden" in w for w in wi), "; ".join(wi))
+    fall("Warnung: Einzelwörter und wenig Text", any("Einzelwörtern" in w and "„Tool“" in w for w in wi) and any("Nur 4 Wörter" in w for w in wi), "; ".join(wi))
+    marke_mod.ICON_PAKET = alt_paket
+    marke_mod._PAKET.clear()
 
 print("ALLE FÄLLE BESTANDEN" if not fehler else f"FEHLGESCHLAGEN: {', '.join(fehler)}")
 sys.exit(1 if fehler else 0)

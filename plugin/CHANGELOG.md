@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.7.0 – 2026-10-30
+Befunde aus Fall 7 im Copilot Agent Builder (Inhalt, dann Bauen) und vom Nutzer: Das Deck nutzte zwanghaft auf jeder Folie eine
+andere Bauart, Icons und Illustrationen waren entfernt, Punkte zu Einzelwörtern zerhackt, Umlaute umschrieben.
+- **Wiederholen ist erwünscht:** `reference/bibliothek.md`, bi-ppt und bi-inhalt sagen jetzt „die Form folgt dem Inhalt“ (drei bis
+  fünf wiederkehrende Bauarten). `bauen` warnt nur noch ab drei gleichen Bauarten in Folge, wenn eine Bauart mehr als die Hälfte
+  stellt oder mehr als die Hälfte reiner Text ist.
+- **Icons:** `bippt iconpaket` packt alle 895 Icons in eine JSON-Datei (Alpha-Maske je Icon, Varianten nur in der Farbe verschieden),
+  für Umgebungen ohne Ordner BrandDesign; `Marke.icon_pfad` nutzt sie, wenn sie als `icons/bi_icons.json` im Paket liegt.
+  Bibliotheksfolien: `"bilder": {"id": "icon:<name>[:variante]"}`, Variante nach dem Untergrund der Form.
+- Regeln: Icons ersetzen statt entfernen, passende Illustrationen behalten, 20–40 Wörter in ganzen Aussagen.
+- Warnungen: Punkte aus Einzelwörtern, weniger als 15 Wörter auf einer gestalteten Folie, Umschrift statt Umlaut.
+
 ## 2.6.0 – 2026-10-30
 Befund aus Erprobung 6 im Copilot Agent Builder (Steering-Deck): Der Agent nahm sechsmal Bibliotheksfolie 25, die Nummer aus
 den Beispielen der Doku; der Nutzer fand das zu textlastig und will den Inhalt erst im Dialog erarbeiten.

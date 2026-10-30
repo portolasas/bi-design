@@ -74,9 +74,9 @@ direkt bauen?“. **Mit Briefing** (`<Name>_Inhalt.md` aus bi-inhalt) ist der In
 1. Storyline nach [reference/arbeitsweise.md](reference/arbeitsweise.md) (Publikum → Folienzahl, Aktionstitel,
    eine Kernaussage je Folie als Band, Details ins ausgeblendete Backup).
 2. **Storyboard** nach [reference/bibliothek.md](reference/bibliothek.md) › Bildform zuerst: je Folie Aussage, Bildform,
-   Quelle (`bib n`, `layout`, `typ`). Fertig, wenn jede Inhaltsfolie eine Bildform hat, keine Bauart zweimal hintereinander
-   steht und höchstens ein Drittel reiner Text oder Tabelle ist. Für jede Bibliotheksfolie `bippt katalog --folien n`
-   lesen und jeden Blindtext füllen oder entfernen.
+   Quelle (`bib n`, `layout`, `typ`). Gleich gebaute Inhalte bekommen dieselbe Folie, eine neue Bauart nur bei einer anderen
+   Art von Aussage. Fertig, wenn jede Inhaltsfolie eine Bildform hat. Für jede Bibliotheksfolie `bippt katalog --folien n`
+   lesen, jeden Blindtext füllen und Beispiel-Icons durch passende ersetzen (`"bilder": {"<id>": "icon:<name>"}`).
 3. Spezifikation `<Name>.spec.json` **neben die Ausgabe** schreiben (Startgerüst: `bippt neu <ordner> --name <Name>`).
    Folientypen und Felder: [reference/folientypen.md](reference/folientypen.md) (`bippt typen`). Icons: `bippt icons <begriff>`.
    Kopf mit `zweck` (Anlass, Publikum, Datum) und `quellen`; je Folie `beschreibung`, wenn Typ und Felder die Gestaltung
@@ -105,7 +105,7 @@ direkt bauen?“. **Mit Briefing** (`<Name>_Inhalt.md` aus bi-inhalt) ist der In
 ```
 bippt bauen <Name>.spec.json          → ERGEBNIS: OK | Warnungen (Überlauf, Titel zweizeilig, Wort zu breit,
                                         Tabelle zu hoch, Icons, Timeline-Beschriftung, Bild unscharf oder BI-Logo,
-                                        Text zu lang für seine Form, Fläche halb leer, Blindtext, Abwechslung);
+                                        Text zu lang für seine Form, Fläche halb leer, Blindtext, Einzelwörter, Umlaute, Eintönigkeit);
                                         BESCHRIEBEN <Name>.md, ÄNDERUNGEN je Folie seit dem letzten Bau
 bippt pruefen <Name>.pptx --woerter N → ERGEBNIS: OK (keine FEHLER; N nach Publikum)
 bippt rendern <Name>.pptx [--alle]    → kontaktbogen.png ansehen, nur auffällige Folien einzeln (folie_NN.png)

@@ -23,6 +23,7 @@ from . import konfig, vorlage
 from .aendern import absaetze_setzen, aendern
 from .bausteine import umbrechen
 from .formen import alle, finden
+from .pruefen import _hintergrund
 
 R = "{http://schemas.openxmlformats.org/officeDocument/2006/relationships}"
 WEGLASSEN = {RT.NOTES_SLIDE, RT.COMMENTS}  # Hinweise der Bibliothek und Kommentare kommen nicht mit
@@ -315,7 +316,7 @@ def _leer(k, sid):
         b = bedarf(sh)
         if b is None or not sh.height or sh.height < 914400 * 2 or getattr(sh.fill, "type", None) is None:
             continue
-        if b < sh.height / 914400 * 0.5:
+        if b < sh.height / 914400 * 0.4:
             k.warn(f"„{sh.name}“ (id {sid}): Fläche nur zu {b / (sh.height / 914400):.0%} gefüllt – eine Folie mit weniger "
                    "Fläche nehmen (z. B. Fazit-Band 36–38, Fakten 39–44) oder die Form mit aendern h kürzen")
             return
@@ -372,8 +373,9 @@ def _form(fs):
 
 
 def abwechslung(folien):
-    """Warnungen zur Gestaltung des Decks über alle sichtbaren neuen Folien: dieselbe Bauart hintereinander oder zu oft,
-    zu viele reine Textfolien. Erst ab vier Inhaltsfolien; Backup zählt nicht."""
+    """Warnungen bei Eintönigkeit über alle sichtbaren neuen Folien. Wiederholen ist erwünscht: Gleich gebaute Inhalte
+    bekommen dieselbe Folie. Gewarnt wird erst ab drei gleichen Folien in Folge, wenn eine Bauart mehr als die Hälfte der
+    Inhaltsfolien stellt oder mehr als die Hälfte reiner Text ist. Erst ab vier Inhaltsfolien; Backup zählt nicht."""
     formen, ausblenden, w = [], False, []
     for nr, fs in enumerate(folien, 1):
         ausblenden = ausblenden or bool(fs.get("ab_hier_ausblenden"))
@@ -381,26 +383,51 @@ def abwechslung(folien):
             continue
         f = _form(fs)
         if f:
-            formen.append((nr, f[0], f[1], fs.get("bib")))
+            formen.append((nr, f[0], f[1]))
     if len(formen) < 4:
         return w
-    for a, b in zip(formen, formen[1:]):
-        if a[1] == b[1] and a[1] != "timeline":  # Gesamtüberblick und kritischer Pfad gehören zusammen
-            w.append(f"Abwechslung: Folien {a[0]} und {b[0]} haben dieselbe Bauart ({a[1]}) – eine andere Bildform wählen")
-    zahl, gleiche = {}, {}
-    for _, name, _, bib in formen:
+    for a, b, c in zip(formen, formen[1:], formen[2:]):
+        if a[1] == b[1] == c[1] and a[1] != "timeline":  # Gesamtüberblick und kritischer Pfad gehören zusammen
+            w.append(f"Eintönig: Folien {a[0]}–{c[0]} haben dieselbe Bauart ({a[1]}) – mindestens eine Aussage anders zeigen")
+            break
+    zahl = {}
+    for _, name, _ in formen:
         zahl[name] = zahl.get(name, 0) + 1
-        if bib:
-            gleiche[bib] = gleiche.get(bib, 0) + 1
-    w += [f"Abwechslung: Bibliotheksfolie {n} steht {c}× im Deck – höchstens einmal, sonst wirkt es eintönig"
-          for n, c in gleiche.items() if c > 1]
-    w += [f"Abwechslung: {c} von {len(formen)} Inhaltsfolien sind „{n}“ – höchstens zwei je Bauart"
-          for n, c in zahl.items() if c > 2]
+    w += [f"Eintönig: {c} von {len(formen)} Inhaltsfolien sind „{n}“ – mehr als die Hälfte"
+          for n, c in zahl.items() if c > len(formen) / 2]
     text = sum(1 for x in formen if x[2])
-    if text > len(formen) / 3:
-        w.append(f"Abwechslung: {text} von {len(formen)} Inhaltsfolien sind reine Text- oder Tabellenfolien, höchstens ein "
-                 "Drittel – Aussagen in Bildformen umsetzen (Skill bi-ppt › Aussage → Bildform)")
+    if text > len(formen) / 2:
+        w.append(f"Textlastig: {text} von {len(formen)} Inhaltsfolien sind reine Text- oder Tabellenfolien – Aussagen mit "
+                 "Zahlen, Abläufen oder Abwägungen in eine Bildform bringen (reference/bibliothek.md)")
     return w
+
+
+UMSCHRIFT = re.compile(r"(?:^|[bcdfghjklmnprstvwxz])(?:ue|ae|oe)(?=[bcdfghjklmnprstvwxz])", re.I)
+KEINE_UMSCHRIFT = re.compile(r"(?i)uell|uent|uenz|duett|koeff|poet|israel|michael|bluetooth|^oe[a-z]{0,2}$|^ae[a-z]{0,2}$")
+FREMDFELDER = {"bild", "bilder", "datei", "form", "formen", "layout", "ausgabe", "icon", "marke", "typ", "ampel", "status",
+               "art", "stil", "pos", "ausschnitt", "skala", "hoehe"}
+
+
+def _texte_der_spec(x, schluessel=None):
+    if isinstance(x, str):
+        if schluessel not in FREMDFELDER:
+            yield x
+    elif isinstance(x, list):
+        for v in x:
+            yield from _texte_der_spec(v, schluessel)
+    elif isinstance(x, dict):
+        for k, v in x.items():
+            yield from _texte_der_spec(v, k)
+
+
+def schreibweise(folien):
+    """Warnung bei Umschrift statt Umlaut („Einfuehrung“): Die Sprachmodelle schreiben in Code gern ASCII."""
+    funde = []
+    for t in _texte_der_spec(folien):
+        for wort in re.findall(r"[A-Za-zÄÖÜäöüß-]{4,}", t):
+            if UMSCHRIFT.search(wort) and not KEINE_UMSCHRIFT.search(wort) and wort not in funde:
+                funde.append(wort)
+    return [f"Umlaute: „{'“, „'.join(funde[:8])}“ – echte Umlaute schreiben (ä, ö, ü); Eigennamen bleiben wie in der Quelle"] if funde else []
 
 
 def blindtext(folie):
@@ -424,6 +451,70 @@ def blindtext(folie):
     return treffer
 
 
+def _flaeche(sh, folie):
+    """Farbe (RGB) einer gefüllten Form, auch aus dem Theme; None ohne einfarbige Füllung."""
+    el = sh._element.find(qn("p:spPr"))
+    el = el.find(qn("a:solidFill")) if el is not None else None
+    if el is None or not len(el):
+        return None
+    farbe = el[0]
+    if farbe.tag == qn("a:srgbClr"):
+        return farbe.get("val")
+    if farbe.tag == qn("a:schemeClr"):
+        return vorlage.themafarben(folie).get(vorlage.THEMA.get(farbe.get("val"), farbe.get("val")))
+    return None
+
+
+def _icon(k, sid, wert):
+    """„icon:calendar“ oder „icon:calendar:white“ → Pfad; Variante nach dem Untergrund der Form."""
+    teile = wert.split(":")
+    name, variante = teile[1], teile[2] if len(teile) > 2 else None
+    formen = list(alle(k.folie.shapes))
+    if variante is None:
+        grund = None
+        ziel = next((i for i, f in enumerate(formen) if f.shape_id == sid), None)
+        if ziel is not None and formen[ziel].left is not None:
+            f = formen[ziel]
+            cx, cy = f.left + f.width / 2, f.top + f.height / 2
+            for u in reversed(formen[:ziel]):
+                if u.left is not None and u.width is not None and u.left <= cx <= u.left + u.width \
+                        and u.top <= cy <= u.top + u.height:
+                    grund = _flaeche(u, k.folie)
+                    if grund:
+                        break
+        grund = grund or _hintergrund(k.folie)
+        if grund:
+            r, g, b = bytes.fromhex(grund)
+            dunkel = 0.3 * r + 0.59 * g + 0.11 * b < 110
+        else:
+            dunkel = k.dunkel or "dark" in k.folie.slide_layout.name
+        variante = "white" if dunkel else "darkgreen"
+    pfad_ = k.m.icon_pfad(name, variante)
+    if pfad_ is None:
+        aehnlich = ", ".join(k.m.icon_suchen(name.split("-")[0])[:5])
+        k.warn(f"Icon „{name}“ nicht gefunden{' – ähnlich: ' + aehnlich if aehnlich else ''} (bippt icons <begriff>)")
+    return str(pfad_) if pfad_ else None
+
+
+def _textgehalt(k, fs):
+    """Zerhackte Punkte und fast leere Folien: Der Inhalt muss eine Aussage tragen."""
+    texte = fs.get("texte") or {}
+    if not texte:
+        return
+    einzeln, woerter = [], 0
+    for wert in texte.values():
+        absaetze = wert if isinstance(wert, list) else [wert]
+        klar = [re.sub(r"\*\*|==", "", a.get("t", "") if isinstance(a, dict) else str(a or "")) for a in absaetze]
+        woerter += sum(len(x.split()) for x in klar)
+        einzeln += [x for x in klar[1:] if len(x.split()) == 1]
+    if len(einzeln) >= 2:
+        k.warn(f"Punkte aus Einzelwörtern („{'“, „'.join(einzeln[:4])}“) – ganze Aussagen schreiben; es müssen nicht alle "
+               "Absätze der Bibliothek gefüllt werden")
+    form = _form(fs)
+    if form and form[0] not in ("Zitate", "Karten", "Diagramme") and woerter < 15:
+        k.warn(f"Nur {woerter} Wörter auf der Folie – die Aussage trägt nicht; jeden Bereich mit einem konkreten Satz füllen")
+
+
 def fuellen(k, fs, ordner):
     """texte, bilder, entfernen, daten einer Bibliotheksfolie; danach Platz und Blindtext prüfen."""
     fremd = set(fs) - FELDER
@@ -433,6 +524,10 @@ def fuellen(k, fs, ordner):
     for sid, wert in (fs.get("texte") or {}).items():
         ops.append({"id": int(sid), "absaetze": wert if isinstance(wert, list) else [wert]})
     for sid, wert in (fs.get("bilder") or {}).items():
+        if isinstance(wert, str) and wert.startswith("icon:"):
+            wert = _icon(k, int(sid), wert)
+            if wert is None:
+                continue
         if isinstance(wert, dict):
             ops.append({"id": int(sid), "bild": wert.get("datei"), "ausschnitt": wert.get("ausschnitt")})
         else:
@@ -448,6 +543,7 @@ def fuellen(k, fs, ordner):
     for sid in fs.get("texte") or {}:
         _platz(k, int(sid))
         _leer(k, int(sid))
+    _textgehalt(k, fs)
 
 
 # ----------------------------------------------------------------- Katalog
