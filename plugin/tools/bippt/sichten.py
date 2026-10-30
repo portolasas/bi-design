@@ -162,6 +162,7 @@ def _groesstes_rechteck(zeilen):
 def _leere(seite, pymupdf):
     """(Anteil leerer Zellen, größte leere Fläche als Anteil) der Inhaltszone; eine Zelle ist leer, wenn sie einfarbig ist."""
     bild = seite.get_pixmap(dpi=36, colorspace=pymupdf.csGRAY, alpha=False)
+    daten = bild.samples  # einmal holen: pymupdf kopiert die Bilddaten bei jedem Zugriff
     p = 36 * ZELLE
     x0, y0, x1, y1 = (v * 36 for v in ZONE)
     raster = []
@@ -169,7 +170,7 @@ def _leere(seite, pymupdf):
     while y + p <= y1 + 0.01:
         reihe, x = [], x0
         while x + p <= x1 + 0.01:
-            werte = [bild.samples[bild.stride * j + i] for j in range(int(y), int(y + p)) for i in range(int(x), int(x + p))]
+            werte = [daten[bild.stride * j + i] for j in range(int(y), int(y + p)) for i in range(int(x), int(x + p))]
             reihe.append(max(werte) - min(werte) < KONTRAST)
             x += p
         raster.append(reihe)
@@ -203,6 +204,14 @@ def messen(pdf, layouts=None):
     return ergebnis, schriften
 
 
+def schriftlage(schriften):
+    """marke: Boehringer gerendert. nah: nur Liberation Sans als Ersatz, Umbruch fast gleich, Messungen zählen. fremd: Umbruch weicht ab, nur Hinweise."""
+    namen = [s for s in schriften if s not in ("Symbol", "Wingdings", "ArialMT", "1")]
+    if any("Boehringer" in s for s in namen):
+        return "marke"
+    return "nah" if namen and all("Liberation" in s for s in namen) else "fremd"
+
+
 def sichten(pptx, ausgabe=None, weg=None, folien=None):
     """Rendert das Deck (auch Ausgeblendetes, damit die Nummern stimmen) und meldet die Befunde. Rückgabe: Zahl der Befunde."""
     pptx = Path(pptx)
@@ -211,12 +220,17 @@ def sichten(pptx, ausgabe=None, weg=None, folien=None):
     pdf, _, _ = rendern(pptx, ausgabe, dpi=80, alle=True, weg=weg, blatt=True)
     ergebnis, schriften = messen(pdf, layouts)
     auf_logo = _formen_auf_logo(prs)
+    ausgeblendet = {i for i, s in enumerate(prs.slides, 1) if s._element.get("show") == "0"}
     for f in ergebnis:
+        if f["nr"] in ausgeblendet:
+            f["leere"] = None  # Backup wird nicht gezeigt, eine Textfolie darf dort leer bleiben
         if not any(n in layouts[f["nr"] - 1].lower() for n in RAHMEN_LAYOUTS):
             f["text"] += auf_logo.get(f["nr"], [])
-    marke = any("Boehringer" in s for s in schriften)
-    print(f"SICHTUNG {pptx.name}: {len(ergebnis)} Folien · Schrift: "
-          + ("Boehringer" if marke else f"Ersatz ({', '.join(sorted(schriften)) or 'keine'}), Umbruch weicht ab"))
+    lage = schriftlage(schriften)
+    marke = lage != "fremd"
+    print(f"SICHTUNG {pptx.name}: {len(ergebnis)} Folien · Schrift: " + {
+        "marke": "Boehringer", "nah": "Liberation Sans als Ersatz, Umbruch fast gleich (4 % schmaler)",
+        "fremd": f"Ersatz ({', '.join(sorted(schriften)) or 'keine'}), Umbruch weicht ab"}[lage])
     zahl = 0
     for f in ergebnis:
         if folien and f["nr"] not in folien:

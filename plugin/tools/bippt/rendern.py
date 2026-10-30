@@ -112,6 +112,20 @@ end timeout'''
             _pp_beenden()
 
 
+SCHRIFT_ERSATZ = "Liberation Sans"  # im Sandbox von Copilot vorhanden, 4 % schmaler als Boehringer Forward; sonst nähme LibreOffice DejaVu, gut 10 % breiter
+
+
+def schrift_konfig(ziel, einbinden="/etc/fonts/fonts.conf"):
+    """Fontconfig-Datei: Fehlen die Boehringer-Schriften, gilt Liberation Sans. accept, nicht prefer: Sind sie installiert, bleiben sie.
+    Die Schriften selbst stecken in der Vorlage MTX-komprimiert; LibreOffice 25.2 liest sie nicht."""
+    familien = ("Boehringer Forward Head", "Boehringer Forward Text", "Boehringer Forward Head Md", "Boehringer Forward Text Md",
+                "Boehringer Headline", "Boehringer Text")
+    alias = "".join(f'<alias binding="same"><family>{f}</family><accept><family>{SCHRIFT_ERSATZ}</family></accept></alias>' for f in familien)
+    Path(ziel).write_text(f'<?xml version="1.0"?><fontconfig><include ignore_missing="yes">{einbinden}</include>{alias}</fontconfig>',
+                          encoding="utf-8")
+    return ziel
+
+
 def _libreoffice(pptx, pdf):
     exe = shutil.which("soffice") or shutil.which("libreoffice") or \
         ("/Applications/LibreOffice.app/Contents/MacOS/soffice" if Path("/Applications/LibreOffice.app").exists() else None)
@@ -121,7 +135,8 @@ def _libreoffice(pptx, pdf):
         # eigenes Profil: im Sandbox von Copilot ist das Benutzerverzeichnis nicht sicher beschreibbar
         r = subprocess.run([exe, f"-env:UserInstallation=file://{td}/profil", "--headless", "--convert-to", "pdf",
                             "--outdir", td, str(pptx)],
-                           capture_output=True, text=True, timeout=300)
+                           capture_output=True, text=True, timeout=300,
+                           env=dict(os.environ, FONTCONFIG_FILE=schrift_konfig(Path(td) / "schriften.conf")))
         erg = Path(td) / (Path(pptx).stem + ".pdf")
         if r.returncode != 0 or not erg.is_file():
             raise RuntimeError("LibreOffice: " + (r.stderr or r.stdout)[:300])

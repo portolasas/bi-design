@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.10.0 – 2026-10-30
+Sandbox-Probe 2 im Copilot Agent Builder: LibreOffice 25.2 rendert, `bippt sichten` läuft (27 s bei 15 Folien), der Agent las einen Zufallscode vom Bild. Es gibt kein Chromium. Gerendert wurde mit DejaVu statt Boehringer.
+- **Schrift im Render:** Fehlen die Boehringer-Schriften, nimmt LibreOffice jetzt Liberation Sans (4 % schmaler) statt DejaVu (gut 10 % breiter). Es kommen keine Schriftdateien ins Paket. Mit Liberation Sans zählen Überlappung und Überstand wieder als Befund.
+- **Timeline:** Eine Beschriftung konnte unter dem nächsten Balken derselben Zeile verschwinden, ohne Warnung (vom Render in der Sandbox gefunden, in PowerPoint bestätigt). Erst werden alle Balken und Rauten belegt, dann beschriftet; über und unter dem Balken zählt der sichtbare Text, und die Nachbarzeilen werden mitgeprüft.
+- **`sichten`:** sechsmal schneller gemessen; ausgeblendete Folien zählen nicht als leer.
+
 ## 2.9.0 – 2026-10-30
 Härtetest von `bippt umwandeln marke` mit einem Deck der Erstellen-Funktion über 27 Folien, mit Fotos, vier Diagrammen und Zeitstrahlen. Er deckte auf,
 dass der erste Wurf nur für einfache Decks taugte. `sichten` hatte die Hälfte der Fehler übersehen.

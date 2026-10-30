@@ -777,9 +777,10 @@ def timeline(k, s):
     benutzt = set()
 
     def frei(row, x, w, yy, hh, linien=True):
-        for (a, b, c, d) in belegt.get(row, []):
-            if x < b and x + w > a and yy < d and yy + hh > c:
-                return False
+        for r in (row - 1, row, row + 1):  # Beschriftungen über und unter dem Balken reichen in die Nachbarzeile
+            for (a, b, c, d) in belegt.get(r, []):
+                if x < b and x + w > a and yy < d and yy + hh > c:
+                    return False
         if x < cx0 - 0.02 or x + w > cx1 + 0.02:
             return False
         return not linien or all(not (x + 0.02 < lx < x + w - 0.02) for lx in linien_x)
@@ -789,23 +790,35 @@ def timeline(k, s):
 
     def label(row, x_anker_l, x_anker_r, cy, txt, pos, g=8.5):
         w = _breite(txt, g)
-        kand = {"rechts": (x_anker_r + 0.06, cy - 0.12, "l"), "links": (x_anker_l - 0.06 - w, cy - 0.12, "r"),
-                "oben": ((x_anker_l + x_anker_r) / 2 - w / 2, cy - rh / 2 - 0.02, "m"),
-                "unten": ((x_anker_l + x_anker_r) / 2 - w / 2, cy + rh / 2 - 0.2, "m")}
+        # je Lage: x, Oberkante des Textfelds, Ausrichtung, Oberkante und Höhe des sichtbaren Textes
+        mitte = (x_anker_l + x_anker_r) / 2 - w / 2
+        kand = {"rechts": (x_anker_r + 0.06, cy - 0.12, "l", cy - 0.12, 0.24), "links": (x_anker_l - 0.06 - w, cy - 0.12, "r", cy - 0.12, 0.24),
+                "oben": (mitte, cy - 0.32, "m", cy - 0.27, 0.14), "unten": (mitte, cy + 0.08, "m", cy + 0.13, 0.14)}
         reihenfolge = [pos] + [p for p in ("rechts", "links", "oben", "unten") if p != pos] if pos else \
             ["rechts", "links", "oben", "unten"]
         # 1. Durchgang: frei von Labels/Elementen und Linien; 2.: Linien (Heute/Marker) dürfen gekreuzt werden
         wahl = next((p for linien in (True, False) for p in reihenfolge
-                     if frei(row, *kand[p][:1], w, kand[p][1], 0.24, linien)), None)
+                     if frei(row, kand[p][0], w, kand[p][3], kand[p][4], linien)), None)
         if wahl is None:
             wahl = reihenfolge[0]
             k.warn(f"Timeline: Beschriftung „{txt}“ überlappt – pos setzen oder kürzen")
-        lx, ly, au = kand[wahl]
+        lx, ly, au, sy, sh = kand[wahl]
         lx = max(X0, min(lx, X0 + XW - w))  # nie über den Folienrand
-        belegen(row, lx, w, ly, 0.24)
+        belegen(row, lx, w, sy, sh)
         textfeld(k, lx, ly, w, 0.24, {"t": txt, "ausr": au}, groesse=g if wahl in ("rechts", "links") else 7.5,
                  fett=True, anker="m", rand=(0, 0, 0, 0), warn_ueberlauf=False, umbruch=False)
 
+    # Erst alle Balken und Rauten belegen, dann beschriften: Sonst landet eine Beschriftung unter dem nächsten Balken derselben Zeile.
+    for ri, z in enumerate(zeilen):
+        cy = rows_y + ri * rh + rh / 2
+        for e in z.get("elemente", []):
+            art_e = e.get("art", "balken" if e.get("von") else "meilenstein")
+            if art_e == "balken":
+                xa, xb = sk.x(_datum(e["von"])), sk.x(_datum(e["bis"], ende=True))
+                belegen(ri, xa, xb - xa, cy - 0.13, 0.26)
+            elif art_e != "ueberbrueckung":
+                xm = sk.x(_datum(e["datum"]))
+                belegen(ri, xm - 0.1, 0.2, cy - 0.1, 0.2)
     for ri, z in enumerate(zeilen):
         cy = rows_y + ri * rh + rh / 2
         for e in z.get("elemente", []):
@@ -819,7 +832,6 @@ def timeline(k, s):
                 strich = st in ("extern", "offen")
                 flaeche(k, xa, cy - bh / 2, max(xb - xa, 0.04), bh, fill=fill, linie="DG" if strich else None,
                         strich=st == "extern")
-                belegen(ri, xa, xb - xa, cy - bh / 2, bh)
                 txt = e.get("text", "")
                 if txt:
                     passt = [g for g in (8.5, 7.5) if _breite(txt, g, fett=False) + 0.06 <= xb - xa]
@@ -834,7 +846,6 @@ def timeline(k, s):
             else:  # meilenstein
                 xm = sk.x(_datum(e["datum"]))
                 raute(k, xm, cy, 0.2, fill)
-                belegen(ri, xm - 0.1, 0.2, cy - 0.1, 0.2)
                 if e.get("text"):
                     label(ri, xm - 0.1, xm + 0.1, cy, e["text"], e.get("pos"))
     # Heute und Marker

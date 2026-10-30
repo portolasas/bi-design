@@ -846,6 +846,28 @@ if deck.is_file():
         reste = fremd & {x.get("val").upper() for s in Presentation(str(ziel)).slides for x in s._element.iter(qn("a:srgbClr"))}
         fall("Referenzdeck: keine Farbe des Designers übrig", not reste, str(reste))
 
+print("Sandbox-Probe 2: Schrift, Timeline")
+from bippt import rendern as rendern_mod, sichten as sichten_mod  # noqa: E402
+fall("Schriftlage: Boehringer, Liberation, DejaVu", sichten_mod.schriftlage({"BoehringerForwardText"}) == "marke"
+     and sichten_mod.schriftlage({"LiberationSans", "LiberationSans-Bold"}) == "nah"
+     and sichten_mod.schriftlage({"DejaVuSans", "LiberationSans"}) == "fremd")
+with tempfile.TemporaryDirectory() as td:
+    td = Path(td)
+    conf = rendern_mod.schrift_konfig(td / "s.conf")
+    fall("Schrift-Konfiguration ist gültiges XML mit accept", etree.parse(str(conf)).getroot().findall("alias/accept/family")[0].text == "Liberation Sans")
+    (td / "tl.spec.json").write_text(json.dumps({"ausgabe": "tl.pptx", "folien": [{"typ": "timeline", "titel": "Zeitplan", "von": "2026-08", "bis": "2027-12", "skala": "monat", "zeilen": [
+        {"titel": "Zugriff", "elemente": [
+            {"art": "balken", "von": "2026-10-07", "bis": "2026-10-31", "status": "klaerung"},
+            {"art": "meilenstein", "datum": "2026-10-31", "text": "Freigabe", "status": "klaerung"},
+            {"art": "balken", "von": "2026-11-02", "bis": "2026-12-23", "text": "Umsetzung & Q/V", "status": "plan"}]},
+        {"titel": "Zwei", "elemente": [{"art": "balken", "von": "2026-11-01", "bis": "2026-12-23", "text": "Ein Paket", "status": "plan"}]}]}]}, ensure_ascii=False), encoding="utf-8")
+    zt, wt = bauen.bauen(td / "tl.spec.json", still=True)
+    formen = {sh.text_frame.text: sh for sh in Presentation(str(zt)).slides[0].shapes if sh.has_text_frame and sh.text_frame.text}
+    fr, um = formen["Freigabe"], formen["Umsetzung & Q/V"]
+    sichtbar_unten = fr.top + fr.height / 2 + Inches(0.07)
+    fall("Timeline: Beschriftung liegt nicht unter dem nächsten Balken", sichtbar_unten <= um.top + Inches(0.02) or fr.top >= um.top + um.height - Inches(0.08), str((fr.left, fr.top, um.left, um.top)))
+    fall("Timeline: keine Warnung, wenn sie darüber passt", not [w for w in wt if "überlappt" in w], "; ".join(wt))
+
 print("Sichten: Messen am PDF")
 import pymupdf  # noqa: E402
 from bippt import sichten  # noqa: E402
