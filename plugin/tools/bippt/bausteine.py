@@ -236,6 +236,8 @@ def _kein_punkt(p):
             pPr.remove(el)
     if pPr.find(qn("a:buNone")) is None:
         etree.SubElement(pPr, qn("a:buNone"))
+    pPr.set("marL", "0")  # sonst bleibt der hängende Einzug des Platzhalters: ab der zweiten Zeile steht der Text eingerückt
+    pPr.set("indent", "0")
 
 
 def text(k, tf, spec, groesse=12, farbe="DG", fett=False, ausr="l", anker="o", rand=(0.08, 0.04, 0.08, 0.04),

@@ -41,6 +41,8 @@ Immer zwei bis drei Folien auf einmal vorschlagen:
 - **Quelle:** Datei und Abschnitt.
 
 Fertig, wenn jede Folie bestätigt ist und jedes [offen] beantwortet oder bewusst stehen gelassen wurde.
+[offen] ist eine Markierung für den Dialog und kommt nie auf eine Folie. Aussagen über künftige Arbeit („Wir beschreiben den Ablauf“) sind
+kein Inhalt. Fehlt der Stoff für mehr als ein Drittel der Folien, sag das und fordere Quellen an, statt ein leeres Gerüst vorzuschlagen.
 
 ## 5. Briefing und Abnahme
 Das Briefing als Datei `<Name>_Inhalt.md` schreiben und zum Download anbieten; es gehört neben das spätere Deck:

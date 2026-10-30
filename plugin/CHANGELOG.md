@@ -1,5 +1,18 @@
 # Changelog
 
+## 2.8.0 – 2026-10-30
+Befunde aus zwei Tests im Copilot Agent Builder: Ein Deck ohne Quellen war sichtbar schwach, doch `bauen` und `pruefen` meldeten nichts.
+Ein Deck aus der Erstellen-Funktion von Copilot gefiel dem Nutzer sehr, nur der Umbau in die Marke misslang.
+- **`bippt umwandeln marke`:** Überträgt ein Designer-Deck in die Marke und behält die Gestaltung (`designer.py`). Farben nach ihrer Rolle,
+  Markenschriften, Brand-Icons über `--icons`, Titelfolie, Logo und Fußzeile aus dem Master, echte Titel, Mindestgröße 9 pt, Einpassen
+  über Logo und Fußzeile. Nutzer: Das Deck muss nicht in die Layouts des Masters passen, wenn die Elemente markenkonform sind.
+- **`bippt sichten`:** Rendert und misst Überlappung, Überstand und große leere Flächen (`sichten.py`), kalibriert an den 184 Folien der
+  Slide Library. Der Copilot-Sandbox hat LibreOffice und pymupdf. Ohne Boehringer-Schriften sind Überlappung und Überstand nur Hinweise.
+- **Fehler behoben:** Kernaussage rückte ab der zweiten Zeile ein und ist jetzt 28 pt groß; auf der Titelfolie sitzt die Autorenzeile
+  auf Ebene 2 des Masters; LibreOffice bekommt ein eigenes Profil. `pruefen` meldet Ziffern ohne Umbruch nicht mehr als Fehler.
+- **Neue Warnungen in `bauen`:** Untertitel läuft in den Vermerk, Karten oder Aufzählung fast leer, „[offen]“ auf Folien, Deck ohne jedes Bild.
+  Karten ohne Icon zählen jetzt als Textfolie. bi-inhalt: [offen] kommt nie auf eine Folie.
+
 ## 2.7.0 – 2026-10-30
 Befunde aus Fall 7 im Copilot Agent Builder (Inhalt, dann Bauen) und vom Nutzer: Das Deck nutzte zwanghaft auf jeder Folie eine
 andere Bauart, Icons und Illustrationen waren entfernt, Punkte zu Einzelwörtern zerhackt, Umlaute umschrieben.

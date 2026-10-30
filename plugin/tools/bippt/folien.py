@@ -64,6 +64,9 @@ def _ph_ueberlauf(k, ph, punkte):
     if bedarf > platz + 0.05:
         k.warn(f"Text braucht etwa {bedarf:.1f} in, Platz {platz:.1f} in – er läuft unten über (in PowerPoint unter "
                "Band bzw. Fußzeile); kürzen, weniger Punkte oder auf zwei Folien")
+    elif platz >= 3 and len(absaetze(punkte)) >= 2 and bedarf < platz * 0.4:
+        k.warn(f"Text füllt nur {bedarf / platz:.0%} der Fläche – die Folie wirkt leer; mehr Inhalt oder eine Bildform "
+               "aus reference/bibliothek.md")
 
 
 def _ph_text(ph, spec):
@@ -79,10 +82,23 @@ def _ph_text(ph, spec):
 
 
 # ======================================================================= Titel, Kapitel, Agenda, Text
+TITEL_UNTERTITEL_PLATZ = 1.85  # in, von der Oberkante des Untertitels bis zum Vertraulichkeitsvermerk
 @folientyp("titel", layout="titel")
 def titel(k, s):
-    """Titelfolie: titel, untertitel [Zeilen]; Fußzeile nur Vertraulichkeitsvermerk."""
-    _ph_text(vorlage.platzhalter(k.folie, idx=1), s.get("untertitel"))
+    """Titelfolie: titel, untertitel [Zeilen]; die letzte Zeile ist „Autor | Datum | Ort“ (Ebene 2 des Masters, 16 pt).
+    Fußzeile nur Vertraulichkeitsvermerk."""
+    ph = vorlage.platzhalter(k.folie, idx=1)
+    zeilen = s.get("untertitel")
+    _ph_text(ph, zeilen)
+    if ph is None or not isinstance(zeilen, list) or len(zeilen) < 2:
+        return
+    ph.text_frame.paragraphs[-1].level = 1
+    breite = ph.width / 914400 if ph.width else 9.06
+    bedarf = sum(umbrechen(re.sub(r"\*\*|==", "", str(z)), breite, 24)[0] * 24 * 1.2 / 72 + 24 / 72 for z in zeilen[:-1])
+    bedarf += umbrechen(re.sub(r"\*\*|==", "", str(zeilen[-1])), breite, 16)[0] * 16 * 1.2 / 72
+    if bedarf > TITEL_UNTERTITEL_PLATZ:
+        k.warn(f"Untertitel braucht etwa {bedarf:.1f} in, Platz {TITEL_UNTERTITEL_PLATZ:.1f} in – er läuft in den Vertraulichkeitsvermerk; "
+               "eine Zeile Untertitel und „Autor | Datum | Ort“ reichen")
 
 
 @folientyp("kapitel", layout="kapitel")
@@ -123,6 +139,9 @@ def text_folie(k, s):
         k.warn(f"{n} Zeichen Text – für eine Folie zu viel; kürzen oder aufteilen")
 
 
+KERNAUSSAGE_PT = 28  # die Botschaft trägt die Folie, in 16 pt bliebe sie ein Satz auf leerer dunkler Fläche
+
+
 @folientyp("kernaussage", layout="inhalt_dunkel")
 def kernaussage(k, s):
     """Dunkle Botschaftsfolie: titel = Aussage, text = Unterzeile/Bitte."""
@@ -133,6 +152,8 @@ def kernaussage(k, s):
         from .bausteine import _kein_punkt
         for p in ph.text_frame.paragraphs:
             _kein_punkt(p)
+            for r in p.runs:
+                r.font.size = Pt(KERNAUSSAGE_PT)
     elif s.get("text"):
         textfeld(k, X0, 2.2, XW, 3.5, s["text"], groesse=20, farbe="WH")
 
@@ -365,7 +386,15 @@ def karten(k, s):
     y = Y0 - 0.25
     if s.get("kopf"):
         y += _kopfband(k, s["kopf"], y) + 0.18
-    karten_reihe(k, s.get("karten", []), X0, y, XW, unten - y, g=s.get("groesse", 11), hoehe=s.get("hoehe", "inhalt"))
+    kk = s.get("karten", [])
+    h = unten - y
+    karten_reihe(k, kk, X0, y, XW, h, g=s.get("groesse", 11), hoehe=s.get("hoehe", "inhalt"))
+    if kk and h >= 2:
+        cw = (XW - 0.22 * (len(kk) - 1)) / len(kk)
+        voll = max(karte_bedarf(k, kar, cw, h, kar.get("groesse", s.get("groesse", 11)))[1] for kar in kk) / h
+        if voll < 0.4:
+            k.warn(f"Karten füllen nur {voll:.0%} der Fläche – mehr Inhalt, Icons oder eine Folie mit Fazit-Band "
+                   "(Bibliothek 36–38)")
 
 
 def _kopfband(k, spec, y):

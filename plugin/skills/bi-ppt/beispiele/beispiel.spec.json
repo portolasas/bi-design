@@ -119,7 +119,9 @@
                 ["Format weicht ab", "Nacharbeit Charts", "Partner passt an", {"ampel": "G", "t": "im Plan"}]]},
     {"typ": "kernaussage", "titel": "Eskalation nicht nötig – Freigabe ist eine Formalie", "text": "Wir bitten um Kenntnisnahme."},
     {"typ": "kapitel", "titel": "Backup", "ab_hier_ausblenden": true},
-    {"typ": "text", "titel": "Text – Detailfolie im Backup", "punkte": ["Erste Ebene", {"t": "Zweite Ebene", "ebene": 1}, "Noch ein Punkt"]},
+    {"typ": "text", "titel": "Text – Detailfolie im Backup", "punkte": ["Erste Ebene", {"t": "Zweite Ebene", "ebene": 1}, "Noch ein Punkt",
+        "Weiterer Punkt mit einer ganzen Aussage",
+        "Letzter Punkt mit einer ganzen Aussage"]},
     {"typ": "abschluss", "titel": "Vielen Dank"}
   ]
 }

@@ -44,7 +44,7 @@ Liegt der Arbeitsordner in einem Git-Repo (`git rev-parse --show-toplevel` gelin
 | **N – Neu** | Briefing, Infos oder Quellen, keine Basis-PPT | §2 → §3 → §4 |
 | **V – Neue Version** | bestehende PPT als Grundlage („auf Basis von …“, Update für anderes Gremium) | §2 → §3 mit `basis` → §4 |
 | **Ä – Ändern** | einzelne Folien eines bestehenden Decks korrigieren, ergänzen, umstellen | §2 → §3a → §4 |
-| **U – Umwandeln** | PPT in fremdem/altem Design → BI-Design | [reference/umwandeln.md](reference/umwandeln.md) |
+| **U – Umwandeln** | PPT in fremdem/altem Design → BI-Design, auch Decks aus der Erstellen-Funktion von Copilot | [reference/umwandeln.md](reference/umwandeln.md); gut gestaltete Decks mit `bippt umwandeln marke` |
 | **P – Prüfen** | „passt das zum Brand?“ | `bippt pruefen` + `bippt rendern` → Befunde mit Folie, Regel, Fix |
 
 Neue Präsentation ohne Briefing und ohne fertige Folienliste: zuerst fragen „Inhalt erst gemeinsam ausarbeiten (Empfehlung) oder
@@ -109,6 +109,7 @@ bippt bauen <Name>.spec.json          → ERGEBNIS: OK | Warnungen (Überlauf, T
                                         BESCHRIEBEN <Name>.md, ÄNDERUNGEN je Folie seit dem letzten Bau
 bippt pruefen <Name>.pptx --woerter N → ERGEBNIS: OK (keine FEHLER; N nach Publikum)
 bippt rendern <Name>.pptx [--alle]    → kontaktbogen.png ansehen, nur auffällige Folien einzeln (folie_NN.png)
+bippt sichten <Name>.pptx             → misst am Render: Überlappung, Überstand, große leere Flächen; für Umgebungen ohne Blick auf die Bilder
 ```
 Sichtprüfung je Folie: nichts überlappt/abgeschnitten, Text lesbar (≥ 9 pt im Inhalt), Kernaussage stimmt,
 Ampeln/Termine = Quellen, keine leeren Flächen > ⅓ Folie. Fixes immer in der Spec, dann neu bauen.

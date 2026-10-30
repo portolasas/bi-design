@@ -118,7 +118,9 @@ def _libreoffice(pptx, pdf):
     if not exe:
         raise RuntimeError("LibreOffice nicht installiert")
     with tempfile.TemporaryDirectory() as td:
-        r = subprocess.run([exe, "--headless", "--convert-to", "pdf", "--outdir", td, str(pptx)],
+        # eigenes Profil: im Sandbox von Copilot ist das Benutzerverzeichnis nicht sicher beschreibbar
+        r = subprocess.run([exe, f"-env:UserInstallation=file://{td}/profil", "--headless", "--convert-to", "pdf",
+                            "--outdir", td, str(pptx)],
                            capture_output=True, text=True, timeout=300)
         erg = Path(td) / (Path(pptx).stem + ".pdf")
         if r.returncode != 0 or not erg.is_file():

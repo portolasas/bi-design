@@ -266,8 +266,18 @@ def _rendern(a):
     return 0
 
 
+def _sichten(a):
+    from bippt.sichten import sichten
+    folien = [int(x) for x in a.folien.split(",")] if a.folien else None
+    return 1 if sichten(a.pptx, a.o, weg=a.weg, folien=folien) else 0
+
+
 def _umwandeln(a):
     from bippt import umwandeln
+    if a.weg == "marke":
+        from bippt.designer import marke
+        marke(a.pptx, a.o, icons=a.icons, fusszeile=a.fusszeile)
+        return 0
     (umwandeln.entwurf if a.weg == "entwurf" else umwandeln.stil)(a.pptx, a.o)
     return 0
 
@@ -324,8 +334,11 @@ def main(argv=None):
     p = sub.add_parser("rendern"); p.add_argument("pptx"); p.add_argument("-o"); p.add_argument("--dpi", type=int, default=80)
     p.add_argument("--alle", action="store_true"); p.add_argument("--weg", choices=["powerpoint", "libreoffice"])
     p.add_argument("--folien"); p.add_argument("--erzwingen", action="store_true"); p.set_defaults(fn=_rendern)
-    p = sub.add_parser("umwandeln"); p.add_argument("weg", choices=["entwurf", "stil"]); p.add_argument("pptx")
-    p.add_argument("-o"); p.set_defaults(fn=_umwandeln)
+    p = sub.add_parser("sichten"); p.add_argument("pptx"); p.add_argument("-o"); p.add_argument("--folien")
+    p.add_argument("--weg", choices=["powerpoint", "libreoffice"]); p.set_defaults(fn=_sichten)
+    p = sub.add_parser("umwandeln"); p.add_argument("weg", choices=["entwurf", "stil", "marke"]); p.add_argument("pptx")
+    p.add_argument("-o"); p.add_argument("--icons", help="marke: JSON {Folie: {id: Brand-Icon}}"); p.add_argument("--fusszeile")
+    p.set_defaults(fn=_umwandeln)
     p = sub.add_parser("vorlage"); p.add_argument("pptx"); p.add_argument("-o"); p.set_defaults(fn=_vorlage)
     p = sub.add_parser("neu"); p.add_argument("ordner"); p.add_argument("--name", default="Praesentation"); p.set_defaults(fn=_neu)
     a = ap.parse_args(argv)

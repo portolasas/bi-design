@@ -418,7 +418,7 @@ with tempfile.TemporaryDirectory() as td:
     def unterkante_(sh):
         return (sh.top + sh.height) / 914400
 
-    fall("Titel mit 69 Zeichen passt in eine Zeile", not warn_folie(1), "; ".join(warn_folie(1)))
+    fall("Titel mit 69 Zeichen passt in eine Zeile", not [w for w in warn_folie(1) if "Titel" in w], "; ".join(warn_folie(1)))
     fall("Titel mit 76 Zeichen auf karten: Warnung zwei Zeilen", any("Titel braucht 2 Zeilen" in w and "ragt in den Inhalt"
                                                                      in w for w in warn_folie(2)), "; ".join(wm))
     fall("zweizeiliger Titel über dem Inhaltsplatzhalter: keine Warnung", not warn_folie(3), "; ".join(warn_folie(3)))
@@ -610,6 +610,149 @@ with tempfile.TemporaryDirectory() as td:
     fall("Warnung: Einzelwörter und wenig Text", any("Einzelwörtern" in w and "„Tool“" in w for w in wi) and any("Nur 4 Wörter" in w for w in wi), "; ".join(wi))
     marke_mod.ICON_PAKET = alt_paket
     marke_mod._PAKET.clear()
+
+print("Befunde aus Copilot, 30.10.2026: Titelfolie, Kernaussage, leere Karten, [offen]")
+with tempfile.TemporaryDirectory() as td:
+    td = Path(td)
+    (td / "lk.spec.json").write_text(json.dumps({"ausgabe": "lk.pptx", "folien": [
+        {"typ": "titel", "titel": "T", "untertitel": ["Heute stimmen wir Zielbild und Projektgrenzen der Chargenfreigabe gemeinsam ab.",
+                                                      "Projektvorstellung für Führungskräfte und Sponsor", "P. Naumann | 30.10.2026 | Ingelheim"]},
+        {"typ": "karten", "titel": "Karten", "hoehe": "voll", "karten": [{"titel": "A", "text": "Wir beschreiben den Ablauf. [offen]"},
+                                                                         {"titel": "B", "text": "Wir benennen die Probleme. [offen]"}]},
+        {"typ": "text", "titel": "Text", "punkte": ["Ein Punkt mit einer ganzen Aussage.", "Noch ein Punkt mit einer ganzen Aussage."]},
+        {"typ": "kernaussage", "titel": "Botschaft", "text": "Wir wollen das Zielbild abstimmen.", "notizen": "[offen] in Notizen zählt nicht"},
+        {"typ": "text", "titel": "Mehr", "punkte": ["Eins mit Text."]},
+        {"typ": "text", "titel": "Noch mehr", "punkte": ["Zwei mit Text."]}]}, ensure_ascii=False), encoding="utf-8")
+    zl, wl = bauen.bauen(td / "lk.spec.json", still=True)
+    fall("Warnung: Untertitel läuft in den Vermerk", any(w.startswith("Folie 1:") and "Untertitel" in w for w in wl), "; ".join(wl))
+    fall("Warnung: Karten fast leer", any(w.startswith("Folie 2:") and "Karten füllen nur" in w for w in wl), "; ".join(wl))
+    fall("Warnung: Aufzählung fast leer", any(w.startswith("Folie 3:") and "Text füllt nur" in w for w in wl), "; ".join(wl))
+    fall("Warnung: [offen] nennt nur sichtbare Folien", any("„[offen]“ auf Folie 2 " in w for w in wl), "; ".join(wl))
+    fall("Warnung: kein Bild im Deck", any("Kein Bild, Icon" in w for w in wl), "; ".join(wl))
+    pl = Presentation(str(zl))
+    autor = pl.slides[0].placeholders[1].text_frame.paragraphs[-1]
+    fall("Titelfolie: Autorenzeile auf Ebene 2", autor.level == 1 and autor.text.startswith("P. Naumann"))
+    ppr = next(sh for sh in pl.slides[3].placeholders if sh.placeholder_format.idx == 1).text_frame.paragraphs[0]._p.pPr
+    fall("Kernaussage ohne hängenden Einzug", ppr.get("marL") == "0" and ppr.get("indent") == "0")
+
+print("Designer-Deck in die Marke (bippt umwandeln marke)")
+from pptx.dml.color import RGBColor  # noqa: E402
+from pptx.enum.shapes import MSO_SHAPE  # noqa: E402
+from pptx.util import Emu, Inches, Pt  # noqa: E402
+from bippt import designer, vorlage  # noqa: E402
+
+with tempfile.TemporaryDirectory() as td:
+    td = Path(td)
+    q = Presentation()
+    q.slide_width, q.slide_height = Inches(13.333), Inches(7.5)
+    leer = next(l for l in q.slide_layouts if l.name == "Blank")
+    punkt = td / "icon.png"
+    bild = Image.new("RGBA", (42, 42), (0, 0, 0, 0))
+    bild.paste((0, 51, 102, 255), (8, 8, 34, 34))
+    bild.save(punkt)
+    streifen = td / "zeile.png"
+    Image.new("RGBA", (400, 40), (232, 244, 253, 255)).save(streifen)
+
+    def feld(s, x, y, w, h, t, g=10, farbe="1A2E44", schrift="Open Sans", fett=False):
+        b = s.shapes.add_textbox(Inches(x), Inches(y), Inches(w), Inches(h))
+        r = b.text_frame.paragraphs[0].add_run()
+        r.text, r.font.size, r.font.name, r.font.bold = t, Pt(g), schrift, fett
+        r.font.color.rgb = RGBColor.from_string(farbe)
+        return b
+
+    def form(s, x, y, w, h, farbe, art=MSO_SHAPE.ROUNDED_RECTANGLE):
+        b = s.shapes.add_shape(art, Inches(x), Inches(y), Inches(w), Inches(h))
+        b.fill.solid()
+        b.fill.fore_color.rgb = RGBColor.from_string(farbe)
+        b.line.fill.background()
+        return b
+
+    def seite(s, farbe):
+        s.background.fill.solid()
+        s.background.fill.fore_color.rgb = RGBColor.from_string(farbe)
+
+    t1 = q.slides.add_slide(leer)
+    seite(t1, "003366")
+    t1.shapes.add_picture(str(streifen), 0, 0, q.slide_width, q.slide_height)
+    feld(t1, 0.5, 1.4, 8, 1.8, "Der Decktitel des Designers", 34, "FFFFFF", "Montserrat", True)
+    feld(t1, 0.5, 3.8, 6, 0.3, "Unterzeile mit Datum", 14, "A8D4F0")
+    feld(t1, 0.7, 7.0, 3, 0.2, "Projektleitung: M. Muster", 8, "FFFFFF")
+    f2 = q.slides.add_slide(leer)
+    seite(f2, "F5F8FC")
+    feld(f2, 0.42, 0.3, 6, 0.5, "Ausgangslage", 25, "003366", "Montserrat", True)
+    form(f2, 0.42, 1.45, 3.6, 1.3, "003366")
+    feld(f2, 0.65, 1.6, 1, 0.5, "750", 25, "00A3E0", "Montserrat", True)
+    feld(f2, 0.65, 2.1, 3, 0.2, "Freigaben im Jahr", 10, "FFFFFF")
+    form(f2, 4.3, 1.45, 4.2, 5.4, "FFFFFF")
+    kreis = form(f2, 4.5, 1.6, 0.44, 0.44, "0073B1", MSO_SHAPE.OVAL)
+    ic = f2.shapes.add_picture(str(punkt), Inches(4.61), Inches(1.71), Inches(0.22), Inches(0.22))
+    feld(f2, 5.1, 1.6, 3, 0.2, "Doppelte Daten", 10, "1A2E44", "Montserrat", True)
+    feld(f2, 5.1, 1.9, 3, 0.2, "Ein Text in Grau", 7, "4A5F72")
+    form(f2, 8.8, 1.45, 4, 1, "1A7F4E")
+    grund = f2.shapes.add_picture(str(streifen), Inches(8.8), Inches(3), Inches(4), Inches(0.3))
+    feld(f2, 0.42, 7.05, 6, 0.2, "Der Decktitel des Designers | QA", 8, "72777C")
+    feld(f2, 0.42, 6.75, 6, 0.2, "Gesamtlaufzeit: Inhalt am Rand", 9, "4A5F72")
+    feld(f2, 12.8, 7.05, 0.1, 0.2, "2", 8, "72777C")
+    f3 = q.slides.add_slide(leer)
+    seite(f3, "F5F8FC")
+    feld(f3, 0.42, 0.3, 6, 0.5, "Zweite Folie", 25, "003366", "Montserrat", True)
+    feld(f3, 0.42, 7.05, 6, 0.2, "Der Decktitel des Designers | QA", 8, "72777C")
+    q.save(str(td / "designer.pptx"))
+    (td / "icons.json").write_text(json.dumps({"2": {str(ic.shape_id): "gibt-es-nicht"}}), encoding="utf-8")
+    ziel, erg = designer.marke(td / "designer.pptx", td / "brand.pptx", icons=td / "icons.json")
+    pz = Presentation(str(ziel))
+    fall("Marke: BI-Master, Titelfolie aus dem Layout", vorlage.ist_bi_master(pz) and pz.slides[0].slide_layout.name == "Title slide (bright)"
+         and pz.slides[0].shapes.title.text == "Der Decktitel des Designers")
+    ut = pz.slides[0].placeholders[1].text_frame.text
+    fall("Marke: kein Text der Titelfolie geht verloren", "Unterzeile" in ut and "M. Muster" in ut, ut)
+    s2 = pz.slides[1]
+    x2 = etree.tostring(s2._element).decode()
+    fall("Marke: echter Titel", s2.shapes.title is not None and s2.shapes.title.text == "Ausgangslage")
+    fremd = {"003366", "00A3E0", "0073B1", "1A2E44", "4A5F72", "F5F8FC", "1A7F4E"} & set(__import__("re").findall(r'srgbClr val="(\w{6})"', x2))
+    fall("Marke: keine Farbe des Designers übrig", not fremd, str(fremd))
+    fall("Marke: keine fremde Schrift, keine runden Karten", "Montserrat" not in x2 and "Open Sans" not in x2 and 'prst="roundRect"' not in x2)
+    texte = [sh.text_frame.text for sh in s2.shapes if sh.has_text_frame]
+    fall("Marke: Fußtext und Seitenzahl weg, Inhalt am Rand bleibt", "Der Decktitel des Designers | QA" not in texte and "2" not in texte
+         and "Gesamtlaufzeit: Inhalt am Rand" in texte, str(texte))
+    def form_von(s, text):
+        return next(sh for sh in s.shapes if sh.has_text_frame and sh.text_frame.text == text)
+    fall("Marke: Text auf Dunkel in Akzent, auf Hell dunkel, gedämpft grau", str(form_von(s2, "750").text_frame.paragraphs[0].runs[0].font.color.rgb) == "00E47C"
+         and str(form_von(s2, "Doppelte Daten").text_frame.paragraphs[0].runs[0].font.color.rgb) == "08312A"
+         and str(form_von(s2, "Ein Text in Grau").text_frame.paragraphs[0].runs[0].font.color.rgb) == "5C5B59")
+    fall("Marke: Mindestgröße 9 pt", form_von(s2, "Ein Text in Grau").text_frame.paragraphs[0].runs[0].font.size == Pt(9))
+    inhalt = [sh for sh in s2.shapes if not sh.is_placeholder]
+    fall("Marke: Inhalt endet über Logo und Fußzeile", max((sh.top + sh.height) / 914400 for sh in inhalt) <= designer.UNTEN + 0.25,
+         str(max((sh.top + sh.height) / 914400 for sh in inhalt)))
+    fall("Marke: unbekanntes Brand-Icon gemeldet, Icon umgefärbt", erg["fehlt"] and erg["offen"] and erg["getauscht"] == 0, str(erg))
+    bilder = [sh for sh in s2.shapes if sh.shape_type == 13]
+    px = Image.open(__import__("io").BytesIO(bilder[0].image.blob)).convert("RGBA").getpixel((16, 16))
+    fall("Marke: Icon auf Akzentgrün dunkel", px[:3] == (8, 49, 42), str(px))
+    px = Image.open(__import__("io").BytesIO(bilder[1].image.blob)).convert("RGBA").getpixel((16, 16))
+    fall("Marke: flache Grafik in Markenfarbe", px[:3] != (232, 244, 253), str(px))
+    fall("Marke: Vollbild entfällt", all(sh.width < Inches(13) for sh in pz.slides[0].shapes if sh.shape_type == 13))
+    fall("Marke: pruefen ohne FEHLER", not [b_ for b_ in pruefen.pruefen(ziel) if b_[0] == "FEHLER"])
+
+print("Sichten: Messen am PDF")
+import pymupdf  # noqa: E402
+from bippt import sichten  # noqa: E402
+with tempfile.TemporaryDirectory() as td:
+    pdf = Path(td) / "m.pdf"
+    d = pymupdf.open()
+    w_ = d.new_page(width=960, height=540)
+    w_.insert_text((40, 300), "Autor Datum und Ort", fontsize=20)
+    w_.insert_text((40, 300), "ONLY FOR INTERNAL USE", fontsize=9)
+    w_.draw_rect(pymupdf.Rect(40, 110, 300, 200), fill=(0, 0, 0))
+    v_ = d.new_page(width=960, height=540)
+    for i in range(0, 960, 40):
+        for j in range(0, 540, 40):
+            v_.draw_rect(pymupdf.Rect(i, j, i + 18, j + 18), fill=(0.2, 0.2, 0.2))
+    d.save(str(pdf))
+    d.close()
+    r, _ = sichten.messen(pdf, ["Only title", "Only title"])
+    fall("Sichten: Überlappung gefunden", any("Überlappung" in t for t in r[0]["text"]), str(r[0]))
+    fall("Sichten: große leere Fläche gefunden", r[0]["leere"] is not None, str(r[0]))
+    fall("Sichten: dichte Folie ohne Befund", r[1]["leere"] is None and not r[1]["text"], str(r[1]))
+    fall("Sichten: Titelfolie zählt nicht als leer", sichten.messen(pdf, ["Title slide (bright)", "x"])[0][0]["leere"] is None)
 
 print("ALLE FÄLLE BESTANDEN" if not fehler else f"FEHLGESCHLAGEN: {', '.join(fehler)}")
 sys.exit(1 if fehler else 0)

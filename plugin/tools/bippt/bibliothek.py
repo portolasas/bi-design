@@ -127,12 +127,13 @@ def _layout(prs, name):
     return vorlage.layout(prs, "nur_titel"), f"Layout „{name}“ fehlt in der Vorlage – „Only title“ genommen"
 
 
-def kopieren(prs, bib, nr):
-    """Folie nr (ab 1) der Bibliothek bib als neue Folie ans Ende von prs. Rückgabe (Folie, Warnung oder None)."""
+def kopieren(prs, bib, nr, layout=None):
+    """Folie nr (ab 1) der Bibliothek bib als neue Folie ans Ende von prs. Rückgabe (Folie, Warnung oder None).
+    layout: Name eines Layouts der Vorlage statt des Layouts der Quelle (Decks aus anderem Master)."""
     if not 1 <= nr <= len(bib.slides):
         raise SystemExit(f"bib {nr} existiert nicht (Bibliothek hat {len(bib.slides)} Folien)")
     quelle = bib.slides[nr - 1]
-    layout, warnung = _layout(prs, quelle.slide_layout.name)
+    layout, warnung = _layout(prs, layout or quelle.slide_layout.name)
     folie = prs.slides.add_slide(layout)
     _inhalt_uebernehmen(folie._element, quelle._element)
     teil, kopien = folie.part, {}
@@ -369,6 +370,8 @@ def _form(fs):
     if typ == "layout":
         name = str(fs.get("layout", ""))
         return (f"Layout {name}", not fs.get("bilder") and any(x in name for x in ("content", "Agenda")))
+    if typ == "karten":  # Karten ohne Icon sind Text in Kästen
+        return (typ, not any(k.get("icon") for k in fs.get("karten", [])))
     return (typ, typ in TEXT_TYPEN)
 
 
@@ -396,6 +399,9 @@ def abwechslung(folien):
     w += [f"Eintönig: {c} von {len(formen)} Inhaltsfolien sind „{n}“ – mehr als die Hälfte"
           for n, c in zahl.items() if c > len(formen) / 2]
     text = sum(1 for x in formen if x[2])
+    if sum(1 for x in formen if x[2] or x[1] == "kernaussage") == len(formen):
+        w.append(f"Kein Bild, Icon, Diagramm oder gestaltetes Element auf {len(formen)} Inhaltsfolien – Aussagen über "
+                 "reference/bibliothek.md in eine Bildform bringen, Karten mit Icons")
     if text > len(formen) / 2:
         w.append(f"Textlastig: {text} von {len(formen)} Inhaltsfolien sind reine Text- oder Tabellenfolien – Aussagen mit "
                  "Zahlen, Abläufen oder Abwägungen in eine Bildform bringen (reference/bibliothek.md)")
@@ -428,6 +434,21 @@ def schreibweise(folien):
             if UMSCHRIFT.search(wort) and not KEINE_UMSCHRIFT.search(wort) and wort not in funde:
                 funde.append(wort)
     return [f"Umlaute: „{'“, „'.join(funde[:8])}“ – echte Umlaute schreiben (ä, ö, ü); Eigennamen bleiben wie in der Quelle"] if funde else []
+
+
+def offene_punkte(folien):
+    """Warnung bei „[offen]“ auf Folien: Das ist eine Markierung aus dem Briefing, kein Inhalt für das Publikum."""
+    nr_offen = []
+    for nr, fs in enumerate(folien, 1):
+        sichtbar = {k: v for k, v in fs.items() if k not in ("notizen", "beschreibung", "quelle")}
+        if any("[offen]" in t.lower() for t in _texte_der_spec(sichtbar)):
+            nr_offen.append(nr)
+    if not nr_offen:
+        return []
+    w = f"„[offen]“ auf Folie {', '.join(map(str, nr_offen))} – Inhalt beim Nutzer erfragen oder die Stelle streichen"
+    if len(nr_offen) * 3 >= len(folien):
+        w += ". Bei so vielen Lücken ist das Deck ein Gerüst ohne Inhalt: erst die Quellen anfordern, dann bauen"
+    return [w]
 
 
 def blindtext(folie):

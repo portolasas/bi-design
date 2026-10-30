@@ -3,9 +3,25 @@
 ## Entscheiden (eine Frage, Empfehlung zuerst)
 | Weg | Wann | Ergebnis |
 |---|---|---|
-| **Neu bauen (Empfehlung)** | Inhalt zählt, ≤ ~30 Folien, Folien sollen BI-Layouts nutzen | 100 % BI-Master, Inhalte verdichtet |
+| **In die Marke übertragen (Empfehlung)** | Deck ist gut gestaltet, z. B. aus der Erstellen-Funktion von Copilot | Gestaltung und Inhalt bleiben; Farben, Schriften, Icons, Logo und Fußzeile der Marke |
+| **Neu bauen** | Inhalt muss verdichtet werden oder Folien sollen BI-Layouts nutzen | 100 % BI-Master, Inhalte verdichtet |
 | **Stil angleichen** | sehr viele Folien, komplexe Grafiken/Bilder, schnell gebraucht | Farben/Schriften BI, alter Master bleibt (Befund) |
 | Kombination | Kernfolien neu, Detail-/Bildfolien als Stil-Kopie | zwei Dateien, Nutzer fügt zusammen |
+
+## In die Marke übertragen
+Entscheidung des Nutzers (30.10.2026): Das Deck muss nicht in die Layouts des Masters passen, wenn die Elemente markenkonform sind.
+Die Erstellen-Funktion von Copilot gestaltet in HTML und übersetzt das in PowerPoint-Formen; das Ergebnis ist oft besser als alles, was
+wir bauen. Darum nehmen wir es als Quelle.
+1. `bippt umwandeln marke fremd.pptx -o ziel.pptx`. Der Bericht nennt die OFFENEN ICONS: Folie, id und der Text daneben.
+2. Je Icon nach der Bedeutung des Textes ein Brand-Icon wählen (`bippt icons <englischer Begriff>`, ein Begriff je Aufruf) und in
+   eine JSON-Datei schreiben: `{"2": {"7": "clock", "10": "office-printer"}}`. Dann erneut mit `--icons icons.json`. Fertig bei
+   „0 nur umgefärbt“. Häkchen und Punkte vor Listen zählen nicht.
+3. `bippt pruefen` und `bippt sichten`. Überlappung und Überstand beheben. Leere nur nennen: Die Gestaltung stammt vom Designer.
+4. Inhalt nicht ändern und nicht kürzen. Fotos färbt bippt nicht um; es meldet sie.
+
+Der Befehl tauscht Farben nach ihrer Rolle: dunkle Flächen werden Dark Green, Hervorhebungen Accent Green mit dunklem Text, helle Flächen
+Warm und Light Gray, gedämpfter Text Gray 7. Runde Ecken und Schatten fallen weg. Fußtexte des Designers weichen der Fußzeile des
+Masters, und was in Logo oder Fußzeile ragt, wird in der Höhe eingepasst. Die Titelfolie kommt aus dem Master.
 
 ## Weg 1 – Neu bauen
 1. `bippt analyse fremd.pptx` (Überblick) und `bippt pruefen fremd.pptx` (Ausgangsbefunde, für den Abschluss).
