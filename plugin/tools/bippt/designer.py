@@ -9,9 +9,10 @@ anderen Gruppen teilen sich nach Häufigkeit Accent Green, Medium Blue und Dark 
 reference/bibliothek.md). Diagramme nehmen die Chart order der Marke, damit Kategorien unterscheidbar bleiben. Signalfarben gibt es nur,
 wenn das Deck wirklich eine Ampel hat: Orange ist kein Alarm, und ein einzelnes Grün ist keine Statusfarbe.
 
-Icons: Ohne Zuordnung werden sie nur umgefärbt und bleiben fremde Icons. Der Befehl listet sie mit dem Text daneben; gleiche Icons haben
-denselben Schlüssel. Die Zuordnung {"<Schlüssel>": "<Brand-Icon>"} oder {"<Folie>": {"<id>": "<Brand-Icon>"}} in einer JSON-Datei (--icons)
-tauscht sie gegen Brand-Icons.
+Icons: Bekannte Formen des Designers tauscht bippt selbst gegen Brand-Icons (designer_icons.py); so bleibt die Bedeutung erhalten. Unbekannte werden
+umgefärbt und mit Schlüssel, Text daneben und einem Bild aller offenen Formen gemeldet. Die Zuordnung {"<Schlüssel>": "<Brand-Icon>"} oder
+{"<Folie>": {"<id>": "<Brand-Icon>"}} in einer JSON-Datei (--icons) geht vor. Das Modell neigt zu wenigen Allzweck-Icons (Test 30.10.: 18 verschiedene
+für 82 Formen), darum die Tabelle und die Warnung bei Einförmigkeit.
 """
 import colorsys
 import hashlib
@@ -26,6 +27,7 @@ from pptx.oxml.ns import qn
 
 from . import bibliothek, konfig, vorlage
 from .bausteine import umbrechen
+from .designer_icons import GLYPHEN
 from .marke import Marke
 
 ZOLL = 914400
@@ -40,6 +42,7 @@ UNTEN = 6.62  # Unterkante des Inhalts (in): darunter liegen Logo und Fußzeile 
 FUSS_OBEN = 6.85  # ab hier beginnt die Fußzeile eines Designer-Decks
 NOTIZ_X, NOTIZ_Y, NOTIZ_ENDE = 2.05, 6.93, 7.6  # freie Zone zwischen Logo und Fußzeile für Stand- und Quellenzeilen
 ICON_MAX = 1.2  # in; größere Bilder sind keine Icons
+EINFOERMIG_AB = 4  # so viele verschiedene Formen auf demselben Brand-Icon gelten als Einfallslosigkeit, nicht als Absicht
 ICON_KLEIN = 0.135  # in; kleiner sind es Häkchen und Punkte vor Listen, sie werden nur umgefärbt
 MIN_PT = 9  # Mindestgröße der Marke im Inhalt; nur wenn der Text dadurch nicht umbricht, denn der Designer misst seine Felder knapp
 UNTERGRENZE_PT = 7  # kleiner macht bippt keine Schrift, auch wenn ein Wort sonst getrennt würde
@@ -669,6 +672,23 @@ def _icon_schluessel(im):
     return hashlib.sha1(maske.tobytes()).hexdigest()[:6]
 
 
+def _svg_schluessel(blob):
+    """Schlüssel einer Form aus viewBox und Pfaden des SVG: unabhängig von Farbe, Größe und dem Stil-Abzug des Browsers."""
+    x = blob.decode("utf-8", "ignore")
+    vb = re.search(r'viewBox="([^"]+)"', x)
+    return hashlib.sha1(((vb.group(1) if vb else "") + "|".join(re.findall(r'\sd="([^"]+)"', x))).encode()).hexdigest()[:8]
+
+
+def _svg_von(folie, el):
+    for x in el.iter():
+        if x.tag.endswith("}svgBlip"):
+            try:
+                return _svg_schluessel(folie.part.related_part(x.get(qn("r:embed"))).blob)
+            except (KeyError, AttributeError):
+                return None
+    return None
+
+
 def _bild_einsetzen(folie, el, datei):
     """Bild der Form tauschen; die SVG-Fassung des Designers fällt weg, sonst zeigt PowerPoint weiter das fremde Icon."""
     _, rid = folie.part.get_or_add_image_part(datei)
@@ -678,9 +698,13 @@ def _bild_einsetzen(folie, el, datei):
         blip.remove(ext)
 
 
-def _icon_name(zuordnung, schluessel, nr, sid):
+def _icon_name(zuordnung, schluessel, maske, nr, sid):
+    """Brand-Icon und Herkunft: Zuordnung des Agenten vor der festen Tabelle."""
     je_folie = zuordnung.get(str(nr))
-    return (je_folie.get(sid) if isinstance(je_folie, dict) else None) or zuordnung.get(schluessel)
+    name = (je_folie.get(sid) if isinstance(je_folie, dict) else None) or zuordnung.get(schluessel) or zuordnung.get(maske)
+    if name:
+        return name, "agent"
+    return (GLYPHEN[schluessel], "tabelle") if schluessel in GLYPHEN else (None, None)
 
 
 def _bild(folie, el, b, pal, grund, gemalt, nr, m, zuordnung, liste, naechster):
@@ -717,8 +741,9 @@ def _bild(folie, el, b, pal, grund, gemalt, nr, m, zuordnung, liste, naechster):
         if mitte[3] > 200:
             gemalt.append(b + (_hex(mitte), "bild"))
         return
-    schluessel = _icon_schluessel(im)
-    name = _icon_name(zuordnung, schluessel, nr, sid)
+    maske = _icon_schluessel(im)
+    schluessel = _svg_von(folie, el) or maske
+    name, herkunft = _icon_name(zuordnung, schluessel, maske, nr, sid)
     if name and max(w, h) >= ICON_KLEIN:
         datei = m.icon_pfad(name, "white" if _lum(grund) < 0.25 else "darkgreen")
         if datei is None:
@@ -730,12 +755,15 @@ def _bild(folie, el, b, pal, grund, gemalt, nr, m, zuordnung, liste, naechster):
             for src in el.findall(".//" + qn("a:srcRect")):
                 src.getparent().remove(src)
             liste["getauscht"] += 1
+            if herkunft == "agent":
+                liste["gewaehlt"].setdefault(name, set()).add(schluessel)
             return
     s = pal.signal(farbe)
     ziel = SIGNAL[s][0] if s and _kontrast(SIGNAL[s][0], grund) >= 2 else max((DG, WH), key=lambda c: _kontrast(c, grund))
     _bild_einsetzen(folie, el, _umgefaerbt(im, ziel))
     if max(w, h) >= ICON_KLEIN:  # Häkchen und Punkte vor Listen sind Zeichen, kein Icon
-        liste["offen"].setdefault(schluessel, {"text": naechster, "folien": []})["folien"].append(nr)
+        eintrag = liste["offen"].setdefault(schluessel, {"text": naechster, "folien": [], "bild": im})
+        eintrag["folien"].append(nr)
 
 
 def _naechster_text(b, texte):
@@ -747,6 +775,21 @@ def _naechster_text(b, texte):
         x, y, w, h = t[1]
         return max(x - cx, 0, cx - x - w) + max(y - cy, 0, cy - y - h)
     return min(texte, key=abstand)[2][:40]
+
+
+def _bogen_offener_icons(offen, ziel):
+    """Bild aller offenen Formen mit Schlüssel: Kann der Agent Bilder sehen, wählt er nach der Form statt nur nach dem Text daneben."""
+    from PIL import Image, ImageDraw
+    spalten = 10
+    reihen = (len(offen) + spalten - 1) // spalten
+    bogen = Image.new("RGB", (spalten * 110, reihen * 100), "white")
+    stift = ImageDraw.Draw(bogen)
+    for i, (k, v) in enumerate(offen.items()):
+        x, y = (i % spalten) * 110, (i // spalten) * 100
+        bogen.paste(tuple(bytes.fromhex(DG)), (x + 25, y + 6), v["bild"].getchannel("A").resize((60, 60), Image.LANCZOS))
+        stift.text((x + 25, y + 72), k, fill="black")
+    bogen.save(str(ziel))
+    return ziel
 
 
 # ----------------------------------------------------------------- Formen umstellen
@@ -941,7 +984,7 @@ def marke(pfad, ziel=None, icons=None, fusszeile=None):
         kand = [el for el in _formen(quelle.slides[0]) if _text(el)]
         decktitel = _text(max(kand, key=_groesse)) if kand else ""
     fuss = _fusstexte(quelle, decktitel)
-    liste = {"getauscht": 0, "offen": {}, "fehlt": [], "bilder": []}
+    liste = {"getauscht": 0, "offen": {}, "fehlt": [], "bilder": [], "gewaehlt": {}}
     gestaucht, entfernt = [], 0
     fuss_text = trenner.join(x for x in (fusszeile or decktitel, vermerk) if x)
     for nr, q in enumerate(quelle.slides, 1):
@@ -979,10 +1022,16 @@ def marke(pfad, ziel=None, icons=None, fusszeile=None):
         print(f"  WARNUNG Folie {nr} #{sid}: Brand-Icon „{name}“ nicht gefunden (bippt icons <Begriff>)")
     for nr, sid in liste["bilder"]:
         print(f"  HINWEIS Folie {nr} #{sid}: Foto bleibt wie es ist, Farben prüfen")
+    einfoermig = {n: len(k) for n, k in liste["gewaehlt"].items() if len(k) >= EINFOERMIG_AB}
+    liste["einfoermig"] = einfoermig
+    for n, zahl in einfoermig.items():
+        print(f"  WARNUNG Einförmig: „{n}“ steht für {zahl} verschiedene Formen – je Form das Icon nehmen, das sie zeigt")
     if liste["offen"]:
-        print('  OFFENE ICONS – Schlüssel, Anzahl, Text daneben. Datei {"<Schlüssel>": "<Brand-Icon>"}, dann erneut mit --icons:')
+        bogen = _bogen_offener_icons(liste["offen"], ziel.with_name(ziel.stem + "_icons_offen.png"))
+        print(f"  OFFENE ICONS – Bild aller Formen: {bogen.name}. Schlüssel, Anzahl, Text daneben. Datei {{\"<Schlüssel>\": \"<Brand-Icon>\"}}, dann erneut mit --icons:")
         for k, v in liste["offen"].items():
             print(f"    {k} {len(v['folien'])}× „{v['text']}“ F{','.join(map(str, sorted(set(v['folien']))))}")
-    print("ERGEBNIS: " + ("OK" if not liste["offen"] and not liste["fehlt"] else
-                          f"{len(liste['offen']) + len(liste['fehlt'])} Icon(s) offen"))
+    offen = len(liste["offen"]) + len(liste["fehlt"])
+    print("ERGEBNIS: " + ("OK" if not offen and not einfoermig else
+                          ", ".join(x for x in (f"{offen} Icon(s) offen" if offen else "", f"{len(einfoermig)} Icon(s) einförmig" if einfoermig else "") if x)))
     return ziel, liste

@@ -12,11 +12,11 @@
 Entscheidung des Nutzers (30.10.2026): Das Deck muss nicht in die Layouts des Masters passen, wenn die Elemente markenkonform sind.
 Die Erstellen-Funktion von Copilot gestaltet in HTML und übersetzt das in PowerPoint-Formen; das Ergebnis ist oft besser als alles, was
 wir bauen. Darum nehmen wir es als Quelle.
-1. `bippt umwandeln marke fremd.pptx -o ziel.pptx`. Der Bericht nennt die OFFENEN ICONS: Folie, id und der Text daneben.
-2. Je Schlüssel nach der Bedeutung des Textes ein Brand-Icon wählen (Liste `marken/boehringer-ingelheim/icons.txt`, oder
-   `bippt icons <englischer Begriff>`) und in eine JSON-Datei schreiben: `{"ccf86a": "bar-chart-trend-up", "581412": "people"}`. Gleiche
-   Icons haben denselben Schlüssel. Soll dasselbe Icon auf einer Folie anders sein: `{"2": {"7": "clock"}}`. Dann erneut mit
-   `--icons icons.json`. Fertig bei „0 nur umgefärbt“. Häkchen und Punkte vor Listen zählen nicht.
+1. `bippt umwandeln marke fremd.pptx -o ziel.pptx`. Bekannte Icon-Formen des Designers tauscht bippt selbst (`tools/bippt/designer_icons.py`). Nur unbekannte stehen
+   unter OFFENE ICONS, mit Schlüssel und Text daneben; `<Ziel>_icons_offen.png` zeigt die Formen. Keine offenen: weiter mit Schritt 3.
+2. Je Schlüssel nach der Form ein Brand-Icon wählen, das sie zeigt (Liste `marken/boehringer-ingelheim/icons.txt`, oder `bippt icons <englischer Begriff>`), und in eine
+   JSON-Datei schreiben: `{"ccf86a": "bar-chart-trend-up"}`. Soll dasselbe Icon auf einer Folie anders sein: `{"2": {"7": "clock"}}`. Dann erneut mit `--icons icons.json`.
+   Fertig bei „0 nur umgefärbt“ und ohne Warnung „Einförmig“. Häkchen und Punkte vor Listen zählen nicht. Neue Formen gehören danach in die Tabelle.
 3. `bippt pruefen` und `bippt sichten`. Überlappung und Überstand beheben. Leere nur nennen: Die Gestaltung stammt vom Designer.
 4. Inhalt nicht ändern und nicht kürzen. Fotos färbt bippt nicht um; es meldet sie.
 

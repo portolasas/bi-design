@@ -833,6 +833,18 @@ with tempfile.TemporaryDirectory() as td:
     untertitel = pz.slides[0].placeholders[1].text_frame
     fall("Titelfolie: Untertitel plus eine Zeile, nichts verloren", len(untertitel.paragraphs) == 2 and "2026" in untertitel.text and "Stand 2025" in untertitel.text, untertitel.text)
 
+print("Icon-Tabelle des Designers")
+from bippt.designer_icons import GLYPHEN  # noqa: E402
+namen = set((PLUGIN / "skills" / "bi-designer" / "marken" / "boehringer-ingelheim" / "icons.txt").read_text(encoding="utf-8").split())
+fall("Tabelle: jedes Ziel ist ein Brand-Icon", not [v for v in GLYPHEN.values() if v not in namen], str([v for v in GLYPHEN.values() if v not in namen]))
+svg_a = b'<svg xmlns="x" viewBox="0 0 448 512" style="color: red !important"><path d="M1 2L3 4"/></svg>'
+svg_b = b'<svg viewBox="0 0 448 512" style="color: blue"><path fill="#fff" d="M1 2L3 4"/></svg>'
+fall("Brand-Icon mit Leerzeichen im Dateinamen wird gefunden", not (PLUGIN.parent.parent / "BrandDesign").is_dir() or Marke().icon_pfad("heart-wave", "white") is not None)
+fall("Schlüssel hängt nur an viewBox und Pfad", designer._svg_schluessel(svg_a) == designer._svg_schluessel(svg_b) != designer._svg_schluessel(svg_a.replace(b"M1", b"M9")))
+fall("Zuordnung des Agenten geht vor der Tabelle", designer._icon_name({"8d54b877": "atom"}, "8d54b877", "x", 2, "5") == ("atom", "agent")
+     and designer._icon_name({}, "8d54b877", "x", 2, "5") == ("glass-flask", "tabelle") and designer._icon_name({}, "unbekannt", "x", 2, "5") == (None, None)
+     and designer._icon_name({"2": {"5": "star"}}, "8d54b877", "x", 2, "5") == ("star", "agent"))
+
 deck = Path(__file__).resolve().parents[2] / "Agents" / "bi-ppt" / "testergebnisse" / "Unternehmensdeck_Designer_Referenz.pptx"
 if deck.is_file():
     print("Referenzdeck aus der Erstellen-Funktion von Copilot")
@@ -841,6 +853,7 @@ if deck.is_file():
         bef = pruefen.pruefen(ziel, woerter=400)
         fall("Referenzdeck: keine FEHLER in pruefen", not [b_ for b_ in bef if b_[0] == "FEHLER"], str([b_ for b_ in bef if b_[0] == "FEHLER"][:3]))
         fall("Referenzdeck: nichts ragt über den Folienrand", not [b_ for b_ in bef if "ragt über den Folienrand" in b_[2]], str([b_ for b_ in bef if "Folienrand" in b_[2]][:3]))
+        fall("Referenzdeck: alle Icons aus der Tabelle, keines offen", not erg["offen"] and erg["getauscht"] == 93, str(erg["getauscht"]) + str(list(erg["offen"])[:5]))
         fall("Referenzdeck: vier Fotos bleiben", len(erg["bilder"]) == 4, str(erg["bilder"]))
         fremd = {"003366", "00A8A8", "FF6B35", "5B9BD5"}
         reste = fremd & {x.get("val").upper() for s in Presentation(str(ziel)).slides for x in s._element.iter(qn("a:srgbClr"))}

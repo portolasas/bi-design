@@ -136,13 +136,17 @@ class Marke:
         return [self.farben[n] for n in self.rollen.get("chartSequence", []) if n in self.farben]
 
     def icon_pfad(self, name, variante="darkgreen"):
-        if self.asset_root:
-            muster = self.assets.get("icons", "Icons_<v>/<name>.png")
-            rel = muster.split("<")[0] + variante + "/" + name + ".png"  # "Icons_" + variante + "/" + name
-            p = self.asset_root / rel
-            if p.is_file():
+        for n in (name, name + " "):  # im Icon-Paket der Marke heißt eine Datei „heart-wave .png“
+            if self.asset_root:
+                muster = self.assets.get("icons", "Icons_<v>/<name>.png")
+                rel = muster.split("<")[0] + variante + "/" + n + ".png"  # "Icons_" + variante + "/" + name
+                p = self.asset_root / rel
+                if p.is_file():
+                    return p
+            p = _aus_paket(n, variante)
+            if p:
                 return p
-        return _aus_paket(name, variante)
+        return None
 
     def icon_suchen(self, *begriffe):
         b = [x.lower() for x in begriffe]

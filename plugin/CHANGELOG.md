@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.11.0 – 2026-10-30
+Das Unternehmensdeck, in Copilot mit Agent 1.5.0 gebaut: Der Text war identisch zum Lauf auf dem Mac, der Generator verhält sich dort also gleich. Schwach waren die Icons: 18 verschiedene für 82 Formen (Zielscheibe für alle fünf Verhaltensweisen, Globus statt Pokal, Tablette statt Lunge).
+- **Icons fest statt geraten:** `designer_icons.py` ordnet 71 Icon-Formen der Erstellen-Funktion ihr Brand-Icon zu, erkannt am SVG-Pfad, unabhängig von Farbe und Größe. So bleibt die Bedeutung des Designers erhalten. Eine Zuordnung des Agenten geht vor.
+- **Unbekannte Formen:** Der Bericht nennt sie und schreibt ein Bild aller offenen Formen (`<Ziel>_icons_offen.png`).
+- **Warnung:** Steht ein Brand-Icon für vier oder mehr verschiedene Formen, meldet `umwandeln marke` Einförmigkeit.
+- **Fehler:** Acht Brand-Icons (`heart-wave`, `ship`, `taxi`, `tent`, `caravan`, `helicopter`, `rickshaw`, `shredder`) ließen sich nicht einsetzen, weil ihre Dateinamen ein Leerzeichen vor `.png` tragen.
+
 ## 2.10.0 – 2026-10-30
 Sandbox-Probe 2 im Copilot Agent Builder: LibreOffice 25.2 rendert, `bippt sichten` läuft (27 s bei 15 Folien), der Agent las einen Zufallscode vom Bild. Es gibt kein Chromium. Gerendert wurde mit DejaVu statt Boehringer.
 - **Schrift im Render:** Fehlen die Boehringer-Schriften, nimmt LibreOffice jetzt Liberation Sans (4 % schmaler) statt DejaVu (gut 10 % breiter). Es kommen keine Schriftdateien ins Paket. Mit Liberation Sans zählen Überlappung und Überstand wieder als Befund.
