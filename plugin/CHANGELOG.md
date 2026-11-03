@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.12.0 – 2026-11-03
+Für Handbücher aus ppp (`ppp guide`) fehlte eine Word-Vorlage; Projekte bauten sie selbst nach dem Rezept, und dabei blieben die Themenschriften der Standardvorlage stehen.
+- **Word-Vorlage** `vorlagen/BI_Vorlage_Handbuch.docx`: Stile nach dem Word-Rezept (Überschriften Dark Green in Boehringer Forward Head, Text 11 pt, Bildunterschrift Gray 7, Tabellenrahmen Warm Gray), A4 quer für Bildschirmfotos, Logo Dark Green oben rechts, Fußzeile `<Titel> | ONLY FOR INTERNAL USE | <Seite>`.
+- **`bippt wordvorlage <BrandDesign> -o <docx>`** baut sie neu.
+- **Fehler im Rezept:** python-docx lässt Themenschriften (`asciiTheme`) stehen, die Word vor dem Schriftnamen nimmt; Überschriften erschienen in Calibri. `office.md` nennt das, die Vorlage hat keine.
+
 ## 2.11.0 – 2026-10-30
 Das Unternehmensdeck, in Copilot mit Agent 1.5.0 gebaut: Der Text war identisch zum Lauf auf dem Mac, der Generator verhält sich dort also gleich. Schwach waren die Icons: 18 verschiedene für 82 Formen (Zielscheibe für alle fünf Verhaltensweisen, Globus statt Pokal, Tablette statt Lunge).
 - **Icons fest statt geraten:** `designer_icons.py` ordnet 71 Icon-Formen der Erstellen-Funktion ihr Brand-Icon zu, erkannt am SVG-Pfad, unabhängig von Farbe und Größe. So bleibt die Bedeutung des Designers erhalten. Eine Zuordnung des Agenten geht vor.

@@ -16,6 +16,7 @@ Befehle
   katalog [pptx] --folien n,m [-o md]   Formen der Folienbibliothek zum Füllen (id, Art, Lage, Platz, Beispieltext)
   layouts                      Layouts des Masters mit ihren Feldern (Typ layout)
   iconpaket <BrandDesign> -o <json>   alle Icons in eine Datei packen (Skill-Paket für Copilot)
+  wordvorlage <BrandDesign> -o <docx> Word-Vorlage im BI-Design (Stile, A4 quer, Logo, Fußzeile) für Handbücher
   bauen <spec.json> [-o pptx] [--erzwingen]   Präsentation bauen, dazu die Folienbeschreibung <ausgabe>.md; bricht ab,
                                wenn das Deck nach dem letzten Bau geändert wurde (--erzwingen: trotzdem überschreiben)
   beschreiben <pptx> [-o md|-] Folienbeschreibung aus dem Deck (ohne Spec, z. B. fremdes oder von Hand geändertes Deck)
@@ -243,6 +244,12 @@ def _iconpaket(a):
     return 0
 
 
+def _wordvorlage(a):
+    from bippt.word import word_vorlage
+    print(f"WORDVORLAGE: {word_vorlage(a.ordner, a.o)}")
+    return 0
+
+
 def _bauen(a):
     from bippt.bauen import bauen
     _, w = bauen(a.spec, a.o, erzwingen=a.erzwingen)
@@ -324,6 +331,7 @@ def main(argv=None):
     p.set_defaults(fn=_katalog)
     sub.add_parser("layouts").set_defaults(fn=_layouts)
     p = sub.add_parser("iconpaket"); p.add_argument("ordner"); p.add_argument("-o", required=True); p.set_defaults(fn=_iconpaket)
+    p = sub.add_parser("wordvorlage"); p.add_argument("ordner"); p.add_argument("-o", required=True); p.set_defaults(fn=_wordvorlage)
     p = sub.add_parser("bauen"); p.add_argument("spec"); p.add_argument("-o")
     p.add_argument("--erzwingen", action="store_true", help="auch ein nach dem Bau geändertes Deck überschreiben")
     p.set_defaults(fn=_bauen)

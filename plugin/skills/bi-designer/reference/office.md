@@ -47,6 +47,13 @@ for i, s in enumerate(chart.plots[0].series):
 ```
 
 ## 3. Word (python-docx) [D]
+- Template for handbooks, guides and other generated documents: [BI_Vorlage_Handbuch.docx](../../../vorlagen/BI_Vorlage_Handbuch.docx)
+  – the styles below, A4 landscape so that screenshots stay legible, logo Dark Green top right, footer
+  `<title> | ONLY FOR INTERNAL USE | <page>` (the title from the Title style). Open it with `Document(<template>)` and
+  only fill content; a ppp project copies it to `docs/handbook/template.docx` for `ppp guide --template`.
+  `bippt wordvorlage <BrandDesign> -o plugin/vorlagen/BI_Vorlage_Handbuch.docx` builds it anew.
+- python-docx's default template gives headings and body theme fonts (`asciiTheme`), which Word takes before the font
+  name: remove them, as `bippt wordvorlage` does, or Calibri shows instead of Boehringer Forward.
 - Headings Dark Green (H1 22 pt, H2 18 pt, H3 14 pt), body Black 11 pt, links Dark Blue.
 - Tables: header row Dark Green fill + White bold text, body rows alternate White/Light Gray, borders Warm Gray.
 - Info boxes: Light Gray fill; warnings Medium Yellow fill with Dark Green text.

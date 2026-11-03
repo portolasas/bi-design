@@ -49,7 +49,23 @@ class Aufbau(unittest.TestCase):
         for agent in (PLUGIN / "com.github.copilot" / "agents" / "bi-ppt.agent.md", PLUGIN / "agents" / "bi-ppt.md"):
             self.assertEqual(frontmatter(agent).get("name", "").strip(), "bi-ppt", agent)
         self.assertTrue((PLUGIN / "vorlagen" / "BI_Vorlage_16x9.pptx").is_file())
+        self.assertTrue((PLUGIN / "vorlagen" / "BI_Vorlage_Handbuch.docx").is_file())
         self.assertTrue((PLUGIN / "skills" / "bi-designer" / "marken" / "boehringer-ingelheim" / "tokens.json").is_file())
+
+    def test_word_vorlage(self):
+        import zipfile
+        with zipfile.ZipFile(PLUGIN / "vorlagen" / "BI_Vorlage_Handbuch.docx") as z:
+            stile = z.read("word/styles.xml").decode("utf-8")
+            fuss = "".join(z.read(n).decode("utf-8") for n in z.namelist() if n.startswith("word/footer"))
+            kopf = [n for n in z.namelist() if n.startswith("word/media/")]
+            dokument = z.read("word/document.xml").decode("utf-8")
+        self.assertNotRegex(stile, r"(ascii|hAnsi)Theme=", "Word nähme die Themenschrift statt Boehringer Forward")
+        self.assertIn("Boehringer Forward Head", stile)
+        self.assertIn("ONLY FOR INTERNAL USE", fuss)
+        self.assertIn('STYLEREF', fuss)
+        self.assertEqual(len(kopf), 1, "Logo im Kopf")
+        self.assertIn('w:orient="landscape"', dokument)
+        self.assertNotIn("<w:p>", dokument.split("<w:body>")[1].split("<w:sectPr")[0], "die Vorlage hat keinen Inhalt")
 
     def test_keine_alten_wege(self):
         erlaubt = {PLUGIN / "tools" / "bippt.py", PLUGIN / "tools" / "bippt" / "konfig.py",
