@@ -72,7 +72,7 @@ def word_vorlage(brand_ordner, ziel) -> Path:
     kopf.alignment = WD_ALIGN_PARAGRAPH.RIGHT
     kopf.add_run().add_picture(str(logo), height=Cm(1.0))
     fuss = seite.footer.paragraphs[0]
-    _feld(fuss, 'STYLEREF "Title"')  # Titel des Dokuments, wie im BI-Master: <Titel> | ONLY FOR INTERNAL USE
+    _feld(fuss, "TITLE")  # Titel aus den Dokumenteigenschaften: STYLEREF "Title" fand das deutsche Word nicht (ppp GEN-20261104-WIN-02)
     fuss.add_run(" | ONLY FOR INTERNAL USE | ")
     _feld(fuss, "PAGE")
     for r in fuss.runs:

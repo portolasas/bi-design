@@ -49,7 +49,8 @@ for i, s in enumerate(chart.plots[0].series):
 ## 3. Word (python-docx) [D]
 - Template for handbooks, guides and other generated documents: [BI_Vorlage_Handbuch.docx](../../../vorlagen/BI_Vorlage_Handbuch.docx)
   – the styles below, A4 landscape so that screenshots stay legible, logo Dark Green top right, footer
-  `<title> | ONLY FOR INTERNAL USE | <page>` (the title from the Title style). Open it with `Document(<template>)` and
+  `<title> | ONLY FOR INTERNAL USE | <page>`, the title from the field `TITLE`: set `core_properties.title`. German Word
+  found no style "Title" behind `STYLEREF "Title"` and printed an error in the footer. Open it with `Document(<template>)` and
   only fill content; a ppp project copies it to `docs/handbook/template.docx` for `ppp guide --template`.
   `bippt wordvorlage <BrandDesign> -o plugin/vorlagen/BI_Vorlage_Handbuch.docx` builds it anew.
 - python-docx's default template gives headings and body theme fonts (`asciiTheme`), which Word takes before the font

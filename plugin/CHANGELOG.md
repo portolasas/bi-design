@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.12.1 – 2026-11-04
+Im deutschen Word zeigte die Fußzeile eines Handbuchs nach F9 „Fehler! Verwenden Sie die Registerkarte 'Start', um Title dem Text zuzuweisen …“: Hinter `STYLEREF "Title"` suchte Word die Formatvorlage „Titel“.
+- **Word-Vorlage:** Die Fußzeile nimmt den Titel aus dem Feld `TITLE` (Dokumenteigenschaft), unabhängig von der Sprache von Word; `office.md` nennt `core_properties.title`. ppp 0.12.0 setzt die Eigenschaft beim Bau.
 ## 2.12.0 – 2026-11-03
 Für Handbücher aus ppp (`ppp guide`) fehlte eine Word-Vorlage; Projekte bauten sie selbst nach dem Rezept, und dabei blieben die Themenschriften der Standardvorlage stehen.
 - **Word-Vorlage** `vorlagen/BI_Vorlage_Handbuch.docx`: Stile nach dem Word-Rezept (Überschriften Dark Green in Boehringer Forward Head, Text 11 pt, Bildunterschrift Gray 7, Tabellenrahmen Warm Gray), A4 quer für Bildschirmfotos, Logo Dark Green oben rechts, Fußzeile `<Titel> | ONLY FOR INTERNAL USE | <Seite>`.
