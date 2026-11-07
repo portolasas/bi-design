@@ -12,7 +12,12 @@ import unittest
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[1]
-PLUGIN = REPO / "plugin"
+PLUGIN = REPO  # das ganze Repo ist das Plugin: „Install Plugin from Source“ in VS Code liest nur die Wurzel (2.13.0)
+NICHT_PLUGIN = {".git", ".git.nosync", "tests"}
+
+
+def plugin_dateien():
+    return (p for p in PLUGIN.rglob("*") if p.is_file() and p.relative_to(PLUGIN).parts[0] not in NICHT_PLUGIN)
 
 
 def frontmatter(datei):
@@ -38,6 +43,13 @@ class Aufbau(unittest.TestCase):
         name = json.loads((PLUGIN / "plugin.json").read_text(encoding="utf-8"))["name"]
         self.assertEqual([p["name"] for p in m["plugins"]], [name])
         self.assertEqual((REPO / m["plugins"][0]["source"]).resolve(), PLUGIN)
+
+    def test_aus_der_quelle_installierbar(self):
+        # VS Code sucht in .plugin/, ./, .github/plugin/ und .claude-plugin/ der Wurzel, nie in einem Unterordner
+        vscode = json.loads((REPO / "plugin.json").read_text(encoding="utf-8"))
+        self.assertIn("agent-plugins.org/schemas/1.0.0", vscode["$schema"])
+        self.assertTrue((REPO / ".claude-plugin" / "plugin.json").is_file())
+        self.assertFalse((REPO / "plugin").exists(), "ein zweiter Plugin-Ordner hieße zwei Stände")
 
     def test_skills_und_agenten(self):
         for skill in sorted((PLUGIN / "skills").iterdir()):
@@ -70,8 +82,9 @@ class Aufbau(unittest.TestCase):
 
     def test_keine_alten_wege(self):
         erlaubt = {PLUGIN / "tools" / "bippt.py", PLUGIN / "tools" / "bippt" / "konfig.py",
-                   PLUGIN / "skills" / "bi-ppt" / "reference" / "installation.md", PLUGIN / "CHANGELOG.md"}
-        for datei in PLUGIN.rglob("*"):
+                   PLUGIN / "skills" / "bi-ppt" / "reference" / "installation.md", PLUGIN / "CHANGELOG.md",
+                   PLUGIN / "README.md"}  # README und installation.md nennen die alten Kopien, die aufraeumen löscht
+        for datei in plugin_dateien():
             if datei.suffix in (".md", ".py", ".json") and datei not in erlaubt:
                 text = datei.read_text(encoding="utf-8")
                 for alt in ("~/.bi-ppt", ".bi-ppt/", "bi-ppt-update", "ppp-update", ".ppp/PROJEKT"):

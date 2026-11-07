@@ -146,7 +146,7 @@ Kein Renderweg? Dann nur `pruefen` und das im Abschluss sagen.
 
 ## 7. Erweitern
 Nur im Repo `portolasas/bi-design`, nie in der installierten Kopie. Neuer Folientyp: Funktion mit `@folientyp("name")` in
-`plugin/tools/bippt/folien.py` (Bausteine aus `bausteine.py`), Inhalt und Gestaltung für die Folienbeschreibung in
+`tools/bippt/folien.py` (Bausteine aus `bausteine.py`), Inhalt und Gestaltung für die Folienbeschreibung in
 `beschreiben.py`, Doku-Zeile in `reference/folientypen.md`, Beispiel in
 `beispiele/beispiel.spec.json`, Tests grün, Version in beiden Manifesten + CHANGELOG erhöhen, Commit direkt nach `main`.
 Neue Marke: Profil in bi-designer + eigene Vorlage (`bippt vorlage <deck> -o …`).

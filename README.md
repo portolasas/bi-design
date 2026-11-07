@@ -19,14 +19,17 @@ Verbindlich ist der **BI-Master v2.1** (How-to slides): nur seine Designfarben u
 ## Kurzanleitung
 
 ### 1. Installieren
-**VS Code.** Ohne JSON und ohne Installationsskript:
-1. Marktplatz eintragen: Einstellungen öffnen, nach `chat.plugins.marketplaces` suchen, „Element hinzufügen“ und
-   `portolasas/bi-design` eingeben (für ppp `portolasas/ppp-plugin`). Oder in der Agents-Ansicht: Customizations ›
-   Browse › Configure Marketplaces › Add Marketplace. Das Repo ist privat: In VS Code mit einem GitHub-Konto
-   angemeldet sein, das Lesezugriff hat.
-2. **bi-design** aus dem Marktplatz installieren (Customizations › Browse oder Erweiterungen-Ansicht unter Agent
-   Plugins) und die Vertrauensabfrage bestätigen.
-3. „Developer: Reload Window“.
+**VS Code.** Ohne JSON und ohne Installationsskript. Das Repo ist privat: In VS Code mit einem GitHub-Konto
+angemeldet sein, das Lesezugriff hat. Das Plugin liegt seit 2.13.0 im Wurzelverzeichnis des Repos, darum gehen beide Wege:
+- **Direkt:** Befehl „Chat: Install Plugin from Source“ (oder Agents-Ansicht › Customizations › Install from Source),
+  `https://github.com/portolasas/bi-design` eingeben, die Vertrauensabfrage bestätigen.
+- **Über den Marktplatz**, der neue Versionen selbst holt: Einstellungen öffnen, nach `chat.plugins.marketplaces`
+  suchen, „Element hinzufügen“ und `portolasas/bi-design` eingeben (für ppp `portolasas/ppp-plugin`), oder in der
+  Agents-Ansicht: Customizations › Browse › Configure Marketplaces › Add Marketplace. Dann **bi-design** aus dem
+  Marktplatz installieren (Customizations › Browse oder Erweiterungen-Ansicht unter Agent Plugins) und die
+  Vertrauensabfrage bestätigen.
+
+Danach „Developer: Reload Window“.
 
 Erscheint das Plugin nicht, prüfen, ob Agent Plugins eingeschaltet sind (`chat.plugins.enabled`).
 
@@ -66,36 +69,38 @@ VS Code holt neue Versionen selbst (bei `extensions.autoUpdate` etwa alle 24 Stu
 /plugin uninstall bi-design@bi-design
 /plugin install bi-design@bi-design
 ```
-Was sich geändert hat: [plugin/CHANGELOG.md](plugin/CHANGELOG.md).
+Was sich geändert hat: [CHANGELOG.md](CHANGELOG.md).
 
 ## Aufbau
 | Pfad | Inhalt |
 |---|---|
-| `.claude-plugin/marketplace.json` | Marktplatz `bi-design` mit dem Plugin aus `plugin/` |
-| `plugin/plugin.json`, `plugin/.claude-plugin/plugin.json` | Manifeste für VS Code bzw. Claude Code (Aufbau A wie ppp) |
-| `plugin/com.github.copilot/agents/bi-ppt.agent.md` | Agent für VS Code |
-| `plugin/agents/bi-ppt.md` | Subagent für Claude Code |
-| `plugin/skills/bi-designer/` | Markenregeln (`marken/<profil>/MARKE.md`, `tokens.json`, `icons.txt`), Rezepte je Medium |
-| `plugin/skills/bi-inhalt/` | Inhalt im Dialog, Briefing |
-| `plugin/skills/bi-ppt/` | Arbeitsweise, Rückfragen, Folientypen, Umwandeln, Beispiel-Spec |
-| `plugin/tools/` | Generator `bippt` und `requirements.txt` |
-| `plugin/vorlagen/BI_Vorlage_16x9.pptx` | Arbeitsvorlage aus dem BI-Master v2.1 (ohne Folien, ohne doppelte Layouts) |
-| `plugin/vorlagen/BI_Slide_Library.pptx` | offizielle BI Slide Library 3.3 (September 2026), Quelle der Bibliotheksfolien; Übersicht in `plugin/skills/bi-ppt/reference/bibliothek.md` |
-| `vorlagen/How-to slides.pptx` | Original des BI-Masters, Quelle für `bippt vorlage`; wird nicht installiert |
-| Repo `portolasas/Agents`, Ordner `bi-ppt` | Agent bi-ppt für den Microsoft 365 Copilot Agent Builder; sein Bauskript packt Generator, Vorlage und Marke aus `plugin/` in Skill-Pakete |
+| `plugin.json`, `.claude-plugin/plugin.json` | Manifeste für VS Code bzw. Claude Code (Aufbau A wie ppp); das Plugin ist das ganze Repo, darum findet „Install Plugin from Source“ es |
+| `.claude-plugin/marketplace.json` | Marktplatz `bi-design` mit dem Plugin aus dem Wurzelverzeichnis (`source: ./`, wie `ppp-plugin`) |
+| `com.github.copilot/agents/bi-ppt.agent.md` | Agent für VS Code |
+| `agents/bi-ppt.md` | Subagent für Claude Code |
+| `skills/bi-designer/` | Markenregeln (`marken/<profil>/MARKE.md`, `tokens.json`, `icons.txt`), Rezepte je Medium |
+| `skills/bi-inhalt/` | Inhalt im Dialog, Briefing |
+| `skills/bi-ppt/` | Arbeitsweise, Rückfragen, Folientypen, Umwandeln, Beispiel-Spec |
+| `tools/` | Generator `bippt` und `requirements.txt` |
+| `vorlagen/BI_Vorlage_16x9.pptx` | Arbeitsvorlage aus dem BI-Master v2.1 (ohne Folien, ohne doppelte Layouts) |
+| `vorlagen/BI_Slide_Library.pptx` | offizielle BI Slide Library 3.3 (September 2026), Quelle der Bibliotheksfolien; Übersicht in `skills/bi-ppt/reference/bibliothek.md` |
+| `vorlagen/BI_Vorlage_Handbuch.docx` | Word-Vorlage für Handbücher (`bippt wordvorlage`) |
+| `vorlagen/How-to slides.pptx` | Original des BI-Masters, Quelle für `bippt vorlage`; wird seit 2.13.0 mitinstalliert (1,4 MB) |
+| Repo `portolasas/Agents`, Ordner `bi-ppt` | Agent bi-ppt für den Microsoft 365 Copilot Agent Builder; sein Bauskript packt Generator, Vorlage und Marke aus diesem Repo in Skill-Pakete |
 | `tests/` | `test_plugin.py` (Aufbau, Version, Aufräumen; nur Standardbibliothek), `test_bippt.py` (Generator) |
 
 Einstellungen je Rechner: `~/.bi-design/config.json` (`asset_root`, `vorlage`, `vertraulichkeit`, `marke`, `render_dir`).
 
 ## Entwickeln
-- Tests: `python3 -I tests/test_plugin.py` und `python3 tests/test_bippt.py` (Python mit den Paketen aus `plugin/tools/requirements.txt`).
-- Jede Änderung, die nach `main` geht, erhöht die Version in beiden Manifesten und bekommt einen Eintrag in `plugin/CHANGELOG.md`; nur so holen VS Code und Claude Code die neue Fassung. `test_plugin.py` prüft den Gleichstand.
-- Neuer Folientyp: `plugin/tools/bippt/folien.py` (`@folientyp`), Doku in `plugin/skills/bi-ppt/reference/folientypen.md`, Beispiel in `plugin/skills/bi-ppt/beispiele/beispiel.spec.json`.
-- Folienbeschreibung und Baustand: `plugin/tools/bippt/beschreiben.py`. Neuer Folientyp: auch Inhalt (`INHALT`) und
+- Tests: `python3 -I tests/test_plugin.py` und `python3 tests/test_bippt.py` (Python mit den Paketen aus `tools/requirements.txt`).
+- Jede Änderung, die nach `main` geht, erhöht die Version in beiden Manifesten und bekommt einen Eintrag in `CHANGELOG.md`; nur so holen VS Code und Claude Code die neue Fassung. `test_plugin.py` prüft den Gleichstand.
+- Neuer Folientyp: `tools/bippt/folien.py` (`@folientyp`), Doku in `skills/bi-ppt/reference/folientypen.md`, Beispiel in `skills/bi-ppt/beispiele/beispiel.spec.json`.
+- Folienbeschreibung und Baustand: `tools/bippt/beschreiben.py`. Neuer Folientyp: auch Inhalt (`INHALT`) und
   Gestaltung (`_art`) dort ergänzen.
-- Textmaße: `text_breite` und `umbrechen` in `plugin/tools/bippt/bausteine.py` (Zeichenbreiten von Boehringer Forward,
+- Textmaße: `text_breite` und `umbrechen` in `tools/bippt/bausteine.py` (Zeichenbreiten von Boehringer Forward,
   Umbruch wie PowerPoint); `text(…, breite=w)` meldet zu breite Wörter, `vorlage.titel_pruefen` zu lange Titel.
-- Formen einer Folie immer über `formen.alle()` durchgehen (`plugin/tools/bippt/formen.py`): Fremde Decks enthalten Formen,
-  bei denen python-pptx abbricht. Änderungen an bestehenden Folien gehören nach `plugin/tools/bippt/aendern.py`.
-- Neue Marke: Profil in `plugin/skills/bi-designer/marken/<profil>/` und eigene Vorlage (`bippt vorlage <deck> -o …`).
+- Formen einer Folie immer über `formen.alle()` durchgehen (`tools/bippt/formen.py`): Fremde Decks enthalten Formen,
+  bei denen python-pptx abbricht. Änderungen an bestehenden Folien gehören nach `tools/bippt/aendern.py`.
+- Neue Marke: Profil in `skills/bi-designer/marken/<profil>/` und eigene Vorlage (`bippt vorlage <deck> -o …`).
+- Das Plugin ist das ganze Repo: Was eingecheckt ist, landet auf jedem Rechner, der bi-design installiert.
 - Keine Projekt- oder Personendaten und keine Schriftdateien ins Repo. Referenz-Präsentationen und Chats zum Anlernen liegen lokal außerhalb von Git.

@@ -52,7 +52,7 @@ for i, s in enumerate(chart.plots[0].series):
   `<title> | ONLY FOR INTERNAL USE | <page>`, the title from the field `TITLE`: set `core_properties.title`. German Word
   found no style "Title" behind `STYLEREF "Title"` and printed an error in the footer. Open it with `Document(<template>)` and
   only fill content; a ppp project copies it to `docs/handbook/template.docx` for `ppp guide --template`.
-  `bippt wordvorlage <BrandDesign> -o plugin/vorlagen/BI_Vorlage_Handbuch.docx` builds it anew.
+  `bippt wordvorlage <BrandDesign> -o vorlagen/BI_Vorlage_Handbuch.docx` builds it anew.
 - python-docx's default template gives headings and body theme fonts (`asciiTheme`), which Word takes before the font
   name: remove them, as `bippt wordvorlage` does, or Calibri shows instead of Boehringer Forward.
 - Headings Dark Green (H1 22 pt, H2 18 pt, H3 14 pt), body Black 11 pt, links Dark Blue.

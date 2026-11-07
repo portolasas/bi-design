@@ -1,4 +1,4 @@
-"""Selbsttest bippt: python3 tests/test_bippt.py  (Python mit den Paketen aus plugin/tools/requirements.txt)
+"""Selbsttest bippt: python3 tests/test_bippt.py  (Python mit den Paketen aus tools/requirements.txt)
 Baut das Beispiel, prüft Struktur und Brand-Regeln, testet Basis-Modus, Analyse, Umwandeln (entwurf/stil).
 Erwartet: ALLE FÄLLE BESTANDEN
 """
@@ -8,7 +8,7 @@ import sys
 import tempfile
 from pathlib import Path
 
-PLUGIN = Path(__file__).resolve().parents[1] / "plugin"
+PLUGIN = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PLUGIN / "tools"))
 import os  # noqa: E402
 
@@ -839,7 +839,7 @@ namen = set((PLUGIN / "skills" / "bi-designer" / "marken" / "boehringer-ingelhei
 fall("Tabelle: jedes Ziel ist ein Brand-Icon", not [v for v in GLYPHEN.values() if v not in namen], str([v for v in GLYPHEN.values() if v not in namen]))
 svg_a = b'<svg xmlns="x" viewBox="0 0 448 512" style="color: red !important"><path d="M1 2L3 4"/></svg>'
 svg_b = b'<svg viewBox="0 0 448 512" style="color: blue"><path fill="#fff" d="M1 2L3 4"/></svg>'
-fall("Brand-Icon mit Leerzeichen im Dateinamen wird gefunden", not (PLUGIN.parent.parent / "BrandDesign").is_dir() or Marke().icon_pfad("heart-wave", "white") is not None)
+fall("Brand-Icon mit Leerzeichen im Dateinamen wird gefunden", not (PLUGIN.parent / "BrandDesign").is_dir() or Marke().icon_pfad("heart-wave", "white") is not None)
 fall("Schlüssel hängt nur an viewBox und Pfad", designer._svg_schluessel(svg_a) == designer._svg_schluessel(svg_b) != designer._svg_schluessel(svg_a.replace(b"M1", b"M9")))
 fall("Zuordnung des Agenten geht vor der Tabelle", designer._icon_name({"8d54b877": "atom"}, "8d54b877", "x", 2, "5") == ("atom", "agent")
      and designer._icon_name({}, "8d54b877", "x", 2, "5") == ("glass-flask", "tabelle") and designer._icon_name({}, "unbekannt", "x", 2, "5") == (None, None)

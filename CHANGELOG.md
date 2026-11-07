@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.13.0 – 2026-11-07
+In VS Code scheiterte „Install Plugin from Source“ mit `https://github.com/portolasas/bi-design`: „No plugin.json found in repository“. VS Code sucht das Manifest im Wurzelverzeichnis, das Plugin lag aber in `plugin/`; nur der Weg über den Marktplatz fand es.
+- **Plugin im Wurzelverzeichnis:** Manifeste, Agenten, Skills, `tools/` und `vorlagen/` liegen jetzt oben im Repo, wie bei `ppp-plugin`. Der Marktplatz verweist mit `source: ./` darauf. Beide Wege funktionieren: direkt aus der Quelle und über den Marktplatz.
+- **Mitinstalliert:** `tests/` und `vorlagen/How-to slides.pptx` (1,4 MB), weil VS Code das ganze Repo klont.
+- **Pfade:** Das Bauskript in `portolasas/Agents` und ppp finden bippt in beiden Aufbauten.
+
 ## 2.12.1 – 2026-11-04
 Im deutschen Word zeigte die Fußzeile eines Handbuchs nach F9 „Fehler! Verwenden Sie die Registerkarte 'Start', um Title dem Text zuzuweisen …“: Hinter `STYLEREF "Title"` suchte Word die Formatvorlage „Titel“.
 - **Word-Vorlage:** Die Fußzeile nimmt den Titel aus dem Feld `TITLE` (Dokumenteigenschaft), unabhängig von der Sprache von Word; `office.md` nennt `core_properties.title`. ppp 0.12.0 setzt die Eigenschaft beim Bau.
